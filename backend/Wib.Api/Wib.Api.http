@@ -1,0 +1,6 @@
+@Wib.Api_HostAddress = http://localhost:5195
+
+GET {{Wib.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
