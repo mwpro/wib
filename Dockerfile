@@ -20,7 +20,7 @@ RUN dotnet publish backend/Wib.Api/Wib.Api.csproj -c Release -o /app/publish /p:
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra AS final
 WORKDIR /app
 EXPOSE 8080
-ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 ENV TZ=Europe/Warsaw
 
