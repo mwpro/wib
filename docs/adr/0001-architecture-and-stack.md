@@ -8,7 +8,7 @@ We need a responsive, low-maintenance, resource-efficient platform for **wib** (
 
 ## Decision
 1. **Backend**: ASP.NET Core (.NET 10) REST API in C#.
-2. **Database & ORM**: Entity Framework Core with `Pomelo.EntityFrameworkCore.MySql` connecting to the external MySQL database hosted on Mikr.us. Automatic schema migrations will run at application startup.
+2. **Database & ORM**: Entity Framework Core with `Pomelo.EntityFrameworkCore.MySql` connecting to the MariaDB 12.3 database hosted on Mikr.us. Automatic schema migrations will run at application startup.
 3. **Frontend**: React 19 SPA with TypeScript, built with Vite, styled with Tailwind CSS and Radix UI primitives. Uses React Query for server-state caching and React Hook Form for validations.
 4. **Localization**: UI displayed in Polish; code, domain entities, and API contracts in English.
 5. **Authentication**: Auth0 JWT Bearer authentication. Just-In-Time (JIT) provisioning registers new `Member` records on first authenticated request. The API serves client configuration via `GET /api/config`.

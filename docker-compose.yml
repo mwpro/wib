@@ -1,0 +1,12 @@
+services:
+  mariadb:
+    image: mariadb:12.3
+    network_mode: host
+    environment:
+      MARIADB_ROOT_PASSWORD: secret
+      MARIADB_DATABASE: wib
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+volumes:
+  mariadb_data:

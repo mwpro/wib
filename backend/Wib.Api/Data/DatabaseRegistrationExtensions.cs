@@ -7,7 +7,7 @@ namespace Wib.Api.Data;
 
 public static class DatabaseRegistrationExtensions
 {
-    public static readonly ServerVersion DefaultServerVersion = ServerVersion.Parse("8.0.36-mysql");
+    public static readonly ServerVersion DefaultServerVersion = ServerVersion.Parse("12.3.2-mariadb");
 
     public static IServiceCollection AddWibDatabase(this IServiceCollection services, IConfiguration configuration)
     {
