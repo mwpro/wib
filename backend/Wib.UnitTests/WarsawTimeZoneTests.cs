@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Wib.Api.Common;
-using Xunit;
 
 namespace Wib.UnitTests;
 

@@ -1,8 +1,12 @@
+using Wib.Api.Auth;
+using Wib.Api.Common;
 using Wib.Api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.Configure<Auth0Options>(builder.Configuration.GetSection(Auth0Options.SectionName));
+builder.Services.AddWibAuthentication(builder.Configuration);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
@@ -19,7 +23,9 @@ if (app.Environment.IsDevelopment())
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+app.UseAuthentication();
 app.UseAuthorization();
+app.UseJitMemberProvisioning();
 
 app.MapControllers();
 
