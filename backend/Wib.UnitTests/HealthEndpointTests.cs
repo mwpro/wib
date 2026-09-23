@@ -44,11 +44,7 @@ public class HealthEndpointTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var content = await response.Content.ReadFromJsonAsync<HealthResponse>();
-        content.Should().NotBeNull();
-        content!.Status.Should().Be("Healthy");
-        content.TimeZone.Should().Be("Europe/Warsaw");
+        var content = await response.Content.ReadAsStringAsync();
+        content.Should().Be("Healthy");
     }
-
-    private sealed record HealthResponse(string Status, string TimeZone, DateTime UtcNow);
 }

@@ -1,4 +1,3 @@
-using Wib.Api.Common;
 using Wib.Api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,6 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddHealthChecks();
 builder.Services.AddWibDatabase(builder.Configuration);
 
 var app = builder.Build();
@@ -23,12 +23,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapGet("/api/health", () => Results.Ok(new
-{
-    status = "Healthy",
-    timeZone = WarsawTimeZone.TimeZoneId,
-    utcNow = DateTime.UtcNow
-}));
+app.MapHealthChecks("/api/health");
 
 app.MapFallbackToFile("index.html");
 

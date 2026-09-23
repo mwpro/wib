@@ -12,7 +12,7 @@ public static class DatabaseRegistrationExtensions
         IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection") 
-            ?? "Server=localhost;Port=3306;Database=wib;User=root;Password=secret;";
+            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
 
         services.AddDbContext<WibDbContext>(options =>
         {

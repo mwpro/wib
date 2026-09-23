@@ -33,6 +33,21 @@ public class DatabaseMigrationRunnerTests
     }
 
     [Fact]
+    public void AddWibDatabase_WhenConnectionStringIsMissing_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var configuration = new ConfigurationBuilder().Build();
+
+        // Act
+        var act = () => services.AddWibDatabase(configuration);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Connection string 'DefaultConnection' was not found.");
+    }
+
+    [Fact]
     public void DatabaseMigrator_WhenUsingInMemoryDatabase_ShouldNotThrow()
     {
         // Arrange
