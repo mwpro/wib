@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/Wib.Api/Wib.Api.csproj" />
+    <Project Path="backend/Wib.UnitTests/Wib.UnitTests.csproj" />
+  </Folder>
+</Solution>
