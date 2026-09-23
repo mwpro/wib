@@ -19,7 +19,7 @@ public class DatabaseMigrationRunnerTests
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:DefaultConnection"] = "Server=localhost;Database=wib;User=root;Password=secret;"
+                ["ConnectionStrings:DefaultConnection"] = "Server=localhost;Port=3306;Database=wib;User=root;Password=secret;"
             })
             .Build();
 

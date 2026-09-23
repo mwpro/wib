@@ -7,18 +7,20 @@ namespace Wib.Api.Data;
 
 public static class DatabaseRegistrationExtensions
 {
-    public static readonly ServerVersion DefaultServerVersion = ServerVersion.Parse("12.3.2-mariadb");
-
-    public static IServiceCollection AddWibDatabase(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddWibDatabase(
+        this IServiceCollection services, 
+        IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection") 
-            ?? "Server=localhost;Database=wib;User=root;Password=secret;";
+            ?? "Server=localhost;Port=3306;Database=wib;User=root;Password=secret;";
 
         services.AddDbContext<WibDbContext>(options =>
         {
+            var version = ServerVersion.AutoDetect(connectionString);
+
             options.UseMySql(
                 connectionString,
-                DefaultServerVersion,
+                version,
                 mysqlOptions =>
                 {
                     mysqlOptions.EnableRetryOnFailure(
