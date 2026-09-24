@@ -35,8 +35,8 @@ public class JwtBearerAuthenticationTests : IClassFixture<WebApplicationFactory<
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["Testing:BypassAuth"] = "false", // Real JWT Bearer mode!
-                    ["Auth0:Domain"] = "test-auth0.eu.auth0.com",
-                    ["Auth0:Audience"] = Audience
+                    ["JwtAuth:Authority"] = Issuer,
+                    ["JwtAuth:Audience"] = Audience
                 });
             });
 

@@ -25,9 +25,10 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WebApplicationFa
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["Testing:BypassAuth"] = "true",
-                    ["Auth0:Domain"] = "test.eu.auth0.com",
-                    ["Auth0:ClientId"] = "test-client",
-                    ["Auth0:Audience"] = "https://api.test"
+                    ["JwtAuth:Authority"] = "https://test.eu.auth0.com/",
+                    ["JwtAuth:Domain"] = "test.eu.auth0.com",
+                    ["JwtAuth:ClientId"] = "test-client",
+                    ["JwtAuth:Audience"] = "https://api.test"
                 });
             });
 

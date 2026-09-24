@@ -64,7 +64,7 @@ export function App() {
             onClick={() => login()}
             className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-2xl transition shadow-sm hover:shadow"
           >
-            Zaloguj się przez Auth0
+            Zaloguj się
           </button>
         </div>
       </div>

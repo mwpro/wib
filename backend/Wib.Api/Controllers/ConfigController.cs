@@ -5,19 +5,22 @@ using Wib.Api.Common;
 
 namespace Wib.Api.Controllers;
 
-public record Auth0ConfigDto(string Domain, string ClientId, string Audience);
-public record ClientConfigResponse(Auth0ConfigDto Auth0, bool IsTestMode);
+public record JwtAuthConfigDto(string Authority, string Domain, string ClientId, string Audience);
+public record ClientConfigResponse(JwtAuthConfigDto JwtAuth, bool IsTestMode)
+{
+    public JwtAuthConfigDto Auth0 => JwtAuth;
+}
 
 [ApiController]
 [Route("api/[controller]")]
 public class ConfigController : ControllerBase
 {
-    private readonly Auth0Options _auth0Options;
+    private readonly JwtAuthOptions _jwtAuthOptions;
     private readonly IConfiguration _configuration;
 
-    public ConfigController(IOptions<Auth0Options> auth0Options, IConfiguration configuration)
+    public ConfigController(IOptions<JwtAuthOptions> jwtAuthOptions, IConfiguration configuration)
     {
-        _auth0Options = auth0Options.Value;
+        _jwtAuthOptions = jwtAuthOptions.Value;
         _configuration = configuration;
     }
 
@@ -28,13 +31,16 @@ public class ConfigController : ControllerBase
         var isTestMode = _configuration.GetValue<bool>("Testing:BypassAuth") ||
                          _configuration.GetValue<bool>("Testing:IsTestMode");
 
-        return Ok(new ClientConfigResponse(
-            new Auth0ConfigDto(
-                _auth0Options.Domain,
-                _auth0Options.ClientId,
-                _auth0Options.Audience
-            ),
-            isTestMode
-        ));
+        var effectiveAuthority = _jwtAuthOptions.GetEffectiveAuthority();
+        var effectiveDomain = _jwtAuthOptions.GetEffectiveDomain();
+
+        var jwtDto = new JwtAuthConfigDto(
+            effectiveAuthority,
+            effectiveDomain,
+            _jwtAuthOptions.ClientId,
+            _jwtAuthOptions.Audience
+        );
+
+        return Ok(new ClientConfigResponse(jwtDto, isTestMode));
     }
 }

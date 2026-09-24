@@ -152,13 +152,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return <MockAuthProvider>{children}</MockAuthProvider>
   }
 
-  if (!config.auth0.domain || !config.auth0.clientId) {
+  const jwtAuth = config.jwtAuth || config.auth0
+  const domain = jwtAuth?.domain || (jwtAuth?.authority ? jwtAuth.authority.replace(/^https?:\/\//, '').replace(/\/$/, '') : '')
+  const clientId = jwtAuth?.clientId || ''
+  const audience = jwtAuth?.audience || undefined
+
+  if (!domain || !clientId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
         <div className="max-w-md w-full bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 rounded-2xl p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-amber-600 mb-2">Brak konfiguracji Auth0</h2>
+          <h2 className="text-lg font-bold text-amber-600 mb-2">Brak konfiguracji logowania (JwtAuth)</h2>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Aplikacja działa w trybie produkcyjnym, lecz Auth0 nie zostało skonfigurowane w backendzie.
+            Aplikacja działa w trybie produkcyjnym, lecz parametry logowania (JwtAuth: Authority/Domain, ClientId) nie zostały skonfigurowane w backendzie.
           </p>
         </div>
       </div>
@@ -167,14 +172,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <Auth0Provider
-      domain={config.auth0.domain}
-      clientId={config.auth0.clientId}
+      domain={domain}
+      clientId={clientId}
       authorizationParams={{
         redirect_uri: window.location.origin,
-        audience: config.auth0.audience || undefined,
+        audience,
       }}
     >
-      <Auth0Bridge audience={config.auth0.audience}>{children}</Auth0Bridge>
+      <Auth0Bridge audience={audience}>{children}</Auth0Bridge>
     </Auth0Provider>
   )
 }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Wib.Api.Common;
 
 namespace Wib.Api.Auth;
 
@@ -36,8 +37,15 @@ public static class AuthenticationServiceExtensions
         services.AddScoped<IJitMemberProvisioner, JitMemberProvisioner>();
         services.AddScoped<ICurrentMemberAccessor, CurrentMemberAccessor>();
 
-        var auth0Domain = configuration["Auth0:Domain"];
-        var audience = configuration["Auth0:Audience"];
+        var jwtOptions = configuration.GetSection(JwtAuthOptions.SectionName).Get<JwtAuthOptions>() ?? new JwtAuthOptions();
+
+        var authority = !string.IsNullOrWhiteSpace(jwtOptions.GetEffectiveAuthority())
+            ? jwtOptions.GetEffectiveAuthority()
+            : (!string.IsNullOrWhiteSpace(configuration["Auth0:Domain"]) ? $"https://{configuration["Auth0:Domain"]}/" : string.Empty);
+
+        var audience = !string.IsNullOrWhiteSpace(jwtOptions.Audience)
+            ? jwtOptions.Audience
+            : configuration["Auth0:Audience"];
 
         services.AddAuthentication(options =>
         {
@@ -46,14 +54,14 @@ public static class AuthenticationServiceExtensions
         })
         .AddJwtBearer(options =>
         {
-            if (!string.IsNullOrWhiteSpace(auth0Domain))
+            if (!string.IsNullOrWhiteSpace(authority))
             {
-                options.Authority = $"https://{auth0Domain}/";
+                options.Authority = authority;
             }
             options.Audience = audience;
             options.TokenValidationParameters = new TokenValidationParameters
             {
-                ValidateIssuer = !string.IsNullOrWhiteSpace(auth0Domain),
+                ValidateIssuer = !string.IsNullOrWhiteSpace(authority),
                 ValidateAudience = !string.IsNullOrWhiteSpace(audience),
                 NameClaimType = "name",
                 RoleClaimType = "role"

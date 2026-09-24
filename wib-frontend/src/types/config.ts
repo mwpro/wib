@@ -1,10 +1,12 @@
-export interface Auth0Config {
+export interface JwtAuthConfig {
+  authority?: string
   domain: string
   clientId: string
   audience: string
 }
 
 export interface ClientConfig {
-  auth0: Auth0Config
+  jwtAuth?: JwtAuthConfig
+  auth0?: JwtAuthConfig
   isTestMode: boolean
 }

@@ -22,9 +22,10 @@ public class ConfigEndpointTests : IClassFixture<WebApplicationFactory<Program>>
             {
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["Auth0:Domain"] = "test-wib.eu.auth0.com",
-                    ["Auth0:ClientId"] = "test-client-id-123",
-                    ["Auth0:Audience"] = "https://wib-api.example.com",
+                    ["JwtAuth:Authority"] = "https://test-wib.eu.auth0.com/",
+                    ["JwtAuth:Domain"] = "test-wib.eu.auth0.com",
+                    ["JwtAuth:ClientId"] = "test-client-id-123",
+                    ["JwtAuth:Audience"] = "https://wib-api.example.com",
                     ["Testing:BypassAuth"] = "true"
                 });
             });
@@ -45,7 +46,7 @@ public class ConfigEndpointTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
-    public async Task GetConfig_ShouldReturnAuth0SettingsAndTestMode()
+    public async Task GetConfig_ShouldReturnJwtAuthSettingsAndTestMode()
     {
         // Arrange
         var client = _factory.CreateClient();
@@ -57,6 +58,13 @@ public class ConfigEndpointTests : IClassFixture<WebApplicationFactory<Program>>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var jwtAuth = json.GetProperty("jwtAuth");
+        jwtAuth.GetProperty("authority").GetString().Should().Be("https://test-wib.eu.auth0.com/");
+        jwtAuth.GetProperty("domain").GetString().Should().Be("test-wib.eu.auth0.com");
+        jwtAuth.GetProperty("clientId").GetString().Should().Be("test-client-id-123");
+        jwtAuth.GetProperty("audience").GetString().Should().Be("https://wib-api.example.com");
+
+        // Also verify backward compatible Auth0 alias
         var auth0 = json.GetProperty("auth0");
         auth0.GetProperty("domain").GetString().Should().Be("test-wib.eu.auth0.com");
         auth0.GetProperty("clientId").GetString().Should().Be("test-client-id-123");
