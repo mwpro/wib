@@ -7,7 +7,7 @@ This roadmap defines the step-by-step implementation plan for **wib**. We use **
 ## Phase 1: Walking Skeleton & Mikr.us Deployment
 * **Task 1.1: Solution Scaffolding & Multi-Stage Dockerfile**
   * .NET 10 solution (`Wib.Api`, `Wib.UnitTests`).
-  * React 19 + TypeScript + Vite SPA (`wib-frontend/`) with Tailwind CSS and Radix UI.
+  * React 19 + TypeScript + Vite SPA (`frontend/`) with Tailwind CSS and Radix UI.
   * EF Core MySQL with Pomelo and automatic startup migration runner.
   * Multi-stage Dockerfile with IANA `tzdata` and globalization support.
 * **Task 1.2: Auth0 JWT Bearer, JIT Provisioning & Test Auth Bypass**
