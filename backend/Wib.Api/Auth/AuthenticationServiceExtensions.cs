@@ -42,8 +42,8 @@ public static class AuthenticationServiceExtensions
 
         var jwtOptions = configuration.GetSection(JwtAuthOptions.SectionName).Get<JwtAuthOptions>() ?? new JwtAuthOptions();
 
-        var authority = !string.IsNullOrWhiteSpace(jwtOptions.GetEffectiveAuthority())
-            ? jwtOptions.GetEffectiveAuthority()
+        var authority = !string.IsNullOrWhiteSpace(jwtOptions.Authority)
+            ? (jwtOptions.Authority.EndsWith('/') ? jwtOptions.Authority : $"{jwtOptions.Authority}/")
             : (!string.IsNullOrWhiteSpace(configuration["Auth0:Domain"]) ? $"https://{configuration["Auth0:Domain"]}/" : string.Empty);
 
         var audience = !string.IsNullOrWhiteSpace(jwtOptions.Audience)

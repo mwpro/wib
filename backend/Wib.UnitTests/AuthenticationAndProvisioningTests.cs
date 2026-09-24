@@ -27,7 +27,6 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WebApplicationFa
                 {
                     ["Testing:BypassAuth"] = "true",
                     ["JwtAuth:Authority"] = "https://test.eu.auth0.com/",
-                    ["JwtAuth:Domain"] = "test.eu.auth0.com",
                     ["JwtAuth:ClientId"] = "test-client",
                     ["JwtAuth:Audience"] = "https://api.test"
                 });

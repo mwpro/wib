@@ -25,12 +25,10 @@ public static class ConfigEndpoints
                              configuration.GetValue<bool>("Testing:IsTestMode");
 
             var options = jwtAuthOptions.Value;
-            var effectiveAuthority = options.GetEffectiveAuthority();
-            var effectiveDomain = options.GetEffectiveDomain();
 
             var jwtDto = new JwtAuthConfigDto(
-                effectiveAuthority,
-                effectiveDomain,
+                options.Authority,
+                options.GetDomain(),
                 options.ClientId,
                 options.Audience
             );

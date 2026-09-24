@@ -5,38 +5,24 @@ public class JwtAuthOptions
     public const string SectionName = "JwtAuth";
 
     public string Authority { get; set; } = string.Empty;
-    public string Domain { get; set; } = string.Empty;
     public string ClientId { get; set; } = string.Empty;
     public string Audience { get; set; } = string.Empty;
 
-    public string GetEffectiveAuthority()
+    public string GetDomain()
     {
-        if (!string.IsNullOrWhiteSpace(Authority))
+        if (string.IsNullOrWhiteSpace(Authority))
         {
-            return Authority.EndsWith('/') ? Authority : $"{Authority}/";
+            return string.Empty;
         }
 
-        if (!string.IsNullOrWhiteSpace(Domain))
+        if (Uri.TryCreate(Authority, UriKind.Absolute, out var uri))
         {
-            return $"https://{Domain}/";
-        }
-
-        return string.Empty;
-    }
-
-    public string GetEffectiveDomain()
-    {
-        if (!string.IsNullOrWhiteSpace(Domain))
-        {
-            return Domain;
-        }
-
-        if (!string.IsNullOrWhiteSpace(Authority))
-        {
-            var uri = new Uri(Authority);
             return uri.Host;
         }
 
-        return string.Empty;
+        return Authority
+            .Replace("https://", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("http://", "", StringComparison.OrdinalIgnoreCase)
+            .Trim('/');
     }
 }

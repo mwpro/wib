@@ -23,7 +23,6 @@ public class ConfigEndpointTests : IClassFixture<WebApplicationFactory<Program>>
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["JwtAuth:Authority"] = "https://test-wib.eu.auth0.com/",
-                    ["JwtAuth:Domain"] = "test-wib.eu.auth0.com",
                     ["JwtAuth:ClientId"] = "test-client-id-123",
                     ["JwtAuth:Audience"] = "https://wib-api.example.com",
                     ["Testing:BypassAuth"] = "true"

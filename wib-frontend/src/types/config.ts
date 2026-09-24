@@ -1,6 +1,6 @@
 export interface JwtAuthConfig {
-  authority?: string
-  domain: string
+  authority: string
+  domain?: string
   clientId: string
   audience: string
 }
