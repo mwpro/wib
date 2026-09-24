@@ -1,9 +1,9 @@
 # Stage 1: Build React SPA
 FROM node:24-alpine AS frontend-build
 WORKDIR /app/frontend
-COPY wib-frontend/package.json wib-frontend/package-lock.json ./
+COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
-COPY wib-frontend/ ./
+COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Build and Publish Backend API

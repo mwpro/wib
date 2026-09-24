@@ -34,7 +34,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: wib-frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -42,7 +42,7 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Frontend build & lint
-        working-directory: wib-frontend
+        working-directory: frontend
         run: |
           npm ci
           npm run lint
@@ -55,7 +55,7 @@ jobs:
 
       - name: Copy frontend dist to backend wwwroot
         run: |
-          cp -r wib-frontend/dist backend/Wib.Api/wwwroot
+          cp -r frontend/dist backend/Wib.Api/wwwroot
 
       - name: Setup Playwright in e2e
         working-directory: e2e
