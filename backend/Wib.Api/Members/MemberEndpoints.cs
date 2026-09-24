@@ -4,7 +4,6 @@ namespace Wib.Api.Members;
 
 public record MemberDto(
     int Id,
-    string ExternalSubjectId,
     string Name,
     int WalletBalance,
     DateTime CreatedAt
@@ -28,7 +27,6 @@ public static class MemberEndpoints
 
             return Results.Ok(new MemberDto(
                 member.Id,
-                member.ExternalSubjectId,
                 member.Name,
                 member.WalletBalance,
                 member.CreatedAt

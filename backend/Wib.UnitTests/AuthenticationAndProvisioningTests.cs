@@ -47,7 +47,6 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WibWebApplicatio
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        json.GetProperty("externalSubjectId").GetString().Should().Be("auth0|test-alice");
         json.GetProperty("name").GetString().Should().Be("Alice Test");
         json.GetProperty("walletBalance").GetInt32().Should().Be(0);
 
@@ -75,7 +74,6 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WibWebApplicatio
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        json.GetProperty("externalSubjectId").GetString().Should().Be("auth0|test-użytkownik");
         json.GetProperty("name").GetString().Should().Be("Test Użytkownik");
     }
 
@@ -109,7 +107,6 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WibWebApplicatio
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        json.GetProperty("externalSubjectId").GetString().Should().Be("auth0|test-bob");
         json.GetProperty("name").GetString().Should().Be("Bob New Name");
         json.GetProperty("walletBalance").GetInt32().Should().Be(50);
 

@@ -108,7 +108,6 @@ public class JwtBearerAuthenticationTests : IClassFixture<WibWebApplicationFacto
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        json.GetProperty("externalSubjectId").GetString().Should().Be(uniqueSub);
         json.GetProperty("name").GetString().Should().Be("JWT Auto Provisioned");
         json.GetProperty("walletBalance").GetInt32().Should().Be(0);
 
