@@ -152,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return <MockAuthProvider>{children}</MockAuthProvider>
   }
 
-  const jwtAuth = config.jwtAuth || config.auth0
+  const jwtAuth = config.jwtAuth
   const domain = jwtAuth?.domain || (jwtAuth?.authority ? jwtAuth.authority.replace(/^https?:\/\//, '').replace(/\/$/, '') : '')
   const clientId = jwtAuth?.clientId || ''
   const audience = jwtAuth?.audience || undefined

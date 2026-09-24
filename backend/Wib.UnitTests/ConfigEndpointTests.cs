@@ -63,12 +63,6 @@ public class ConfigEndpointTests : IClassFixture<WebApplicationFactory<Program>>
         jwtAuth.GetProperty("clientId").GetString().Should().Be("test-client-id-123");
         jwtAuth.GetProperty("audience").GetString().Should().Be("https://wib-api.example.com");
 
-        // Also verify backward compatible Auth0 alias
-        var auth0 = json.GetProperty("auth0");
-        auth0.GetProperty("domain").GetString().Should().Be("test-wib.eu.auth0.com");
-        auth0.GetProperty("clientId").GetString().Should().Be("test-client-id-123");
-        auth0.GetProperty("audience").GetString().Should().Be("https://wib-api.example.com");
-
         json.GetProperty("isTestMode").GetBoolean().Should().BeTrue();
     }
 }

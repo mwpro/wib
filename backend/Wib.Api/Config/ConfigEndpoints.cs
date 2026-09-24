@@ -8,10 +8,7 @@ using Wib.Api.Common;
 namespace Wib.Api.Config;
 
 public record JwtAuthConfigDto(string Authority, string Domain, string ClientId, string Audience);
-public record ClientConfigResponse(JwtAuthConfigDto JwtAuth, bool IsTestMode)
-{
-    public JwtAuthConfigDto Auth0 => JwtAuth;
-}
+public record ClientConfigResponse(JwtAuthConfigDto JwtAuth, bool IsTestMode);
 
 public static class ConfigEndpoints
 {

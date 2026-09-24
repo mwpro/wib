@@ -9,11 +9,11 @@ using Wib.Api.Common;
 
 namespace Wib.Api.Auth;
 
-public class WibAuthenticationOptionsPostConfigure : IPostConfigureOptions<AuthenticationOptions>
+public class AuthenticationOptionsPostConfigure : IPostConfigureOptions<AuthenticationOptions>
 {
     private readonly IConfiguration _configuration;
 
-    public WibAuthenticationOptionsPostConfigure(IConfiguration configuration)
+    public AuthenticationOptionsPostConfigure(IConfiguration configuration)
     {
         _configuration = configuration;
     }
@@ -74,7 +74,7 @@ public static class AuthenticationServiceExtensions
             TestAuthHandler.AuthenticationScheme,
             _ => { });
 
-        services.AddSingleton<IPostConfigureOptions<AuthenticationOptions>, WibAuthenticationOptionsPostConfigure>();
+        services.AddSingleton<IPostConfigureOptions<AuthenticationOptions>, AuthenticationOptionsPostConfigure>();
 
         return services;
     }

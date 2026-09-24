@@ -7,6 +7,5 @@ export interface JwtAuthConfig {
 
 export interface ClientConfig {
   jwtAuth?: JwtAuthConfig
-  auth0?: JwtAuthConfig
   isTestMode: boolean
 }
