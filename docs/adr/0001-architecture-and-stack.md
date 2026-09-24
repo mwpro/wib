@@ -19,7 +19,7 @@ We need a responsive, low-maintenance, resource-efficient platform for **wib** (
    - Orchestrated via Docker Compose with environment variables and secrets mounted from `/run/secrets/appsettings.secret.json`.
 7. **Automated Testing Strategy (Optimized for Agent Autonomy)**:
    - **Playwright UI E2E Tests**: 3–4 lean golden-path journeys (Chore loop, Scoreboard loop, Store/Wallet loop) exercising the full stack (browser + API + MySQL) headlessly with screenshot/trace artifact generation on failure.
-   - **Test Authentication Bypass**: An internal `TestAuthHandler` enabled exclusively in test environments (`Testing:BypassAuth=true`), allowing Playwright to authenticate instantly as synthetic members without contacting external Auth0 servers.
+   - **Test Authentication Bypass**: An internal `TestAuthHandler` enabled exclusively in test environments (`JwtAuth:BypassAuth=true`), allowing Playwright to authenticate instantly as synthetic members without contacting external Auth0 servers.
    - **Backend Unit Tests (`Wib.UnitTests`)**: Fast xUnit + FluentAssertions tests for algorithmic domain logic (freshness ratios, urgency thresholds, Europe/Warsaw timezone boundaries, voucher state rules).
    - **Frontend Verification**: Zero unit/component tests in Vitest. Relies on strict TypeScript compilation (`tsc --noEmit`), ESLint, and the Playwright E2E test suite.
 

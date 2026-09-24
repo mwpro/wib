@@ -1,36 +1,15 @@
 using System.Net;
-using System.Net.Http.Json;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
-using Wib.Api.Data;
-using Xunit;
 
 namespace Wib.UnitTests;
 
-public class HealthEndpointTests : IClassFixture<WebApplicationFactory<Program>>
+public class HealthEndpointTests : IClassFixture<WibWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly WibWebApplicationFactory _factory;
 
-    public HealthEndpointTests(WebApplicationFactory<Program> factory)
+    public HealthEndpointTests(WibWebApplicationFactory factory)
     {
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureServices(services =>
-            {
-                // Replace DbContext with InMemory for testing
-                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<WibDbContext>));
-                if (descriptor != null)
-                {
-                    services.Remove(descriptor);
-                }
-                services.AddDbContext<WibDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase("HealthTestDb");
-                });
-            });
-        });
+        _factory = factory;
     }
 
     [Fact]

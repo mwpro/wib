@@ -1,9 +1,16 @@
+using Wib.Api.Auth;
+using Wib.Api.Common;
+using Wib.Api.Config;
 using Wib.Api.Data;
+using Wib.Api.Members;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.Configure<JwtAuthOptions>(builder.Configuration.GetSection(JwtAuthOptions.SectionName));
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddWibAuthentication(builder.Configuration);
+builder.Services.AddAuthorization();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 builder.Services.AddWibDatabase(builder.Configuration);
@@ -19,9 +26,11 @@ if (app.Environment.IsDevelopment())
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers();
+app.MapConfigEndpoints();
+app.MapMemberEndpoints();
 
 app.MapHealthChecks("/api/health");
 
