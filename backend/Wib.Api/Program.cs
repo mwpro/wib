@@ -15,7 +15,11 @@ builder.Services.AddWibAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
-builder.Services.AddWibDatabase(builder.Configuration);
+
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddWibDatabase(builder.Configuration);
+}
 
 var app = builder.Build();
 
