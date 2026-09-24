@@ -6,6 +6,8 @@ using Wib.Api.Members;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration.AddJsonFile("/run/secrets/appsettings.secret.json", optional: true, reloadOnChange: true);
+
 // Add services to the container.
 builder.Services.Configure<JwtAuthOptions>(builder.Configuration.GetSection(JwtAuthOptions.SectionName));
 builder.Services.AddSingleton(TimeProvider.System);
