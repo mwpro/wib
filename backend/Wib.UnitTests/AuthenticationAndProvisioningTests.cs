@@ -25,7 +25,7 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WebApplicationFa
             {
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["Testing:BypassAuth"] = "true",
+                    ["JwtAuth:BypassAuth"] = "true",
                     ["JwtAuth:Authority"] = "https://test.eu.auth0.com/",
                     ["JwtAuth:ClientId"] = "test-client",
                     ["JwtAuth:Audience"] = "https://api.test"
@@ -137,5 +137,27 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WebApplicationFa
             member.WalletBalance.Should().Be(50);
             member.UpdatedAt.Should().NotBeNull();
         }
+    }
+
+    [Fact]
+    public async Task AuthenticatedRequest_ToEndpointNotRequiringMember_ShouldNotTriggerJitProvisioning()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/health");
+        request.Headers.Add("X-Test-Sub", "auth0|test-lazy-user");
+        request.Headers.Add("X-Test-User-Name", "Lazy User");
+
+        // Act
+        var response = await client.SendAsync(request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Verify member was NOT provisioned because endpoint did not access current member
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<WibDbContext>();
+        var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == "auth0|test-lazy-user");
+        member.Should().BeNull();
     }
 }

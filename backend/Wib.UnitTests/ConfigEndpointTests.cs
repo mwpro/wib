@@ -25,7 +25,7 @@ public class ConfigEndpointTests : IClassFixture<WebApplicationFactory<Program>>
                     ["JwtAuth:Authority"] = "https://test-wib.eu.auth0.com/",
                     ["JwtAuth:ClientId"] = "test-client-id-123",
                     ["JwtAuth:Audience"] = "https://wib-api.example.com",
-                    ["Testing:BypassAuth"] = "true"
+                    ["JwtAuth:BypassAuth"] = "true"
                 });
             });
 

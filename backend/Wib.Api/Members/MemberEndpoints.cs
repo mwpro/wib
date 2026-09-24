@@ -21,9 +21,9 @@ public static class MemberEndpoints
             .RequireAuthorization()
             .WithTags("Members");
 
-        group.MapGet("/me", (ICurrentMemberAccessor currentMemberAccessor) =>
+        group.MapGet("/me", async (ICurrentMemberAccessor currentMemberAccessor, CancellationToken cancellationToken) =>
         {
-            var member = currentMemberAccessor.CurrentMember;
+            var member = await currentMemberAccessor.GetCurrentMemberAsync(cancellationToken);
             if (member == null)
             {
                 return Results.Unauthorized();

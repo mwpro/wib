@@ -34,7 +34,7 @@ public class JwtBearerAuthenticationTests : IClassFixture<WebApplicationFactory<
             {
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["Testing:BypassAuth"] = "false", // Real JWT Bearer mode!
+                    ["JwtAuth:BypassAuth"] = "false", // Real JWT Bearer mode!
                     ["JwtAuth:Authority"] = Issuer,
                     ["JwtAuth:Audience"] = Audience
                 });
@@ -121,5 +121,21 @@ public class JwtBearerAuthenticationTests : IClassFixture<WebApplicationFactory<
         member.Should().NotBeNull();
         member!.Name.Should().Be("JWT Auto Provisioned");
         member.WalletBalance.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task RequestWithSyntheticTestHeaders_WhenBypassAuthIsDisabled_ShouldReturnUnauthorized()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/members/me");
+        request.Headers.Add("X-Test-Sub", "auth0|test-attacker");
+        request.Headers.Add("X-Test-User-Name", "Attacker");
+
+        // Act
+        var response = await client.SendAsync(request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 }

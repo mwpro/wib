@@ -11,17 +11,16 @@ namespace Wib.Api.Auth;
 
 public class AuthenticationOptionsPostConfigure : IPostConfigureOptions<AuthenticationOptions>
 {
-    private readonly IConfiguration _configuration;
+    private readonly IOptions<JwtAuthOptions> _jwtAuthOptions;
 
-    public AuthenticationOptionsPostConfigure(IConfiguration configuration)
+    public AuthenticationOptionsPostConfigure(IOptions<JwtAuthOptions> jwtAuthOptions)
     {
-        _configuration = configuration;
+        _jwtAuthOptions = jwtAuthOptions;
     }
 
     public void PostConfigure(string? name, AuthenticationOptions options)
     {
-        var bypassAuth = _configuration.GetValue<bool>("Testing:BypassAuth");
-        if (bypassAuth)
+        if (_jwtAuthOptions.Value.BypassAuth)
         {
             options.DefaultAuthenticateScheme = TestAuthHandler.AuthenticationScheme;
             options.DefaultChallengeScheme = TestAuthHandler.AuthenticationScheme;
@@ -50,7 +49,7 @@ public static class AuthenticationServiceExtensions
             ? jwtOptions.Audience
             : configuration["Auth0:Audience"];
 
-        services.AddAuthentication(options =>
+        var authBuilder = services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -69,18 +68,14 @@ public static class AuthenticationServiceExtensions
                 NameClaimType = "name",
                 RoleClaimType = "role"
             };
-        })
-        .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
+        });
+
+        authBuilder.AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
             TestAuthHandler.AuthenticationScheme,
             _ => { });
 
         services.AddSingleton<IPostConfigureOptions<AuthenticationOptions>, AuthenticationOptionsPostConfigure>();
 
         return services;
-    }
-
-    public static IApplicationBuilder UseJitMemberProvisioning(this IApplicationBuilder app)
-    {
-        return app.UseMiddleware<JitMemberProvisioningMiddleware>();
     }
 }

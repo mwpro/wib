@@ -27,7 +27,6 @@ app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseJitMemberProvisioning();
 
 app.MapConfigEndpoints();
 app.MapMemberEndpoints();

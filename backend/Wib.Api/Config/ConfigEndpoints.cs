@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Wib.Api.Common;
 
@@ -14,13 +13,8 @@ public static class ConfigEndpoints
 {
     public static IEndpointRouteBuilder MapConfigEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/config", (
-            IOptions<JwtAuthOptions> jwtAuthOptions,
-            IConfiguration configuration) =>
+        app.MapGet("/api/config", (IOptions<JwtAuthOptions> jwtAuthOptions) =>
         {
-            var isTestMode = configuration.GetValue<bool>("Testing:BypassAuth") ||
-                             configuration.GetValue<bool>("Testing:IsTestMode");
-
             var options = jwtAuthOptions.Value;
 
             var jwtDto = new JwtAuthConfigDto(
@@ -30,7 +24,7 @@ public static class ConfigEndpoints
                 options.Audience
             );
 
-            return Results.Ok(new ClientConfigResponse(jwtDto, isTestMode));
+            return Results.Ok(new ClientConfigResponse(jwtDto, options.BypassAuth));
         })
         .AllowAnonymous()
         .WithName("GetConfig")
