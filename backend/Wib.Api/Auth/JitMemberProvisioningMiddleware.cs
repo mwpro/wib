@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace Wib.Api.Auth;
 
 public class JitMemberProvisioningMiddleware

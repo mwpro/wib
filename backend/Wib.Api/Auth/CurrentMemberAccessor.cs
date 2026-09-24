@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Wib.Api.Data.Entities;
 
 namespace Wib.Api.Auth;
