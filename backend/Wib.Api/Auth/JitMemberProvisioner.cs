@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Wib.Api.Data;
 using Wib.Api.Data.Entities;
 

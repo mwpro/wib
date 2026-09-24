@@ -8,7 +8,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Wib.Api.Data;
 using Wib.Api.Data.Entities;
-using Xunit;
 
 namespace Wib.UnitTests;
 
