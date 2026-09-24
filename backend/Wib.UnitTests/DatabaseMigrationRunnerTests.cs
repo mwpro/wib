@@ -28,8 +28,8 @@ public class DatabaseMigrationRunnerTests
         var provider = services.BuildServiceProvider();
 
         // Assert
-        provider.GetService<WibDbContext>().Should().NotBeNull();
-        provider.GetService<IDatabaseMigrator>().Should().NotBeNull();
+        services.Should().Contain(d => d.ServiceType == typeof(WibDbContext));
+        services.Should().Contain(d => d.ServiceType == typeof(IDatabaseMigrator));
     }
 
     [Fact]

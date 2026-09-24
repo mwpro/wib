@@ -13,6 +13,8 @@ public class WibWebApplicationFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseEnvironment("Testing");
+
         builder.ConfigureAppConfiguration((_, config) =>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
@@ -41,6 +43,7 @@ public class WibWebApplicationFactory : WebApplicationFactory<Program>
                 options.UseInMemoryDatabase(_databaseName)
                        .UseInternalServiceProvider(inMemoryProvider);
             });
+            services.AddScoped<IDatabaseMigrator, DatabaseMigrator>();
         });
     }
 
