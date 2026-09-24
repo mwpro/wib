@@ -7,11 +7,10 @@ import type { Member } from '../../types/member'
 
 interface MainTabsProps {
   currentMember: Member | null
-  loadingMember: boolean
   userName?: string
 }
 
-export function MainTabs({ currentMember, loadingMember, userName }: MainTabsProps) {
+export function MainTabs({ currentMember, userName }: MainTabsProps) {
   return (
     <Tabs.Root defaultValue="chores" className="flex flex-col gap-4">
       <Tabs.List className="grid grid-cols-3 gap-1 bg-slate-200 dark:bg-slate-800 p-1 rounded-xl">
@@ -39,7 +38,7 @@ export function MainTabs({ currentMember, loadingMember, userName }: MainTabsPro
       </Tabs.List>
 
       <Tabs.Content value="chores">
-        <ChoresTab currentMember={currentMember} loadingMember={loadingMember} userName={userName} />
+        <ChoresTab currentMember={currentMember} userName={userName} />
       </Tabs.Content>
 
       <Tabs.Content value="scoreboard">

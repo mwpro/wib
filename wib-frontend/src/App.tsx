@@ -7,7 +7,7 @@ import { MainTabs } from './components/tabs/MainTabs'
 
 export function App() {
   const { isAuthenticated, isLoading, user, login } = useAuth()
-  const { currentMember, loadingMember } = useCurrentMember()
+  const { currentMember } = useCurrentMember()
 
   if (isLoading) {
     return <LoadingScreen />
@@ -23,7 +23,6 @@ export function App() {
       <main className="flex-1 max-w-2xl w-full mx-auto p-4 flex flex-col gap-6">
         <MainTabs
           currentMember={currentMember}
-          loadingMember={loadingMember}
           userName={user?.name}
         />
       </main>

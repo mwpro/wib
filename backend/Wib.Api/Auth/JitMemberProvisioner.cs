@@ -54,7 +54,18 @@ public class JitMemberProvisioner : IJitMemberProvisioner
                 CreatedAt = DateTime.UtcNow
             };
             _dbContext.Members.Add(member);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // Concurrent request already inserted this member — detach our duplicate and re-fetch the winner's row
+                _logger.LogInformation("JIT provisioning conflict for sub: {Sub}, re-fetching existing member", sub);
+                _dbContext.Entry(member).State = EntityState.Detached;
+                member = await _dbContext.Members.FirstAsync(m => m.ExternalSubjectId == sub, cancellationToken);
+            }
         }
         else
         {
