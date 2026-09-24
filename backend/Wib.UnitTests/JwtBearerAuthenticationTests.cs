@@ -110,18 +110,16 @@ public class JwtBearerAuthenticationTests : IClassFixture<WebApplicationFactory<
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        json.GetProperty("auth0UserId").GetString().Should().Be(uniqueSub);
+        json.GetProperty("externalSubjectId").GetString().Should().Be(uniqueSub);
         json.GetProperty("name").GetString().Should().Be("JWT Auto Provisioned");
-        json.GetProperty("email").GetString().Should().Be("jwt-provisioned@example.com");
-        json.GetProperty("picture").GetString().Should().Be("https://example.com/avatar.jpg");
+        json.GetProperty("walletBalance").GetInt32().Should().Be(0);
 
         // Verify record in database
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<WibDbContext>();
-        var member = await db.Members.FirstOrDefaultAsync(m => m.Auth0UserId == uniqueSub);
+        var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == uniqueSub);
         member.Should().NotBeNull();
         member!.Name.Should().Be("JWT Auto Provisioned");
-        member.Email.Should().Be("jwt-provisioned@example.com");
-        member.Picture.Should().Be("https://example.com/avatar.jpg");
+        member.WalletBalance.Should().Be(0);
     }
 }

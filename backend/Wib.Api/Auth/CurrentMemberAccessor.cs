@@ -5,6 +5,8 @@ namespace Wib.Api.Auth;
 
 public interface ICurrentMemberAccessor
 {
+    public const string HttpContextItemKey = "CurrentMember";
+
     Member? CurrentMember { get; }
 }
 
@@ -17,5 +19,5 @@ public class CurrentMemberAccessor : ICurrentMemberAccessor
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public Member? CurrentMember => _httpContextAccessor.HttpContext?.Items["CurrentMember"] as Member;
+    public Member? CurrentMember => _httpContextAccessor.HttpContext?.Items[ICurrentMemberAccessor.HttpContextItemKey] as Member;
 }

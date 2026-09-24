@@ -18,7 +18,7 @@ public class JitMemberProvisioningMiddleware
             var member = await provisioner.ProvisionMemberAsync(context.User, context.RequestAborted);
             if (member != null)
             {
-                context.Items["CurrentMember"] = member;
+                context.Items[ICurrentMemberAccessor.HttpContextItemKey] = member;
             }
         }
 

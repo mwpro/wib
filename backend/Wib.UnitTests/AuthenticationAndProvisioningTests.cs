@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Wib.Api.Data;
 using Wib.Api.Data.Entities;
+using Xunit;
 
 namespace Wib.UnitTests;
 
@@ -73,8 +74,6 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WebApplicationFa
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/members/me");
         request.Headers.Add("X-Test-Sub", "auth0|test-alice");
         request.Headers.Add("X-Test-User-Name", "Alice Test");
-        request.Headers.Add("X-Test-User-Email", "alice@example.com");
-        request.Headers.Add("X-Test-User-Picture", "https://example.com/alice.png");
 
         // Act
         var response = await client.SendAsync(request);
@@ -82,21 +81,17 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WebApplicationFa
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        json.GetProperty("auth0UserId").GetString().Should().Be("auth0|test-alice");
+        json.GetProperty("externalSubjectId").GetString().Should().Be("auth0|test-alice");
         json.GetProperty("name").GetString().Should().Be("Alice Test");
-        json.GetProperty("email").GetString().Should().Be("alice@example.com");
-        json.GetProperty("picture").GetString().Should().Be("https://example.com/alice.png");
         json.GetProperty("walletBalance").GetInt32().Should().Be(0);
-        json.GetProperty("earnedPoints").GetInt32().Should().Be(0);
 
         // Verify directly in DB
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<WibDbContext>();
-        var member = await db.Members.FirstOrDefaultAsync(m => m.Auth0UserId == "auth0|test-alice");
+        var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == "auth0|test-alice");
         member.Should().NotBeNull();
         member!.Name.Should().Be("Alice Test");
-        member.Email.Should().Be("alice@example.com");
-        member.Picture.Should().Be("https://example.com/alice.png");
+        member.WalletBalance.Should().Be(0);
     }
 
     [Fact]
@@ -105,18 +100,15 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WebApplicationFa
         // Arrange
         var client = _factory.CreateClient();
 
-        // Seed existing member with points and balance
+        // Seed existing member with balance
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<WibDbContext>();
             db.Members.Add(new Member
             {
-                Auth0UserId = "auth0|test-bob",
+                ExternalSubjectId = "auth0|test-bob",
                 Name = "Bob Old Name",
-                Email = "bob.old@example.com",
-                Picture = "https://example.com/bob_old.png",
                 WalletBalance = 50,
-                EarnedPoints = 120,
                 CreatedAt = DateTime.UtcNow.AddDays(-5)
             });
             await db.SaveChangesAsync();
@@ -125,8 +117,6 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WebApplicationFa
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/members/me");
         request.Headers.Add("X-Test-Sub", "auth0|test-bob");
         request.Headers.Add("X-Test-User-Name", "Bob New Name");
-        request.Headers.Add("X-Test-User-Email", "bob.new@example.com");
-        request.Headers.Add("X-Test-User-Picture", "https://example.com/bob_new.png");
 
         // Act
         var response = await client.SendAsync(request);
@@ -134,21 +124,18 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WebApplicationFa
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        json.GetProperty("externalSubjectId").GetString().Should().Be("auth0|test-bob");
         json.GetProperty("name").GetString().Should().Be("Bob New Name");
-        json.GetProperty("email").GetString().Should().Be("bob.new@example.com");
-        json.GetProperty("picture").GetString().Should().Be("https://example.com/bob_new.png");
         json.GetProperty("walletBalance").GetInt32().Should().Be(50);
-        json.GetProperty("earnedPoints").GetInt32().Should().Be(120);
 
         // Verify in DB
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<WibDbContext>();
-            var member = await db.Members.FirstOrDefaultAsync(m => m.Auth0UserId == "auth0|test-bob");
+            var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == "auth0|test-bob");
             member.Should().NotBeNull();
             member!.Name.Should().Be("Bob New Name");
             member.WalletBalance.Should().Be(50);
-            member.EarnedPoints.Should().Be(120);
             member.UpdatedAt.Should().NotBeNull();
         }
     }

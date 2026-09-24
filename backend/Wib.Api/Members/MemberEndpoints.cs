@@ -7,12 +7,9 @@ namespace Wib.Api.Members;
 
 public record MemberDto(
     int Id,
-    string Auth0UserId,
+    string ExternalSubjectId,
     string Name,
-    string? Email,
-    string? Picture,
     int WalletBalance,
-    int EarnedPoints,
     DateTime CreatedAt
 );
 
@@ -34,12 +31,9 @@ public static class MemberEndpoints
 
             return Results.Ok(new MemberDto(
                 member.Id,
-                member.Auth0UserId,
+                member.ExternalSubjectId,
                 member.Name,
-                member.Email,
-                member.Picture,
                 member.WalletBalance,
-                member.EarnedPoints,
                 member.CreatedAt
             ));
         })

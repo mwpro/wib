@@ -12,7 +12,7 @@ using Wib.Api.Data;
 namespace Wib.Api.Migrations
 {
     [DbContext(typeof(WibDbContext))]
-    [Migration("20260923205841_InitialMember")]
+    [Migration("20260924200234_InitialMember")]
     partial class InitialMember
     {
         /// <inheritdoc />
@@ -33,20 +33,11 @@ namespace Wib.Api.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Auth0UserId")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("EarnedPoints")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<string>("Email")
+                    b.Property<string>("ExternalSubjectId")
+                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
@@ -54,10 +45,6 @@ namespace Wib.Api.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
-
-                    b.Property<string>("Picture")
-                        .HasMaxLength(1024)
-                        .HasColumnType("varchar(1024)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
@@ -69,7 +56,7 @@ namespace Wib.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Auth0UserId")
+                    b.HasIndex("ExternalSubjectId")
                         .IsUnique();
 
                     b.ToTable("members", (string)null);

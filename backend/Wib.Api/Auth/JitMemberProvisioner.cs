@@ -42,24 +42,16 @@ public class JitMemberProvisioner : IJitMemberProvisioner
                 ?? principal.FindFirst("nickname")?.Value 
                 ?? sub;
 
-        var email = principal.FindFirst("email")?.Value 
-                 ?? principal.FindFirst(ClaimTypes.Email)?.Value;
-
-        var picture = principal.FindFirst("picture")?.Value;
-
-        var member = await _dbContext.Members.FirstOrDefaultAsync(m => m.Auth0UserId == sub, cancellationToken);
+        var member = await _dbContext.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == sub, cancellationToken);
 
         if (member == null)
         {
             _logger.LogInformation("JIT provisioning new member for sub: {Sub}", sub);
             member = new Member
             {
-                Auth0UserId = sub,
+                ExternalSubjectId = sub,
                 Name = name,
-                Email = email,
-                Picture = picture,
                 WalletBalance = 0,
-                EarnedPoints = 0,
                 CreatedAt = DateTime.UtcNow
             };
             _dbContext.Members.Add(member);
@@ -71,16 +63,6 @@ public class JitMemberProvisioner : IJitMemberProvisioner
             if (!string.IsNullOrWhiteSpace(name) && member.Name != name)
             {
                 member.Name = name;
-                changed = true;
-            }
-            if (!string.IsNullOrWhiteSpace(email) && member.Email != email)
-            {
-                member.Email = email;
-                changed = true;
-            }
-            if (picture != null && member.Picture != picture)
-            {
-                member.Picture = picture;
                 changed = true;
             }
 

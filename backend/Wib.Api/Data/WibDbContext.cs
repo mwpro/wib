@@ -19,16 +19,12 @@ public class WibDbContext : DbContext
         {
             entity.ToTable("members");
             entity.HasKey(m => m.Id);
-            entity.Property(m => m.Auth0UserId).IsRequired().HasMaxLength(255);
-            entity.HasIndex(m => m.Auth0UserId).IsUnique();
+            entity.Property(m => m.ExternalSubjectId).IsRequired().HasMaxLength(255);
+            entity.HasIndex(m => m.ExternalSubjectId).IsUnique();
             entity.Property(m => m.Name).IsRequired().HasMaxLength(255);
-            entity.Property(m => m.Email).HasMaxLength(255);
-            entity.Property(m => m.Picture).HasMaxLength(1024);
             entity.Property(m => m.WalletBalance).HasDefaultValue(0);
-            entity.Property(m => m.EarnedPoints).HasDefaultValue(0);
             entity.Property(m => m.CreatedAt).IsRequired();
             entity.Property(m => m.UpdatedAt);
         });
     }
 }
-
