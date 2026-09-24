@@ -23,7 +23,7 @@ public static class MemberEndpoints
             var member = await currentMemberAccessor.GetCurrentMemberAsync(cancellationToken);
             if (member == null)
             {
-                return Results.Unauthorized();
+                throw new InvalidOperationException("Authenticated user has no provisioned member. JIT provisioning may have failed.");
             }
 
             return Results.Ok(new MemberDto(

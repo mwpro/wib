@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.Configure<JwtAuthOptions>(builder.Configuration.GetSection(JwtAuthOptions.SectionName));
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddWibAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
 builder.Services.AddOpenApi();

@@ -13,11 +13,13 @@ public interface IJitMemberProvisioner
 public class JitMemberProvisioner : IJitMemberProvisioner
 {
     private readonly WibDbContext _dbContext;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<JitMemberProvisioner> _logger;
 
-    public JitMemberProvisioner(WibDbContext dbContext, ILogger<JitMemberProvisioner> logger)
+    public JitMemberProvisioner(WibDbContext dbContext, TimeProvider timeProvider, ILogger<JitMemberProvisioner> logger)
     {
         _dbContext = dbContext;
+        _timeProvider = timeProvider;
         _logger = logger;
     }
 
@@ -51,7 +53,7 @@ public class JitMemberProvisioner : IJitMemberProvisioner
                 ExternalSubjectId = sub,
                 Name = name,
                 WalletBalance = 0,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = _timeProvider.GetUtcNow().UtcDateTime
             };
             _dbContext.Members.Add(member);
 
@@ -79,7 +81,7 @@ public class JitMemberProvisioner : IJitMemberProvisioner
             if (changed)
             {
                 _logger.LogInformation("JIT updating profile for member sub: {Sub}", sub);
-                member.UpdatedAt = DateTime.UtcNow;
+                member.UpdatedAt = _timeProvider.GetUtcNow().UtcDateTime;
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
         }

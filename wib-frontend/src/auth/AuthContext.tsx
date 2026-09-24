@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Auth0Provider, useAuth0 } from '@auth0/auth0-react'
 import type { ClientConfig } from '../types/config'
 import { AuthContext, type AuthContextValue, type AuthUser } from './context'
@@ -21,12 +21,12 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     return DEFAULT_TEST_USER
   })
 
-  const handleSetTestUser = (user: AuthUser) => {
+  const handleSetTestUser = useCallback((user: AuthUser) => {
     setTestUser(user)
     localStorage.setItem('wib_test_user', JSON.stringify(user))
-  }
+  }, [])
 
-  const value: AuthContextValue = {
+  const value: AuthContextValue = useMemo(() => ({
     isAuthenticated: true,
     isLoading: false,
     user: testUser,
@@ -35,7 +35,7 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     logout: () => {},
     getAccessToken: async () => 'test-bearer-token',
     setTestUser: handleSetTestUser,
-  }
+  }), [testUser, handleSetTestUser])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
@@ -63,7 +63,7 @@ function Auth0Bridge({
       }
     : undefined
 
-  const value: AuthContextValue = {
+  const value: AuthContextValue = useMemo(() => ({
     isAuthenticated,
     isLoading,
     user: authUser,
@@ -85,7 +85,7 @@ function Auth0Bridge({
         return null
       }
     },
-  }
+  }), [isAuthenticated, isLoading, authUser?.sub, authUser?.name, audience, loginWithRedirect, logout, getAccessTokenSilently])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
