@@ -9,10 +9,8 @@ export async function fetchWithAuth(
   const headers = new Headers(init?.headers)
 
   if (auth.isTestMode && auth.user) {
-    headers.set('X-Test-Sub', auth.user.sub)
-    headers.set('X-Test-User-Name', auth.user.name)
-    if (auth.user.email) headers.set('X-Test-User-Email', auth.user.email)
-    if (auth.user.picture) headers.set('X-Test-User-Picture', auth.user.picture)
+    headers.set('X-Test-Sub', encodeURIComponent(auth.user.sub))
+    headers.set('X-Test-User-Name', encodeURIComponent(auth.user.name))
   } else {
     const token = await auth.getAccessToken()
     if (token) {

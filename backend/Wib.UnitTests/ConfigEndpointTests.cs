@@ -2,23 +2,26 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Wib.Api.Data;
 
 namespace Wib.UnitTests;
 
-public class ConfigEndpointTests : IClassFixture<WebApplicationFactory<Program>>
+public class ConfigEndpointTests : IClassFixture<WibWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly WibWebApplicationFactory _factory;
 
-    public ConfigEndpointTests(WebApplicationFactory<Program> factory)
+    public ConfigEndpointTests(WibWebApplicationFactory factory)
     {
-        _factory = factory.WithWebHostBuilder(builder =>
+        _factory = factory;
+    }
+
+    [Fact]
+    public async Task GetConfig_ShouldReturnJwtAuthSettingsAndTestMode()
+    {
+        // Arrange
+        var customFactory = _factory.WithWebHostBuilder(builder =>
         {
-            builder.ConfigureAppConfiguration((context, config) =>
+            builder.ConfigureAppConfiguration((_, config) =>
             {
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
@@ -28,27 +31,8 @@ public class ConfigEndpointTests : IClassFixture<WebApplicationFactory<Program>>
                     ["JwtAuth:BypassAuth"] = "true"
                 });
             });
-
-            builder.ConfigureServices(services =>
-            {
-                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<WibDbContext>));
-                if (descriptor != null)
-                {
-                    services.Remove(descriptor);
-                }
-                services.AddDbContext<WibDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase("ConfigTestDb");
-                });
-            });
         });
-    }
-
-    [Fact]
-    public async Task GetConfig_ShouldReturnJwtAuthSettingsAndTestMode()
-    {
-        // Arrange
-        var client = _factory.CreateClient();
+        var client = customFactory.CreateClient();
 
         // Act
         var response = await client.GetAsync("/api/config");

@@ -60,37 +60,33 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
                 ? nHeader.ToString()
                 : "Test User";
 
-        var email = Request.Headers.TryGetValue("X-Test-User-Email", out var emailHeader) && !string.IsNullOrWhiteSpace(emailHeader)
-            ? emailHeader.ToString()
-            : Request.Headers.TryGetValue("X-Test-Email", out var eHeader) && !string.IsNullOrWhiteSpace(eHeader)
-                ? eHeader.ToString()
-                : "test@example.com";
-
-        var picture = Request.Headers.TryGetValue("X-Test-User-Picture", out var pictureHeader) && !string.IsNullOrWhiteSpace(pictureHeader)
-            ? pictureHeader.ToString()
-            : Request.Headers.TryGetValue("X-Test-Picture", out var pHeader) && !string.IsNullOrWhiteSpace(pHeader)
-                ? pHeader.ToString()
-                : null;
+        sub = SafeUnescape(sub);
+        name = SafeUnescape(name);
 
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, sub),
             new("sub", sub),
             new(ClaimTypes.Name, name),
-            new("name", name),
-            new(ClaimTypes.Email, email),
-            new("email", email)
+            new("name", name)
         };
-
-        if (!string.IsNullOrWhiteSpace(picture))
-        {
-            claims.Add(new Claim("picture", picture));
-        }
 
         var identity = new ClaimsIdentity(claims, AuthenticationScheme);
         var principal = new ClaimsPrincipal(identity);
         var ticket = new AuthenticationTicket(principal, AuthenticationScheme);
 
         return Task.FromResult(AuthenticateResult.Success(ticket));
+    }
+
+    private static string SafeUnescape(string value)
+    {
+        try
+        {
+            return Uri.UnescapeDataString(value);
+        }
+        catch
+        {
+            return value;
+        }
     }
 }

@@ -6,8 +6,6 @@ import { AuthContext, type AuthContextValue, type AuthUser } from './context'
 const DEFAULT_TEST_USER: AuthUser = {
   sub: 'auth0|test-user-1',
   name: 'Test Użytkownik',
-  email: 'test@wib.local',
-  picture: 'https://api.dicebear.com/7.x/avataaars/svg?seed=wib',
 }
 
 function MockAuthProvider({ children }: { children: React.ReactNode }) {
@@ -62,8 +60,6 @@ function Auth0Bridge({
     ? {
         sub: user.sub || '',
         name: user.name || user.nickname || 'Użytkownik',
-        email: user.email,
-        picture: user.picture,
       }
     : undefined
 

@@ -2,53 +2,21 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Wib.Api.Data;
 using Wib.Api.Data.Entities;
+using Xunit;
 
 namespace Wib.UnitTests;
 
-public class AuthenticationAndProvisioningTests : IClassFixture<WebApplicationFactory<Program>>
+public class AuthenticationAndProvisioningTests : IClassFixture<WibWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly WibWebApplicationFactory _factory;
 
-    public AuthenticationAndProvisioningTests(WebApplicationFactory<Program> factory)
+    public AuthenticationAndProvisioningTests(WibWebApplicationFactory factory)
     {
-        var dbName = "AuthTestDb_" + Guid.NewGuid();
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureAppConfiguration((context, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["JwtAuth:BypassAuth"] = "true",
-                    ["JwtAuth:Authority"] = "https://test.eu.auth0.com/",
-                    ["JwtAuth:ClientId"] = "test-client",
-                    ["JwtAuth:Audience"] = "https://api.test"
-                });
-            });
-
-            builder.ConfigureServices(services =>
-            {
-                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<WibDbContext>));
-                if (descriptor != null)
-                {
-                    services.Remove(descriptor);
-                }
-                var inMemoryProvider = new ServiceCollection()
-                    .AddEntityFrameworkInMemoryDatabase()
-                    .BuildServiceProvider();
-
-                services.AddDbContext<WibDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase(dbName)
-                           .UseInternalServiceProvider(inMemoryProvider);
-                });
-            });
-        });
+        _factory = factory;
     }
 
     [Fact]
@@ -90,6 +58,25 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WebApplicationFa
         member.Should().NotBeNull();
         member!.Name.Should().Be("Alice Test");
         member.WalletBalance.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ProtectedEndpoint_WithUrlEncodedPolishCharacters_ShouldAuthenticateAndCorrectlyDecodeName()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/members/me");
+        request.Headers.Add("X-Test-Sub", Uri.EscapeDataString("auth0|test-użytkownik"));
+        request.Headers.Add("X-Test-User-Name", Uri.EscapeDataString("Test Użytkownik"));
+
+        // Act
+        var response = await client.SendAsync(request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        json.GetProperty("externalSubjectId").GetString().Should().Be("auth0|test-użytkownik");
+        json.GetProperty("name").GetString().Should().Be("Test Użytkownik");
     }
 
     [Fact]

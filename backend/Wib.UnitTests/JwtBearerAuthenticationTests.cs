@@ -16,14 +16,14 @@ using Wib.Api.Data;
 
 namespace Wib.UnitTests;
 
-public class JwtBearerAuthenticationTests : IClassFixture<WebApplicationFactory<Program>>
+public class JwtBearerAuthenticationTests : IClassFixture<WibWebApplicationFactory>
 {
     private readonly WebApplicationFactory<Program> _factory;
     private readonly RsaSecurityKey _securityKey;
     private const string Issuer = "https://test-auth0.eu.auth0.com/";
     private const string Audience = "https://wib-api.example.com";
 
-    public JwtBearerAuthenticationTests(WebApplicationFactory<Program> factory)
+    public JwtBearerAuthenticationTests(WibWebApplicationFactory factory)
     {
         var rsa = RSA.Create(2048);
         _securityKey = new RsaSecurityKey(rsa);
@@ -60,7 +60,7 @@ public class JwtBearerAuthenticationTests : IClassFixture<WebApplicationFactory<
         });
     }
 
-    private string GenerateJwtToken(string sub, string name, string email, string picture)
+    private string GenerateJwtToken(string sub, string name)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var tokenDescriptor = new SecurityTokenDescriptor
@@ -70,9 +70,7 @@ public class JwtBearerAuthenticationTests : IClassFixture<WebApplicationFactory<
             Subject = new ClaimsIdentity(new[]
             {
                 new Claim("sub", sub),
-                new Claim("name", name),
-                new Claim("email", email),
-                new Claim("picture", picture)
+                new Claim("name", name)
             }),
             Expires = DateTime.UtcNow.AddHours(1),
             SigningCredentials = new SigningCredentials(_securityKey, SecurityAlgorithms.RsaSha256)
@@ -101,7 +99,7 @@ public class JwtBearerAuthenticationTests : IClassFixture<WebApplicationFactory<
         // Arrange
         var client = _factory.CreateClient();
         var uniqueSub = "auth0|jwt-user-" + Guid.NewGuid();
-        var token = GenerateJwtToken(uniqueSub, "JWT Auto Provisioned", "jwt-provisioned@example.com", "https://example.com/avatar.jpg");
+        var token = GenerateJwtToken(uniqueSub, "JWT Auto Provisioned");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         // Act
