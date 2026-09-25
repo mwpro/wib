@@ -19,10 +19,13 @@
   * *Unscheduled Chore*: Has no schedule (`CadenceDays = null`); lives in the backlog for ad-hoc execution.
 * **Cadence**: A floating interval (in days) representing how often a chore should be performed relative to its last completion date ("days since last done"), rather than fixed calendar slots.
 * **Freshness / Urgency Ratio**: The quotient $\text{Ratio} = \frac{\text{Days Since Last Done}}{\text{CadenceDays}}$:
+  * Calculated in whole calendar days elapsed in the `Europe/Warsaw` timezone: $\text{Days Since Last Done} = \max(0, \text{Today}_{\text{Warsaw}} - \text{ReferenceDate}_{\text{Warsaw}})$.
+  * When a chore has never been completed (`LastCompletedAt == null`), `ReferenceDate` defaults to `CreatedAt`.
   * **Fresh** ($0\% \le \text{Ratio} < 80\%$): Recently done, no attention needed (Green).
   * **Due Soon** ($80\% \le \text{Ratio} < 100\%$): Approaching due date (Yellow).
   * **Overdue** ($100\% \le \text{Ratio} < 130\%$): Past expected cadence (Orange).
   * **Neglected** ($\text{Ratio} \ge 130\%$): Significantly overdue; highest priority (Red).
+  * *Unscheduled Chore*: Has no cadence (`CadenceDays = null`); urgency is `Unscheduled` with no numerical ratio.
 * **Chore Completion**: An immutable record created when a member marks a chore done. Captures `CompletedAt` (UTC), `PointsAwarded`, `MemberId`, and chore title snapshot.
 * **Tag**: A multi-label category attached to chores for filtering (e.g. `kuchnia`, `sprzątanie`, `ogród`, `konserwacja`).
 

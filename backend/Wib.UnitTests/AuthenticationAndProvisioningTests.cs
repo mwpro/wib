@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Wib.Api.Data;
 using Wib.Api.Data.Entities;
-using Xunit;
 
 namespace Wib.UnitTests;
 
@@ -55,7 +54,7 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WibWebApplicatio
         var db = scope.ServiceProvider.GetRequiredService<WibDbContext>();
         var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == "auth0|test-alice");
         member.Should().NotBeNull();
-        member!.Name.Should().Be("Alice Test");
+        member.Name.Should().Be("Alice Test");
         member.WalletBalance.Should().Be(0);
     }
 
@@ -116,7 +115,7 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WibWebApplicatio
             var db = scope.ServiceProvider.GetRequiredService<WibDbContext>();
             var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == "auth0|test-bob");
             member.Should().NotBeNull();
-            member!.Name.Should().Be("Bob New Name");
+            member.Name.Should().Be("Bob New Name");
             member.WalletBalance.Should().Be(50);
             member.UpdatedAt.Should().NotBeNull();
         }
