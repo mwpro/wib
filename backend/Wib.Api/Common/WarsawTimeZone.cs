@@ -13,9 +13,30 @@ public static class WarsawTimeZone
 
     public static DateTimeOffset ToWarsawTime(DateTime utcDateTime)
     {
-        var tz = GetTimeZone();
-        var utcOffset = tz.GetUtcOffset(utcDateTime);
         var targetTime = DateTime.SpecifyKind(utcDateTime, DateTimeKind.Utc);
-        return new DateTimeOffset(targetTime).ToOffset(utcOffset);
+        return TimeZoneInfo.ConvertTime(new DateTimeOffset(targetTime), GetTimeZone());
+    }
+
+    public static DateTimeOffset ToWarsawTime(DateTimeOffset dateTimeOffset)
+    {
+        return TimeZoneInfo.ConvertTime(dateTimeOffset, GetTimeZone());
+    }
+
+    public static DateOnly ToWarsawDate(DateTimeOffset dateTimeOffset)
+    {
+        var warsawTime = ToWarsawTime(dateTimeOffset);
+        return DateOnly.FromDateTime(warsawTime.DateTime);
+    }
+
+    public static DateOnly ToWarsawDate(DateTime utcDateTime)
+    {
+        return ToWarsawDate(new DateTimeOffset(DateTime.SpecifyKind(utcDateTime, DateTimeKind.Utc)));
+    }
+
+    public static int GetDaysElapsed(DateTime referenceUtc, DateTimeOffset nowUtc)
+    {
+        var today = ToWarsawDate(nowUtc);
+        var referenceDate = ToWarsawDate(referenceUtc);
+        return Math.Max(0, today.DayNumber - referenceDate.DayNumber);
     }
 }
