@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Wib.Api.Auth;
 using Wib.Api.Common;
 using Wib.Api.Data;
 using Wib.Api.Data.Entities;
@@ -15,9 +17,9 @@ public static class ChoreEndpoints
             .WithValidation();
 
         group.MapGet("/", async (
-            string? tag,
-            WibDbContext db,
-            IFreshnessCalculator freshnessCalculator,
+            [FromQuery] string? tag,
+            [FromServices] WibDbContext db,
+            [FromServices] IFreshnessCalculator freshnessCalculator,
             CancellationToken cancellationToken) =>
         {
             IQueryable<Chore> query = db.Chores
@@ -55,10 +57,10 @@ public static class ChoreEndpoints
         .WithName("GetChores");
 
         group.MapPost("/", async (
-            CreateChoreRequest request,
-            WibDbContext db,
-            IFreshnessCalculator freshnessCalculator,
-            TimeProvider timeProvider,
+            [FromBody] CreateChoreRequest request,
+            [FromServices] WibDbContext db,
+            [FromServices] IFreshnessCalculator freshnessCalculator,
+            [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
@@ -79,11 +81,11 @@ public static class ChoreEndpoints
         .WithName("CreateChore");
 
         group.MapPut("/{id:int}", async (
-            int id,
-            UpdateChoreRequest request,
-            WibDbContext db,
-            IFreshnessCalculator freshnessCalculator,
-            TimeProvider timeProvider,
+            [FromRoute] int id,
+            [FromBody] UpdateChoreRequest request,
+            [FromServices] WibDbContext db,
+            [FromServices] IFreshnessCalculator freshnessCalculator,
+            [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
             var chore = await db.Chores
@@ -113,9 +115,9 @@ public static class ChoreEndpoints
         .WithName("UpdateChore");
 
         group.MapDelete("/{id:int}", async (
-            int id,
-            WibDbContext db,
-            TimeProvider timeProvider,
+            [FromRoute] int id,
+            [FromServices] WibDbContext db,
+            [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
             var chore = await db.Chores.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
@@ -130,6 +132,42 @@ public static class ChoreEndpoints
             return Results.NoContent();
         })
         .WithName("DeleteChore");
+
+        group.MapPost("/{id:int}/completion", async (
+            [FromRoute] int id,
+            [FromServices] WibDbContext db,
+            [FromServices] ICurrentMemberAccessor currentMemberAccessor,
+            [FromServices] IFreshnessCalculator freshnessCalculator,
+            [FromServices] TimeProvider timeProvider,
+            CancellationToken cancellationToken) =>
+        {
+            var member = await currentMemberAccessor.GetCurrentMemberAsync(cancellationToken);
+            if (member == null)
+            {
+                return Results.Unauthorized();
+            }
+
+            var chore = await db.Chores
+                .Include(c => c.ChoreTags)
+                .ThenInclude(ct => ct.Tag)
+                .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+            if (chore == null || chore.IsArchived)
+            {
+                return Results.NotFound();
+            }
+
+            var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
+            var completion = chore.Complete(member, nowUtc);
+
+            await db.SaveChangesAsync(cancellationToken);
+
+            var freshness = freshnessCalculator.Calculate(chore.LastCompletedAt, chore.CreatedAt, chore.CadenceDays);
+            var choreResponse = ChoreResponse.Create(chore, freshness);
+
+            return Results.Ok(new CompleteChoreResponse(choreResponse, member.WalletBalance, completion.PointsAwarded));
+        })
+        .WithName("CreateChoreCompletion");
 
         return app;
     }

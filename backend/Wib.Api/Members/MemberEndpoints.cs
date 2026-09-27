@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Wib.Api.Auth;
 
 namespace Wib.Api.Members;
@@ -17,7 +18,7 @@ public static class MemberEndpoints
             .RequireAuthorization()
             .WithTags("Members");
 
-        group.MapGet("/me", async (ICurrentMemberAccessor currentMemberAccessor, CancellationToken cancellationToken) =>
+        group.MapGet("/me", async ([FromServices] ICurrentMemberAccessor currentMemberAccessor, CancellationToken cancellationToken) =>
         {
             var member = await currentMemberAccessor.GetCurrentMemberAsync(cancellationToken);
             if (member == null)

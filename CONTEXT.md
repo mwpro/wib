@@ -26,7 +26,7 @@
   * **Overdue** ($100\% \le \text{Ratio} < 130\%$): Past expected cadence (Orange).
   * **Neglected** ($\text{Ratio} \ge 130\%$): Significantly overdue; highest priority (Red).
   * *Unscheduled Chore*: Has no cadence (`CadenceDays = null`); urgency is `Unscheduled` with no numerical ratio.
-* **Chore Completion**: An immutable record created when a member marks a chore done. Captures `CompletedAt` (UTC), `PointsAwarded`, `MemberId`, and chore title snapshot.
+* **Chore Completion**: An immutable record created when a member marks a chore done. Captures `CompletedAt` (UTC), `PointsAwarded`, `CompletedByMemberId`, and references the completed `ChoreId`.
 * **Tag**: A multi-label category attached to chores for filtering (e.g. `kuchnia`, `sprzątanie`, `ogród`, `konserwacja`).
 
 ### 3. Gamification & Economy
