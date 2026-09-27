@@ -21,10 +21,10 @@ public static class ChoreEndpoints
             CancellationToken cancellationToken) =>
         {
             IQueryable<Chore> query = db.Chores
-                .AsNoTracking()
                 .Where(c => !c.IsArchived)
                 .Include(c => c.ChoreTags)
-                .ThenInclude(ct => ct.Tag);
+                .ThenInclude(ct => ct.Tag)
+                .AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(tag))
             {

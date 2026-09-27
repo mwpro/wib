@@ -58,6 +58,15 @@ public record CreateChoreRequest(
         {
             yield return new ValidationResult("Title cannot be empty.", [nameof(Title)]);
         }
+        else if (Title.Trim().Length > 255)
+        {
+            yield return new ValidationResult("Title cannot exceed 255 characters.", [nameof(Title)]);
+        }
+
+        if (!string.IsNullOrWhiteSpace(Description) && Description.Trim().Length > 2000)
+        {
+            yield return new ValidationResult("Description cannot exceed 2000 characters.", [nameof(Description)]);
+        }
 
         if (Points < 1)
         {
@@ -67,6 +76,11 @@ public record CreateChoreRequest(
         if (CadenceDays.HasValue && CadenceDays.Value < 1)
         {
             yield return new ValidationResult("CadenceDays must be at least 1 day if specified.", [nameof(CadenceDays)]);
+        }
+
+        if (Tags?.Any(t => !string.IsNullOrWhiteSpace(t) && t.Trim().Length > 50) == true)
+        {
+            yield return new ValidationResult("Each tag name must be 50 characters or fewer.", [nameof(Tags)]);
         }
     }
 }
@@ -85,6 +99,15 @@ public record UpdateChoreRequest(
         {
             yield return new ValidationResult("Title cannot be empty.", [nameof(Title)]);
         }
+        else if (Title.Trim().Length > 255)
+        {
+            yield return new ValidationResult("Title cannot exceed 255 characters.", [nameof(Title)]);
+        }
+
+        if (!string.IsNullOrWhiteSpace(Description) && Description.Trim().Length > 2000)
+        {
+            yield return new ValidationResult("Description cannot exceed 2000 characters.", [nameof(Description)]);
+        }
 
         if (Points < 1)
         {
@@ -94,6 +117,11 @@ public record UpdateChoreRequest(
         if (CadenceDays.HasValue && CadenceDays.Value < 1)
         {
             yield return new ValidationResult("CadenceDays must be at least 1 day if specified.", [nameof(CadenceDays)]);
+        }
+
+        if (Tags?.Any(t => !string.IsNullOrWhiteSpace(t) && t.Trim().Length > 50) == true)
+        {
+            yield return new ValidationResult("Each tag name must be 50 characters or fewer.", [nameof(Tags)]);
         }
     }
 }

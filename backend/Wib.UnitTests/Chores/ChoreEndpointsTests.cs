@@ -112,6 +112,48 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     }
 
     [Fact]
+    public async Task PostChore_WithNullCadenceDays_ShouldReturnUnscheduled()
+    {
+        // Arrange
+        var client = CreateAuthenticatedClient();
+        var request = new CreateChoreRequest(Title: "Zadanie ad-hoc", Points: 2);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/chores", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var chore = await response.Content.ReadFromJsonAsync<ChoreResponse>(_jsonOptions);
+        chore.Should().NotBeNull();
+        chore.CadenceDays.Should().BeNull();
+        chore.Urgency.Should().Be("Unscheduled");
+        chore.UrgencyRatio.Should().BeNull();
+        chore.DaysSinceLastDone.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(256, null, null)]     // Title too long
+    [InlineData(10, 2001, null)]      // Description too long
+    [InlineData(10, null, 51)]        // Tag name too long
+    public async Task PostChore_WithFieldsExceedingMaxLength_ShouldReturn400(
+        int titleLength, int? descriptionLength, int? tagNameLength)
+    {
+        // Arrange
+        var client = CreateAuthenticatedClient();
+        var request = new CreateChoreRequest(
+            Title: new string('x', titleLength),
+            Description: descriptionLength.HasValue ? new string('x', descriptionLength.Value) : null,
+            Tags: tagNameLength.HasValue ? [new string('x', tagNameLength.Value)] : null
+        );
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/chores", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task GetChores_ShouldReturnSortedByUrgencyDescendingAndUnscheduledLast()
     {
         // Arrange
