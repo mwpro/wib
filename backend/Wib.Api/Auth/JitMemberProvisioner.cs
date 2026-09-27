@@ -48,13 +48,7 @@ public class JitMemberProvisioner : IJitMemberProvisioner
         if (member == null)
         {
             _logger.LogInformation("JIT provisioning new member for sub: {Sub}", sub);
-            member = new Member
-            {
-                ExternalSubjectId = sub,
-                Name = name,
-                WalletBalance = 0,
-                CreatedAt = _timeProvider.GetUtcNow().UtcDateTime
-            };
+            member = Member.Create(sub, name, _timeProvider.GetUtcNow().UtcDateTime);
             _dbContext.Members.Add(member);
 
             try
@@ -71,19 +65,8 @@ public class JitMemberProvisioner : IJitMemberProvisioner
         }
         else
         {
-            var changed = false;
-            if (!string.IsNullOrWhiteSpace(name) && member.Name != name)
-            {
-                member.Name = name;
-                changed = true;
-            }
-
-            if (changed)
-            {
-                _logger.LogInformation("JIT updating profile for member sub: {Sub}", sub);
-                member.UpdatedAt = _timeProvider.GetUtcNow().UtcDateTime;
-                await _dbContext.SaveChangesAsync(cancellationToken);
-            }
+            member.UpdateProfile(name, _timeProvider.GetUtcNow().UtcDateTime);
+            await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
         return member;

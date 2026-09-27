@@ -28,7 +28,7 @@ public static class ChoreEndpoints
 
             if (!string.IsNullOrWhiteSpace(tag))
             {
-                var normalizedTag = tag.Trim().ToLowerInvariant();
+                var normalizedTag = Tag.NormalizeName(tag);
                 query = query.Where(c => c.ChoreTags.Any(ct => ct.Tag.Name == normalizedTag));
             }
 
@@ -63,45 +63,10 @@ public static class ChoreEndpoints
         {
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
 
-            var tagNames = (request.Tags ?? Array.Empty<string>())
-                .Where(t => !string.IsNullOrWhiteSpace(t))
-                .Select(t => t.Trim().ToLowerInvariant())
-                .Distinct()
-                .ToList();
+            var chore = Chore.Create(request.Title, request.Description, request.Points, request.CadenceDays, nowUtc);
 
-            var existingTags = await db.Tags
-                .Where(t => tagNames.Contains(t.Name))
-                .ToListAsync(cancellationToken);
-
-            var existingTagMap = existingTags.ToDictionary(t => t.Name);
-            var tagsToAttach = new List<Tag>();
-
-            foreach (var name in tagNames)
-            {
-                if (!existingTagMap.TryGetValue(name, out var tag))
-                {
-                    tag = new Tag { Name = name, CreatedAt = nowUtc };
-                    db.Tags.Add(tag);
-                }
-                tagsToAttach.Add(tag);
-            }
-
-            var chore = new Chore
-            {
-                Title = request.Title.Trim(),
-                Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
-                Points = request.Points,
-                CadenceDays = request.CadenceDays,
-                LastCompletedAt = null,
-                IsArchived = false,
-                CreatedAt = nowUtc,
-                UpdatedAt = null
-            };
-
-            foreach (var tag in tagsToAttach)
-            {
-                chore.ChoreTags.Add(new ChoreTag { Chore = chore, Tag = tag });
-            }
+            var tags = await ResolveTagsAsync(request.Tags, db, nowUtc, cancellationToken);
+            chore.SetTags(tags);
 
             db.Chores.Add(chore);
             await db.SaveChangesAsync(cancellationToken);
@@ -133,40 +98,10 @@ public static class ChoreEndpoints
 
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
 
-            chore.Title = request.Title.Trim();
-            chore.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
-            chore.Points = request.Points;
-            chore.CadenceDays = request.CadenceDays;
-            chore.UpdatedAt = nowUtc;
+            chore.Update(request.Title, request.Description, request.Points, request.CadenceDays, nowUtc);
 
-            var tagNames = (request.Tags ?? Array.Empty<string>())
-                .Where(t => !string.IsNullOrWhiteSpace(t))
-                .Select(t => t.Trim().ToLowerInvariant())
-                .Distinct()
-                .ToList();
-
-            var existingTags = await db.Tags
-                .Where(t => tagNames.Contains(t.Name))
-                .ToListAsync(cancellationToken);
-
-            var existingTagMap = existingTags.ToDictionary(t => t.Name);
-            var desiredTags = new List<Tag>();
-
-            foreach (var name in tagNames)
-            {
-                if (!existingTagMap.TryGetValue(name, out var tag))
-                {
-                    tag = new Tag { Name = name, CreatedAt = nowUtc };
-                    db.Tags.Add(tag);
-                }
-                desiredTags.Add(tag);
-            }
-
-            chore.ChoreTags.Clear();
-            foreach (var tag in desiredTags)
-            {
-                chore.ChoreTags.Add(new ChoreTag { ChoreId = chore.Id, Tag = tag });
-            }
+            var tags = await ResolveTagsAsync(request.Tags, db, nowUtc, cancellationToken);
+            chore.SetTags(tags);
 
             await db.SaveChangesAsync(cancellationToken);
 
@@ -189,8 +124,7 @@ public static class ChoreEndpoints
                 return Results.NotFound();
             }
 
-            chore.IsArchived = true;
-            chore.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+            chore.Archive(timeProvider.GetUtcNow().UtcDateTime);
             await db.SaveChangesAsync(cancellationToken);
 
             return Results.NoContent();
@@ -198,5 +132,37 @@ public static class ChoreEndpoints
         .WithName("DeleteChore");
 
         return app;
+    }
+
+    private static async Task<List<Tag>> ResolveTagsAsync(
+        IReadOnlyList<string>? rawTags, WibDbContext db, DateTime nowUtc, CancellationToken cancellationToken)
+    {
+        var normalizedNames = (rawTags ?? Array.Empty<string>())
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(Tag.NormalizeName)
+            .Distinct()
+            .ToList();
+
+        if (normalizedNames.Count == 0)
+            return [];
+
+        var existingTags = await db.Tags
+            .Where(t => normalizedNames.Contains(t.Name))
+            .ToListAsync(cancellationToken);
+
+        var existingTagMap = existingTags.ToDictionary(t => t.Name);
+        var result = new List<Tag>();
+
+        foreach (var name in normalizedNames)
+        {
+            if (!existingTagMap.TryGetValue(name, out var tag))
+            {
+                tag = Tag.Create(name, nowUtc);
+                db.Tags.Add(tag);
+            }
+            result.Add(tag);
+        }
+
+        return result;
     }
 }

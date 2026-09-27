@@ -86,13 +86,9 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WibWebApplicatio
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<WibDbContext>();
-            db.Members.Add(new Member
-            {
-                ExternalSubjectId = "auth0|test-bob",
-                Name = "Bob Old Name",
-                WalletBalance = 50,
-                CreatedAt = DateTime.UtcNow.AddDays(-5)
-            });
+            var member = Member.Create("auth0|test-bob", "Bob Old Name", DateTime.UtcNow.AddDays(-5));
+            member.CreditWallet(50);
+            db.Members.Add(member);
             await db.SaveChangesAsync();
         }
 

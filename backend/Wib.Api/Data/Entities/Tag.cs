@@ -2,9 +2,24 @@ namespace Wib.Api.Data.Entities;
 
 public class Tag
 {
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; set; }
+    private readonly List<ChoreTag> _choreTags = [];
 
-    public ICollection<ChoreTag> ChoreTags { get; set; } = new List<ChoreTag>();
+    private Tag() { }
+
+    public int Id { get; private set; }
+    public string Name { get; private set; } = string.Empty;
+    public DateTime CreatedAt { get; private set; }
+
+    public IReadOnlyCollection<ChoreTag> ChoreTags => _choreTags.AsReadOnly();
+
+    public static string NormalizeName(string raw) => raw.Trim().ToLowerInvariant();
+
+    public static Tag Create(string name, DateTime nowUtc)
+    {
+        return new Tag
+        {
+            Name = NormalizeName(name),
+            CreatedAt = nowUtc
+        };
+    }
 }

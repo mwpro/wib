@@ -122,45 +122,16 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
 
         await _factory.ExecuteDbContextAsync(async db =>
         {
-            var freshChore = new Chore
-            {
-                Title = "Fresh Chore",
-                Points = 1,
-                CadenceDays = 10,
-                LastCompletedAt = now, // 0 days ago -> 0%
-                CreatedAt = now,
-                IsArchived = false
-            };
+            var freshChore = Chore.Create("Fresh Chore", null, 1, 10, now);
+            freshChore.MarkCompleted(now); // 0 days ago -> 0%
 
-            var overdueChore = new Chore
-            {
-                Title = "Overdue Chore",
-                Points = 2,
-                CadenceDays = 5,
-                LastCompletedAt = now.AddDays(-5), // 5 days ago -> 100%
-                CreatedAt = now.AddDays(-10),
-                IsArchived = false
-            };
+            var overdueChore = Chore.Create("Overdue Chore", null, 2, 5, now.AddDays(-10));
+            overdueChore.MarkCompleted(now.AddDays(-5)); // 5 days ago -> 100%
 
-            var neglectedChore = new Chore
-            {
-                Title = "Neglected Chore",
-                Points = 3,
-                CadenceDays = 5,
-                LastCompletedAt = now.AddDays(-10), // 10 days ago -> 200%
-                CreatedAt = now.AddDays(-20),
-                IsArchived = false
-            };
+            var neglectedChore = Chore.Create("Neglected Chore", null, 3, 5, now.AddDays(-20));
+            neglectedChore.MarkCompleted(now.AddDays(-10)); // 10 days ago -> 200%
 
-            var unscheduledChore = new Chore
-            {
-                Title = "Unscheduled Chore",
-                Points = 5,
-                CadenceDays = null,
-                LastCompletedAt = null,
-                CreatedAt = now.AddDays(-1),
-                IsArchived = false
-            };
+            var unscheduledChore = Chore.Create("Unscheduled Chore", null, 5, null, now.AddDays(-1));
 
             db.Chores.AddRange(freshChore, overdueChore, neglectedChore, unscheduledChore);
             await db.SaveChangesAsync();
@@ -217,27 +188,13 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
 
         await _factory.ExecuteDbContextAsync(async db =>
         {
-            var gardenTag = new Tag { Name = "ogród", CreatedAt = DateTime.UtcNow };
+            var gardenTag = Tag.Create("ogród", DateTime.UtcNow);
             db.Tags.Add(gardenTag);
 
-            var tagged = new Chore
-            {
-                Title = "Koszenie trawy",
-                Points = 2,
-                CadenceDays = 7,
-                CreatedAt = DateTime.UtcNow,
-                IsArchived = false
-            };
-            tagged.ChoreTags.Add(new ChoreTag { Chore = tagged, Tag = gardenTag });
+            var tagged = Chore.Create("Koszenie trawy", null, 2, 7, DateTime.UtcNow);
+            tagged.SetTags([gardenTag]);
 
-            var other = new Chore
-            {
-                Title = "Inne zadanie",
-                Points = 1,
-                CadenceDays = 7,
-                CreatedAt = DateTime.UtcNow,
-                IsArchived = false
-            };
+            var other = Chore.Create("Inne zadanie", null, 1, 7, DateTime.UtcNow);
 
             db.Chores.AddRange(tagged, other);
             await db.SaveChangesAsync();
@@ -266,14 +223,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
 
         await _factory.ExecuteDbContextAsync(async db =>
         {
-            var chore = new Chore
-            {
-                Title = "Stary tytuł",
-                Points = 1,
-                CadenceDays = 3,
-                CreatedAt = DateTime.UtcNow,
-                IsArchived = false
-            };
+            var chore = Chore.Create("Stary tytuł", null, 1, 3, DateTime.UtcNow);
             db.Chores.Add(chore);
             await db.SaveChangesAsync();
             choreId = chore.Id;
@@ -328,12 +278,8 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
 
         await _factory.ExecuteDbContextAsync(async db =>
         {
-            var archived = new Chore
-            {
-                Title = "Archived",
-                CreatedAt = DateTime.UtcNow,
-                IsArchived = true
-            };
+            var archived = Chore.Create("Archived", null, 1, null, DateTime.UtcNow);
+            archived.Archive(DateTime.UtcNow);
             db.Chores.Add(archived);
             await db.SaveChangesAsync();
             archivedId = archived.Id;
@@ -358,13 +304,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
 
         await _factory.ExecuteDbContextAsync(async db =>
         {
-            var chore = new Chore
-            {
-                Title = "Do usunięcia",
-                Points = 1,
-                CreatedAt = DateTime.UtcNow,
-                IsArchived = false
-            };
+            var chore = Chore.Create("Do usunięcia", null, 1, null, DateTime.UtcNow);
             db.Chores.Add(chore);
             await db.SaveChangesAsync();
             choreId = chore.Id;
