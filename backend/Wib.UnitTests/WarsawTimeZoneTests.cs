@@ -31,4 +31,15 @@ public class WarsawTimeZoneTests
         warsawTime.Offset.Should().Be(TimeSpan.FromHours(expectedOffsetHours));
         warsawTime.Hour.Should().Be(hour + expectedOffsetHours);
     }
+
+    [Fact]
+    public void ToWarsawDate_WhenUtcTimeCrossesMidnightInWarsaw_ShouldAdvanceCalendarDate()
+    {
+        // 23:30 UTC on June 15 is 01:30 CEST (UTC+2) on June 16 in Warsaw.
+        var utcDateTime = new DateTime(2026, 6, 15, 23, 30, 0, DateTimeKind.Utc);
+
+        var date = WarsawTimeZone.ToWarsawDate(utcDateTime);
+
+        date.Should().Be(new DateOnly(2026, 6, 16));
+    }
 }

@@ -1,4 +1,5 @@
 using Wib.Api.Auth;
+using Wib.Api.Chores;
 using Wib.Api.Common;
 using Wib.Api.Config;
 using Wib.Api.Data;
@@ -11,6 +12,7 @@ builder.Configuration.AddJsonFile("/run/secrets/appsettings.secret.json", option
 // Add services to the container.
 builder.Services.Configure<JwtAuthOptions>(builder.Configuration.GetSection(JwtAuthOptions.SectionName));
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<IFreshnessCalculator, FreshnessCalculator>();
 builder.Services.AddWibAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
 builder.Services.AddOpenApi();
@@ -37,6 +39,7 @@ app.UseAuthorization();
 
 app.MapConfigEndpoints();
 app.MapMemberEndpoints();
+app.MapChoreEndpoints();
 
 app.MapHealthChecks("/api/health");
 

@@ -116,7 +116,7 @@ public class JwtBearerAuthenticationTests : IClassFixture<WibWebApplicationFacto
         var db = scope.ServiceProvider.GetRequiredService<WibDbContext>();
         var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == uniqueSub);
         member.Should().NotBeNull();
-        member!.Name.Should().Be("JWT Auto Provisioned");
+        member.Name.Should().Be("JWT Auto Provisioned");
         member.WalletBalance.Should().Be(0);
     }
 
