@@ -44,6 +44,12 @@ public record ChoreResponse(
     }
 }
 
+public record CompleteChoreResponse(
+    ChoreResponse Chore,
+    int MemberWalletBalance,
+    int PointsAwarded
+);
+
 public record CreateChoreRequest(
     string Title,
     string? Description = null,

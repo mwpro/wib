@@ -18,11 +18,11 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         _factory = factory;
     }
 
-    private HttpClient CreateAuthenticatedClient()
+    private HttpClient CreateAuthenticatedClient(string? sub = null)
     {
         var client = _factory.CreateClient();
-        client.DefaultRequestHeaders.Add("X-Test-Sub", "auth0|test-chores-user");
-        client.DefaultRequestHeaders.Add("X-Test-User-Name", "Chores Tester");
+        client.DefaultRequestHeaders.Add("X-Test-Sub", sub ?? "auth0|test-chores-user");
+        client.DefaultRequestHeaders.Add("X-Test-User-Name", sub is null ? "Chores Tester" : "Test User");
         return client;
     }
 
@@ -164,18 +164,21 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
 
         await _factory.ExecuteDbContextAsync(async db =>
         {
+            var seedMember = Member.Create("auth0|seed-urgency-test", "Seed Member", now);
+            db.Members.Add(seedMember);
+
             var freshChore = Chore.Create("Fresh Chore", null, 1, 10, now);
-            freshChore.MarkCompleted(now); // 0 days ago -> 0%
-
             var overdueChore = Chore.Create("Overdue Chore", null, 2, 5, now.AddDays(-10));
-            overdueChore.MarkCompleted(now.AddDays(-5)); // 5 days ago -> 100%
-
             var neglectedChore = Chore.Create("Neglected Chore", null, 3, 5, now.AddDays(-20));
-            neglectedChore.MarkCompleted(now.AddDays(-10)); // 10 days ago -> 200%
-
             var unscheduledChore = Chore.Create("Unscheduled Chore", null, 5, null, now.AddDays(-1));
 
             db.Chores.AddRange(freshChore, overdueChore, neglectedChore, unscheduledChore);
+            await db.SaveChangesAsync();
+
+            freshChore.Complete(seedMember, now);          // 0 days ago -> 0%
+            overdueChore.Complete(seedMember, now.AddDays(-5));   // 5 days ago -> 100%
+            neglectedChore.Complete(seedMember, now.AddDays(-10)); // 10 days ago -> 200%
+
             await db.SaveChangesAsync();
 
             freshId = freshChore.Id;
@@ -376,5 +379,135 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         // Second DELETE should return 404
         var reDeleteResponse = await client.DeleteAsync($"/api/chores/{choreId}");
         reDeleteResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task PostCompletion_WithoutAuthentication_ShouldReturnUnauthorized()
+    {
+        // Arrange
+        var unauthenticatedClient = _factory.CreateClient();
+
+        // Act
+        var response = await unauthenticatedClient.PostAsync("/api/chores/1/completion", null);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task PostCompletion_WhenChoreNotFoundOrArchived_ShouldReturnNotFound()
+    {
+        // Arrange
+        var client = CreateAuthenticatedClient();
+        int archivedId = 0;
+
+        await _factory.ExecuteDbContextAsync(async db =>
+        {
+            var archived = Chore.Create("Archived Chore", null, 2, 3, DateTime.UtcNow);
+            archived.Archive(DateTime.UtcNow);
+            db.Chores.Add(archived);
+            await db.SaveChangesAsync();
+            archivedId = archived.Id;
+        });
+
+        // Act & Assert - non-existent
+        var notFoundRes = await client.PostAsync("/api/chores/999999/completion", null);
+        notFoundRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        // Act & Assert - archived
+        var archivedRes = await client.PostAsync($"/api/chores/{archivedId}/completion", null);
+        archivedRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task PostCompletion_WithValidChore_ShouldUpdateChore_CreditWallet_AndReturnCompleteChoreResponse()
+    {
+        // Arrange
+        var client = CreateAuthenticatedClient();
+        int choreId = 0;
+
+        await _factory.ExecuteDbContextAsync(async db =>
+        {
+            var chore = Chore.Create("Odkurzanie", "Dokładnie w sypialni", 4, 3, DateTime.UtcNow.AddDays(-5));
+            db.Chores.Add(chore);
+            await db.SaveChangesAsync();
+            choreId = chore.Id;
+        });
+
+        // Act
+        var response = await client.PostAsync($"/api/chores/{choreId}/completion", null);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<CompleteChoreResponse>(_jsonOptions);
+        result.Should().NotBeNull();
+        result!.PointsAwarded.Should().Be(4);
+        result.MemberWalletBalance.Should().Be(4);
+        result.Chore.Id.Should().Be(choreId);
+        result.Chore.LastCompletedAt.Should().NotBeNull();
+        result.Chore.Urgency.Should().Be("Fresh");
+        result.Chore.DaysSinceLastDone.Should().Be(0);
+
+        // Verify in DB
+        await _factory.ExecuteDbContextAsync(async db =>
+        {
+            var choreEntity = await db.Chores
+                .Include(c => c.Completions)
+                .FirstOrDefaultAsync(c => c.Id == choreId);
+            choreEntity.Should().NotBeNull();
+            choreEntity!.LastCompletedAt.Should().NotBeNull();
+            choreEntity.Completions.Should().ContainSingle();
+
+            var completion = choreEntity.Completions.First();
+            completion.ChoreId.Should().Be(choreId);
+            completion.PointsAwarded.Should().Be(4);
+
+            var memberEntity = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == "auth0|test-chores-user");
+            memberEntity.Should().NotBeNull();
+            memberEntity!.WalletBalance.Should().Be(4);
+        });
+    }
+
+    [Fact]
+    public async Task PostCompletion_MultipleTimes_ShouldAccumulatePointsAndCompletions()
+    {
+        // Arrange
+        var memberSub = "auth0|repeat-completer-" + Guid.NewGuid();
+        var client = CreateAuthenticatedClient(memberSub);
+
+        int choreId = 0;
+        await _factory.ExecuteDbContextAsync(async db =>
+        {
+            var chore = Chore.Create("Wyniesienie śmieci", null, 3, 2, DateTime.UtcNow);
+            db.Chores.Add(chore);
+            await db.SaveChangesAsync();
+            choreId = chore.Id;
+        });
+
+        // Act: Complete twice
+        var firstResponse = await client.PostAsync($"/api/chores/{choreId}/completion", null);
+        var secondResponse = await client.PostAsync($"/api/chores/{choreId}/completion", null);
+
+        // Assert
+        firstResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var firstResult = await firstResponse.Content.ReadFromJsonAsync<CompleteChoreResponse>(_jsonOptions);
+        firstResult!.MemberWalletBalance.Should().Be(3);
+        firstResult.PointsAwarded.Should().Be(3);
+
+        secondResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var secondResult = await secondResponse.Content.ReadFromJsonAsync<CompleteChoreResponse>(_jsonOptions);
+        secondResult!.MemberWalletBalance.Should().Be(6);
+        secondResult.PointsAwarded.Should().Be(3);
+
+        // Verify in DB that two completions exist
+        await _factory.ExecuteDbContextAsync(async db =>
+        {
+            var completions = await db.ChoreCompletions.Where(cc => cc.ChoreId == choreId).ToListAsync();
+            completions.Should().HaveCount(2);
+
+            var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == memberSub);
+            member.Should().NotBeNull();
+            member!.WalletBalance.Should().Be(6);
+        });
     }
 }

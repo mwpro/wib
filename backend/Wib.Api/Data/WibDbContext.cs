@@ -13,6 +13,7 @@ public class WibDbContext : DbContext
     public DbSet<Chore> Chores => Set<Chore>();
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<ChoreTag> ChoreTags => Set<ChoreTag>();
+    public DbSet<ChoreCompletion> ChoreCompletions => Set<ChoreCompletion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -65,6 +66,22 @@ public class WibDbContext : DbContext
                 .WithMany(t => t.ChoreTags)
                 .HasForeignKey(ct => ct.TagId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ChoreCompletion>(entity =>
+        {
+            entity.ToTable("chore_completions");
+            entity.HasKey(cc => cc.Id);
+            entity.Property(cc => cc.CompletedAt).IsRequired();
+            entity.Property(cc => cc.PointsAwarded).IsRequired();
+            entity.HasOne(cc => cc.Chore)
+                .WithMany(c => c.Completions)
+                .HasForeignKey(cc => cc.ChoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(cc => cc.CompletedByMember)
+                .WithMany()
+                .HasForeignKey(cc => cc.CompletedByMemberId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

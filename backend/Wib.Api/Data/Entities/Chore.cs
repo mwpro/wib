@@ -3,6 +3,7 @@ namespace Wib.Api.Data.Entities;
 public class Chore
 {
     private readonly List<ChoreTag> _choreTags = [];
+    private readonly List<ChoreCompletion> _completions = [];
 
     private Chore() { }
 
@@ -17,6 +18,7 @@ public class Chore
     public DateTime? UpdatedAt { get; private set; }
 
     public IReadOnlyCollection<ChoreTag> ChoreTags => _choreTags.AsReadOnly();
+    public IReadOnlyCollection<ChoreCompletion> Completions => _completions.AsReadOnly();
 
     public static Chore Create(string title, string? description, int points, int? cadenceDays, DateTime nowUtc)
     {
@@ -45,9 +47,14 @@ public class Chore
         UpdatedAt = nowUtc;
     }
 
-    public void MarkCompleted(DateTime completedAtUtc)
+    public ChoreCompletion Complete(Member member, DateTime completedAtUtc)
     {
         LastCompletedAt = completedAtUtc;
+        member.CreditWallet(Points);
+
+        var completion = ChoreCompletion.Create(Id, member.Id, Points, completedAtUtc);
+        _completions.Add(completion);
+        return completion;
     }
 
     public void SetTags(IReadOnlyList<Tag> tags)
