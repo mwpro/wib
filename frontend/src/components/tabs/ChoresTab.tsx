@@ -137,11 +137,11 @@ export function ChoresTab() {
   const activeFiltersCount = (searchQuery ? 1 : 0) + selectedTags.length
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       {/* Top Header & Action Bar */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <span>Zadania domowe</span>
             {chores.length > 0 && (
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
@@ -153,7 +153,7 @@ export function ChoresTab() {
 
         <button
           onClick={handleOpenAdd}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 active:scale-98 text-white rounded-xl text-sm font-semibold shadow-xs transition cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:scale-98 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           <span>Dodaj zadanie</span>
@@ -244,10 +244,10 @@ export function ChoresTab() {
 
           {/* Section 1: Scheduled Chores */}
           {scheduledChores.length > 0 && (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4 text-amber-500" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-amber-500" />
                   <span>Zadania cykliczne</span>
                   <span className="text-xs font-semibold px-2 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                     {scheduledChores.length}
@@ -255,7 +255,7 @@ export function ChoresTab() {
                 </h3>
               </div>
 
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
                 {scheduledChores.map((chore) => (
                   <ChoreCard
                     key={chore.id}
@@ -272,15 +272,15 @@ export function ChoresTab() {
 
           {/* Section 2: Unscheduled Chores ("Do zrobienia (bez terminu)") */}
           {unscheduledChores.length > 0 && (
-            <div className="flex flex-col gap-3 pt-2">
+            <div className="flex flex-col gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => setIsUnscheduledOpen(!isUnscheduledOpen)}
-                className="flex items-center justify-between p-2 -mx-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/60 transition cursor-pointer text-left"
+                className="flex items-center justify-between p-1.5 -mx-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/60 transition cursor-pointer text-left"
               >
                 <div className="flex items-center gap-2">
                   <CheckSquare className="h-4 w-4 text-slate-400" />
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Do zrobienia (bez terminu)
                   </h3>
                   <span className="text-xs font-semibold px-2 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
@@ -295,7 +295,7 @@ export function ChoresTab() {
               </button>
 
               {isUnscheduledOpen && (
-                <div className="flex flex-col gap-3 animate-in fade-in duration-200">
+                <div className="flex flex-col gap-2 animate-in fade-in duration-200">
                   {unscheduledChores.map((chore) => (
                     <ChoreCard
                       key={chore.id}

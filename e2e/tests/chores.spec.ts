@@ -54,6 +54,13 @@ test.describe('Chores Backlog UI Tests', () => {
     const doneButton = choreCard.getByRole('button', { name: /Ukończono \(\+1 pkt\)/i })
     await expect(doneButton).toBeVisible()
     await expect(doneButton).toBeDisabled()
+    await expect(doneButton).toHaveText(/\+1 pkt/)
+
+    // 6. Verify dropdown menu on completed chore (can still edit/delete)
+    const optionsButton = choreCard.getByRole('button', { name: /Więcej opcji/i })
+    await optionsButton.click()
+    await expect(page.getByRole('button', { name: /Edytuj/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Usuń/i })).toBeVisible()
   })
 
   test('creates unscheduled chore and filters by search', async ({ page }) => {
