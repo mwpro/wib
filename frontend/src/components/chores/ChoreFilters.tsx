@@ -18,21 +18,22 @@ export function ChoreFilters({
   onClearTags,
 }: ChoreFiltersProps) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2.5">
       {/* Search Input */}
       <div className="relative">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Szukaj zadań..."
-          className="w-full pl-10 pr-9 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+          className="w-full pl-10 pr-9 py-2 bg-white dark:bg-[#14161d] border border-stone-200/90 dark:border-stone-800/80 rounded-xl text-sm placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500/10 focus:border-amber-400 dark:focus:border-amber-500 shadow-2xs transition"
         />
         {searchQuery && (
           <button
+            type="button"
             onClick={() => onSearchChange('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-md transition"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 rounded-md transition"
             title="Wyczyść wyszukiwanie"
           >
             <X className="h-3.5 w-3.5" />
@@ -42,13 +43,14 @@ export function ChoreFilters({
 
       {/* Tag Pills */}
       {availableTags.length > 0 && (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none text-xs">
           <button
+            type="button"
             onClick={onClearTags}
-            className={`px-3 py-1.5 rounded-lg font-medium transition whitespace-nowrap cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-[11px] transition whitespace-nowrap cursor-pointer ${
               selectedTags.length === 0
-                ? 'bg-amber-500 text-white shadow-sm'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-950 dark:text-amber-300 border border-amber-300 font-bold shadow-xs'
+                : 'bg-stone-100/90 dark:bg-stone-800/80 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700 font-medium'
             }`}
           >
             Wszystkie
@@ -57,15 +59,16 @@ export function ChoreFilters({
             const isSelected = selectedTags.includes(tag)
             return (
               <button
+                type="button"
                 key={tag}
                 onClick={() => onToggleTag(tag)}
-                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg font-medium transition whitespace-nowrap cursor-pointer ${
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] transition whitespace-nowrap cursor-pointer ${
                   isSelected
-                    ? 'bg-amber-500 text-white shadow-sm'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-950 dark:text-amber-300 border border-amber-300 font-bold shadow-xs'
+                    : 'bg-stone-100/90 dark:bg-stone-800/80 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700 font-medium'
                 }`}
               >
-                <TagIcon className="h-3 w-3" />
+                <TagIcon className="h-2.5 w-2.5" />
                 <span>#{tag}</span>
               </button>
             )

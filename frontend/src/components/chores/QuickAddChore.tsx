@@ -79,7 +79,7 @@ export function QuickAddChore({
   return (
     <div
       data-testid="quick-add-chore"
-      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-2.5 shadow-xs flex flex-col gap-2 transition-all focus-within:border-amber-500/50 focus-within:ring-2 focus-within:ring-amber-500/10"
+      className="bg-white dark:bg-[#14161d] border border-stone-200/90 dark:border-stone-800/80 rounded-2xl p-3 shadow-[0_2px_8px_rgba(0,0,0,0.03)] flex flex-col gap-2.5 transition-all focus-within:border-amber-400 dark:focus-within:border-amber-600 focus-within:ring-2 focus-within:ring-amber-500/10"
     >
       {/* Error Feedback */}
       {error && (
@@ -99,7 +99,7 @@ export function QuickAddChore({
       {/* Row 1: Input + Add Button */}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
           <input
             type="text"
             value={title}
@@ -109,7 +109,7 @@ export function QuickAddChore({
             }}
             onKeyDown={handleKeyDown}
             placeholder="Dodaj nowe zadanie (np. Podlać kwiaty)..."
-            className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-amber-500 transition"
+            className="w-full pl-9 pr-3 py-2 bg-stone-50/80 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-700/80 rounded-xl text-sm placeholder:text-stone-400 dark:placeholder:text-stone-500 focus:outline-none focus:bg-white dark:focus:bg-stone-900 focus:border-amber-400 dark:focus:border-amber-500 transition"
           />
         </div>
 
@@ -117,7 +117,7 @@ export function QuickAddChore({
           type="button"
           onClick={() => handleSubmit()}
           disabled={isAdding || !title.trim()}
-          className="h-8.5 px-3.5 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0 flex items-center justify-center gap-1"
+          className="h-9 px-4 bg-amber-400 hover:bg-amber-500 active:scale-95 text-amber-950 rounded-xl text-xs font-bold border border-amber-500/30 transition cursor-pointer shadow-xs disabled:opacity-40 disabled:cursor-not-allowed shrink-0 flex items-center justify-center gap-1.5"
         >
           {isAdding ? (
             <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -128,10 +128,10 @@ export function QuickAddChore({
       </div>
 
       {/* Row 2: Condensed Cadence & Tags Selectors */}
-      <div className="flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
+      <div className="flex items-center justify-between gap-2 text-xs text-stone-500 dark:text-stone-400 flex-wrap">
         {/* Quick Cadence Pills */}
         <div className="flex items-center gap-1 flex-wrap">
-          <span className="text-[11px] font-medium text-slate-400 mr-0.5">Cykl:</span>
+          <span className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold mr-0.5">Cykl:</span>
           {CADENCE_PRESETS.map((preset) => {
             const isSelected = cadenceDays === preset.value
             return (
@@ -139,10 +139,10 @@ export function QuickAddChore({
                 key={preset.label}
                 type="button"
                 onClick={() => setCadenceDays(preset.value)}
-                className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition cursor-pointer ${
+                className={`px-2 py-0.5 rounded-lg text-[11px] transition cursor-pointer ${
                   isSelected
-                    ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 font-semibold'
-                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400'
+                    ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-950 dark:text-amber-300 border border-amber-300 font-bold shadow-xs'
+                    : 'bg-stone-100/90 dark:bg-stone-800/80 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-400 font-medium'
                 }`}
               >
                 {preset.label}
@@ -155,7 +155,7 @@ export function QuickAddChore({
         <div className="flex items-center gap-2 ml-auto flex-wrap">
           {availableTags.length > 0 && (
             <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-[11px] font-medium text-slate-400 mr-0.5">Tagi:</span>
+              <span className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold mr-0.5">Tagi:</span>
               {availableTags.slice(0, 3).map((tag) => {
                 const isSelected = selectedTags.includes(tag)
                 return (
@@ -165,8 +165,8 @@ export function QuickAddChore({
                     onClick={() => handleToggleTag(tag)}
                     className={`px-1.5 py-0.5 rounded-md text-[10px] font-medium transition cursor-pointer ${
                       isSelected
-                        ? 'bg-amber-500 text-white font-semibold'
-                        : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400'
+                        ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-950 dark:text-amber-300 border border-amber-300/80 font-bold'
+                        : 'bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-400'
                     }`}
                   >
                     #{tag}
@@ -182,7 +182,7 @@ export function QuickAddChore({
               type="button"
               onClick={handleOpenMore}
               title="Więcej opcji (opis, własne dni)"
-              className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
+              className="inline-flex items-center gap-1 text-[11px] text-stone-500 hover:text-amber-800 dark:hover:text-amber-300 font-medium transition cursor-pointer ml-1"
             >
               <SlidersHorizontal className="h-3 w-3" />
               <span>Więcej</span>

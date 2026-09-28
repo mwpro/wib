@@ -13,27 +13,22 @@ interface ChoreCardProps {
 
 const URGENCY_STYLES: Record<
   FreshnessUrgency,
-  { border: string; shadow: string }
+  { border: string }
 > = {
   Fresh: {
-    border: 'border-l-emerald-500 dark:border-l-emerald-400',
-    shadow: 'shadow-sm shadow-emerald-500/20 dark:shadow-emerald-950/50',
+    border: 'border-l-emerald-500',
   },
   DueSoon: {
-    border: 'border-l-amber-500 dark:border-l-amber-400',
-    shadow: 'shadow-sm shadow-amber-500/20 dark:shadow-amber-950/50',
+    border: 'border-l-amber-500',
   },
   Overdue: {
-    border: 'border-l-orange-500 dark:border-l-orange-400',
-    shadow: 'shadow-sm shadow-orange-500/25 dark:shadow-orange-950/60',
+    border: 'border-l-orange-500',
   },
   Neglected: {
-    border: 'border-l-rose-500 dark:border-l-rose-400',
-    shadow: 'shadow-sm shadow-rose-500/30 dark:shadow-rose-950/70',
+    border: 'border-l-rose-500',
   },
   Unscheduled: {
-    border: 'border-l-slate-300 dark:border-l-slate-600',
-    shadow: 'shadow-xs',
+    border: 'border-l-stone-300 dark:border-l-stone-600',
   },
 }
 
@@ -97,26 +92,26 @@ export function ChoreCard({
   return (
     <div
       data-testid="chore-card"
-      className={`relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 border-l-4 ${urgencyStyle.border} ${urgencyStyle.shadow} flex flex-col gap-1.5 transition-all`}
+      className={`group relative bg-white dark:bg-[#14161d] border border-stone-200/90 dark:border-stone-800/80 rounded-2xl px-4 py-3 border-l-4 ${urgencyStyle.border} shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:border-amber-300 dark:hover:border-amber-700/60 flex flex-col gap-2 transition-all`}
     >
       {/* Row 1: Title (left) & Button + Menu (right) */}
-      <div className="flex items-center justify-between gap-2.5">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-snug break-words flex-1 min-w-0">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-[14px] font-semibold text-stone-900 dark:text-stone-50 leading-snug tracking-tight break-words flex-1 min-w-0">
           {chore.title}
         </h3>
 
         {/* Right Actions: Split Button with Dropdown */}
-        <div className="relative inline-flex rounded-lg shadow-xs shrink-0" ref={menuRef}>
+        <div className="relative inline-flex rounded-xl shadow-xs shrink-0" ref={menuRef}>
           {/* Main 1-tap Complete Button */}
           <button
             type="button"
             onClick={handleComplete}
             disabled={isCompleting || isDone}
             aria-label={isDone ? `Ukończono (+${chore.points} pkt)` : 'Zrobione!'}
-            className={`h-8 w-[88px] rounded-l-lg font-bold text-xs flex items-center justify-center gap-1 transition-all duration-200 ${
+            className={`h-8 w-[92px] rounded-l-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all duration-150 ${
               isDone
-                ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 border-r-0 cursor-default'
-                : 'bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white cursor-pointer disabled:opacity-50'
+                ? 'bg-stone-100 dark:bg-stone-800 text-emerald-800 dark:text-emerald-400 border border-stone-200 dark:border-stone-700 border-r-0 cursor-default font-semibold'
+                : 'bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white cursor-pointer shadow-xs disabled:opacity-50'
             }`}
           >
             <Check className="h-3.5 w-3.5 stroke-[3]" />
@@ -131,10 +126,10 @@ export function ChoreCard({
               setMenuOpen(!menuOpen)
             }}
             title="Więcej opcji"
-            className={`h-8 px-1.5 rounded-r-lg flex items-center justify-center transition-all cursor-pointer ${
+            className={`h-8 px-2 rounded-r-xl flex items-center justify-center transition-all cursor-pointer ${
               isDone
-                ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 border-l-emerald-200 dark:border-l-emerald-800 hover:bg-emerald-200 dark:hover:bg-emerald-900'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white border-l border-emerald-700/60'
+                ? 'bg-stone-100 dark:bg-stone-800 text-stone-400 dark:text-stone-500 border border-stone-200 dark:border-stone-700 border-l-stone-200 dark:border-l-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700 hover:text-stone-700'
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white border-l border-emerald-700/40'
             }`}
           >
             <ChevronDown
@@ -144,23 +139,25 @@ export function ChoreCard({
 
           {/* Dropdown Menu */}
           {menuOpen && (
-            <div className="absolute right-0 top-9 z-20 w-36 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg py-1 text-sm animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute right-0 top-9.5 z-20 w-36 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl shadow-xl py-1 text-xs animate-in fade-in zoom-in-95 duration-100">
               <button
+                type="button"
                 onClick={() => {
                   setMenuOpen(false)
                   onEdit(chore)
                 }}
-                className="w-full px-3 py-2 text-left flex items-center gap-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+                className="w-full px-3 py-2 text-left flex items-center gap-2 text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 font-medium transition cursor-pointer"
               >
-                <Edit2 className="h-3.5 w-3.5" />
+                <Edit2 className="h-3.5 w-3.5 text-stone-400" />
                 <span>Edytuj</span>
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setMenuOpen(false)
                   onDelete(chore)
                 }}
-                className="w-full px-3 py-2 text-left flex items-center gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                className="w-full px-3 py-2 text-left flex items-center gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-medium transition cursor-pointer"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 <span>Usuń</span>
@@ -171,23 +168,23 @@ export function ChoreCard({
       </div>
 
       {/* Row 2: Metadata taking full width of card */}
-      <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 flex-wrap min-w-0">
+      <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400 flex-wrap min-w-0">
         <ChoreBadge urgency={chore.urgency} />
-        <span className="inline-flex items-center gap-1 font-medium text-[11px]">
-          <Clock className="h-3 w-3 text-slate-400" />
+        <span className="inline-flex items-center gap-1 text-[11px] text-stone-600 dark:text-stone-400 font-medium">
+          <Clock className="h-3 w-3 text-stone-400" />
           {cadenceText}
         </span>
-        <span>•</span>
-        <span className="text-[11px]">{lastDoneText}</span>
+        <span className="text-stone-300 dark:text-stone-700 select-none">/</span>
+        <span className="text-[11px] text-stone-500 dark:text-stone-400">{lastDoneText}</span>
       </div>
 
       {/* Row 3: Tags on their own dedicated line */}
       {chore.tags && chore.tags.length > 0 && (
-        <div className="flex items-center gap-1 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
           {chore.tags.map((tag) => (
             <span
               key={tag}
-              className="px-1.5 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+              className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-stone-100 dark:bg-stone-800/80 text-stone-600 dark:text-stone-300 border border-stone-200/60 dark:border-stone-700/60"
             >
               #{tag}
             </span>
@@ -195,20 +192,20 @@ export function ChoreCard({
         </div>
       )}
 
-      {/* Row 4: Description under tags (1st line always shown, expandable only when needed) */}
+      {/* Row 4: Description under tags */}
       {chore.description && (
-        <div className="text-xs text-slate-500 dark:text-slate-400 pt-0.5">
+        <div className="text-xs text-stone-500 dark:text-stone-400 pt-0.5">
           <div
             onClick={() => isExpandable && setIsExpanded(!isExpanded)}
             className={`flex items-start justify-between gap-2 ${
-              isExpandable ? 'cursor-pointer group' : ''
+              isExpandable ? 'cursor-pointer group/desc' : ''
             }`}
           >
             <p
               className={`break-words flex-1 leading-relaxed ${
                 isExpanded
-                  ? 'whitespace-pre-line text-slate-700 dark:text-slate-300'
-                  : 'line-clamp-1 text-slate-500 dark:text-slate-400'
+                  ? 'whitespace-pre-line text-stone-800 dark:text-stone-200'
+                  : 'line-clamp-1 text-stone-500 dark:text-stone-400'
               }`}
             >
               {isExpanded ? chore.description : firstDescLine}
@@ -220,7 +217,7 @@ export function ChoreCard({
                   e.stopPropagation()
                   setIsExpanded(!isExpanded)
                 }}
-                className="text-[11px] text-amber-600 dark:text-amber-400 font-medium hover:underline shrink-0 cursor-pointer pt-0.5"
+                className="text-[11px] text-amber-800 dark:text-amber-400 font-semibold hover:underline shrink-0 cursor-pointer pt-0.5"
               >
                 {isExpanded ? 'zwiń' : 'więcej'}
               </button>

@@ -7,7 +7,6 @@ import {
   RefreshCw,
   Calendar,
   CheckSquare,
-  Sparkles,
   Inbox,
 } from 'lucide-react'
 import {
@@ -152,14 +151,14 @@ export function ChoresTab() {
   const activeFiltersCount = (searchQuery ? 1 : 0) + selectedTags.length
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {/* Top Header & Action Bar */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <h2 className="text-xl font-black tracking-tight text-stone-900 dark:text-white flex items-center gap-2.5">
             <span>Zadania domowe</span>
             {chores.length > 0 && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200/80 dark:border-stone-700/80">
                 {chores.length}
               </span>
             )}
@@ -167,8 +166,9 @@ export function ChoresTab() {
         </div>
 
         <button
+          type="button"
           onClick={() => handleOpenAdd()}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:scale-98 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-400 hover:bg-amber-500 active:scale-95 text-amber-950 rounded-xl text-xs font-bold border border-amber-500/40 shadow-xs transition cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           <span>Dodaj zadanie</span>
@@ -177,7 +177,7 @@ export function ChoresTab() {
 
       {/* Loading state */}
       {isLoading && (
-        <div className="p-12 flex flex-col items-center justify-center gap-3 text-slate-400">
+        <div className="p-12 flex flex-col items-center justify-center gap-3 text-stone-400">
           <RefreshCw className="h-6 w-6 animate-spin text-amber-500" />
           <span className="text-sm font-medium">Ładowanie zadań...</span>
         </div>
@@ -191,6 +191,7 @@ export function ChoresTab() {
             {error instanceof Error ? error.message : 'Wystąpił błąd podczas ładowania zadań.'}
           </p>
           <button
+            type="button"
             onClick={() => refetch()}
             className="px-4 py-1.5 bg-rose-100 dark:bg-rose-900/60 hover:bg-rose-200 dark:hover:bg-rose-900 rounded-lg text-xs font-semibold text-rose-900 dark:text-rose-100 transition cursor-pointer"
           >
@@ -226,19 +227,20 @@ export function ChoresTab() {
 
           {/* Empty state: No chores at all in household */}
           {chores.length === 0 && (
-            <div className="p-10 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 text-center flex flex-col items-center gap-3 shadow-xs">
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/60 rounded-2xl text-amber-600 dark:text-amber-400">
-                <Sparkles className="h-8 w-8" />
+            <div className="p-10 bg-white dark:bg-[#14161d] rounded-2xl border border-stone-200/90 dark:border-stone-800/80 text-center flex flex-col items-center gap-3 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-400 flex items-center justify-center border border-amber-300 dark:border-amber-800">
+                <CheckSquare className="h-6 w-6 text-amber-700 dark:text-amber-400" />
               </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+              <h3 className="text-base font-bold text-stone-900 dark:text-stone-100 tracking-tight">
                 Brak zadań w Twoim domu
               </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm">
+              <p className="text-sm text-stone-500 dark:text-stone-400 max-w-sm leading-relaxed">
                 Dodaj pierwsze zadanie ze zdefiniowanym cyklem dni lub zadanie jednorazowe, aby zdobywać punkty w rankingu!
               </p>
               <button
+                type="button"
                 onClick={() => handleOpenAdd()}
-                className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold shadow-xs transition cursor-pointer"
+                className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-amber-400 hover:bg-amber-500 active:scale-95 text-amber-950 rounded-xl text-xs font-bold border border-amber-500/40 shadow-xs transition cursor-pointer"
               >
                 <Plus className="h-4 w-4" />
                 <span>Utwórz pierwsze zadanie</span>
@@ -248,18 +250,19 @@ export function ChoresTab() {
 
           {/* Empty state: Filters applied but 0 matches */}
           {chores.length > 0 && filteredChores.length === 0 && (
-            <div className="p-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-center flex flex-col items-center gap-2 shadow-xs">
-              <Inbox className="h-7 w-7 text-slate-400" />
-              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+            <div className="p-8 bg-white dark:bg-[#14161d] rounded-2xl border border-stone-200/90 dark:border-stone-800/80 text-center flex flex-col items-center gap-2 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+              <Inbox className="h-7 w-7 text-stone-400" />
+              <p className="text-sm font-semibold text-stone-800 dark:text-stone-200 tracking-tight">
                 Brak zadań spełniających kryteria wyszukiwania
               </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-stone-500 dark:text-stone-400">
                 Spróbuj zmienić zapytanie lub odznaczyć wybrane tagi.
               </p>
               {activeFiltersCount > 0 && (
                 <button
+                  type="button"
                   onClick={handleClearAllFilters}
-                  className="mt-2 px-3 py-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
+                  className="mt-2 px-3 py-1.5 text-xs font-semibold text-amber-800 dark:text-amber-400 hover:underline cursor-pointer"
                 >
                   Wyczyść filtry ({activeFiltersCount})
                 </button>
@@ -269,12 +272,12 @@ export function ChoresTab() {
 
           {/* Section 1: Scheduled Chores */}
           {scheduledChores.length > 0 && (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2.5">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-amber-500" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                   <span>Zadania cykliczne</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200/60 dark:border-stone-700/60">
                     {scheduledChores.length}
                   </span>
                 </h3>
@@ -297,25 +300,25 @@ export function ChoresTab() {
 
           {/* Section 2: Unscheduled Chores ("Do zrobienia (bez terminu)") */}
           {unscheduledChores.length > 0 && (
-            <div className="flex flex-col gap-2 pt-1">
+            <div className="flex flex-col gap-2.5 pt-1">
               <button
                 type="button"
                 onClick={() => setIsUnscheduledOpen(!isUnscheduledOpen)}
-                className="flex items-center justify-between p-1.5 -mx-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/60 transition cursor-pointer text-left"
+                className="flex items-center justify-between p-1.5 -mx-1.5 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800/60 transition cursor-pointer text-left"
               >
                 <div className="flex items-center gap-2">
-                  <CheckSquare className="h-4 w-4 text-slate-400" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <CheckSquare className="h-3.5 w-3.5 text-stone-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
                     Do zrobienia (bez terminu)
                   </h3>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200/60 dark:border-stone-700/60">
                     {unscheduledChores.length}
                   </span>
                 </div>
                 {isUnscheduledOpen ? (
-                  <ChevronUp className="h-4 w-4 text-slate-400" />
+                  <ChevronUp className="h-4 w-4 text-stone-400" />
                 ) : (
-                  <ChevronDown className="h-4 w-4 text-slate-400" />
+                  <ChevronDown className="h-4 w-4 text-stone-400" />
                 )}
               </button>
 
