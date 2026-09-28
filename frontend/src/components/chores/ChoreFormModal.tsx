@@ -342,7 +342,19 @@ export function ChoreFormModal({
   existingTags,
   initialValues,
 }: ChoreFormModalProps) {
-  if (!isOpen) return null
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
+  const [openCount, setOpenCount] = useState(0)
+
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen)
+    if (isOpen) {
+      setOpenCount((c) => c + 1)
+    }
+  }
+
+  const formKey = choreToEdit
+    ? `edit-${choreToEdit.id}`
+    : `new-${openCount}`
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -364,12 +376,7 @@ export function ChoreFormModal({
           </div>
 
           <InnerChoreForm
-            key={
-              choreToEdit?.id ??
-              (isOpen
-                ? `open-${initialValues?.title ?? ''}-${initialValues?.cadenceDays ?? ''}-${initialValues?.tags?.join(',') ?? ''}`
-                : 'closed')
-            }
+            key={formKey}
             choreToEdit={choreToEdit}
             existingTags={existingTags}
             initialValues={initialValues}

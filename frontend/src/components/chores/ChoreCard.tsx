@@ -45,7 +45,7 @@ export function ChoreCard({
   onDelete,
 }: ChoreCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const [isDone, setIsDone] = useState(false)
+  const isDone = Boolean(chore.lastCompletedAt) && chore.daysSinceLastDone === 0
   const [isExpanded, setIsExpanded] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -65,7 +65,6 @@ export function ChoreCard({
 
   const handleComplete = () => {
     if (isCompleting || isDone) return
-    setIsDone(true)
     onComplete(chore.id, chore.points)
   }
 
@@ -110,6 +109,7 @@ export function ChoreCard({
         <div className="relative inline-flex rounded-lg shadow-xs shrink-0" ref={menuRef}>
           {/* Main 1-tap Complete Button */}
           <button
+            type="button"
             onClick={handleComplete}
             disabled={isCompleting || isDone}
             aria-label={isDone ? `Ukończono (+${chore.points} pkt)` : 'Zrobione!'}

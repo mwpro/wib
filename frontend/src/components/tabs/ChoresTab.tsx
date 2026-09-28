@@ -40,6 +40,7 @@ export function ChoresTab() {
   const [choreToEdit, setChoreToEdit] = useState<ChoreResponse | null>(null)
   const [modalInitialValues, setModalInitialValues] = useState<InitialChoreValues | undefined>()
   const [choreToDelete, setChoreToDelete] = useState<ChoreResponse | null>(null)
+  const [completingIds, setCompletingIds] = useState<Set<number>>(new Set())
 
   // Extract all unique tags dynamically
   const availableTags = useMemo(() => {
@@ -104,8 +105,19 @@ export function ChoresTab() {
     setSelectedTags([])
   }
 
-  const handleCompleteChore = (choreId: number, points: number) => {
-    completeMutation.mutate({ choreId, points })
+  const handleCompleteChore = async (choreId: number, points: number) => {
+    setCompletingIds((prev) => new Set(prev).add(choreId))
+    try {
+      await completeMutation.mutateAsync({ choreId, points })
+    } catch (err) {
+      console.error('Failed to complete chore:', err)
+    } finally {
+      setCompletingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(choreId)
+        return next
+      })
+    }
   }
 
   const handleOpenAdd = (initialValues?: InitialChoreValues) => {
@@ -262,7 +274,7 @@ export function ChoresTab() {
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5 text-amber-500" />
                   <span>Zadania cykliczne</span>
-                  <span className="text-xs font-semibold px-2 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                     {scheduledChores.length}
                   </span>
                 </h3>
@@ -274,7 +286,7 @@ export function ChoresTab() {
                     key={chore.id}
                     chore={chore}
                     onComplete={handleCompleteChore}
-                    isCompleting={completeMutation.isPending && completeMutation.variables?.choreId === chore.id}
+                    isCompleting={completingIds.has(chore.id)}
                     onEdit={handleOpenEdit}
                     onDelete={setChoreToDelete}
                   />
@@ -296,7 +308,7 @@ export function ChoresTab() {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Do zrobienia (bez terminu)
                   </h3>
-                  <span className="text-xs font-semibold px-2 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                     {unscheduledChores.length}
                   </span>
                 </div>
@@ -314,7 +326,7 @@ export function ChoresTab() {
                       key={chore.id}
                       chore={chore}
                       onComplete={handleCompleteChore}
-                      isCompleting={completeMutation.isPending && completeMutation.variables?.choreId === chore.id}
+                      isCompleting={completingIds.has(chore.id)}
                       onEdit={handleOpenEdit}
                       onDelete={setChoreToDelete}
                     />

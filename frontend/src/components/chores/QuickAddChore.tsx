@@ -26,6 +26,7 @@ export function QuickAddChore({
   const [title, setTitle] = useState('')
   const [cadenceDays, setCadenceDays] = useState<number | null>(7)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   const handleToggleTag = (tag: string) => {
     setSelectedTags((prev) =>
@@ -39,6 +40,7 @@ export function QuickAddChore({
     if (!trimmed || isAdding) return
 
     try {
+      setError(null)
       await onAdd({
         title: trimmed,
         cadenceDays,
@@ -48,12 +50,14 @@ export function QuickAddChore({
       setTitle('')
       setSelectedTags([])
       setCadenceDays(7)
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to quick-add chore:', err)
+      setError(err instanceof Error ? err.message : 'Wystąpił błąd podczas dodawania zadania.')
     }
   }
 
   const handleOpenMore = () => {
+    if (error) setError(null)
     if (!onOpenFullModal) return
     onOpenFullModal({
       title,
@@ -77,6 +81,21 @@ export function QuickAddChore({
       data-testid="quick-add-chore"
       className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-2.5 shadow-xs flex flex-col gap-2 transition-all focus-within:border-amber-500/50 focus-within:ring-2 focus-within:ring-amber-500/10"
     >
+      {/* Error Feedback */}
+      {error && (
+        <div className="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs border border-rose-200 dark:border-rose-900 flex items-center justify-between">
+          <span className="truncate">{error}</span>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="text-rose-500 hover:text-rose-700 dark:hover:text-rose-200 ml-2 font-bold cursor-pointer"
+            aria-label="Zamknij błąd"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Row 1: Input + Add Button */}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
@@ -84,7 +103,10 @@ export function QuickAddChore({
           <input
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              setTitle(e.target.value)
+              if (error) setError(null)
+            }}
             onKeyDown={handleKeyDown}
             placeholder="Dodaj nowe zadanie (np. Podlać kwiaty)..."
             className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-amber-500 transition"
