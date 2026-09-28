@@ -32,6 +32,7 @@ export function ChoresTab() {
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [isScheduledOpen, setIsScheduledOpen] = useState(true)
   const [isUnscheduledOpen, setIsUnscheduledOpen] = useState(true)
 
   // Modal states
@@ -273,28 +274,41 @@ export function ChoresTab() {
           {/* Section 1: Scheduled Chores */}
           {scheduledChores.length > 0 && (
             <div className="flex flex-col gap-2.5">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setIsScheduledOpen(!isScheduledOpen)}
+                className="flex items-center justify-between p-1.5 -mx-1.5 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800/60 transition cursor-pointer text-left"
+              >
+                <div className="flex items-center gap-2">
                   <Calendar className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                  <span>Zadania cykliczne</span>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                    Zadania cykliczne
+                  </h3>
                   <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200/60 dark:border-stone-700/60">
                     {scheduledChores.length}
                   </span>
-                </h3>
-              </div>
+                </div>
+                {isScheduledOpen ? (
+                  <ChevronUp className="h-4 w-4 text-stone-400" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-stone-400" />
+                )}
+              </button>
 
-              <div className="flex flex-col gap-2">
-                {scheduledChores.map((chore) => (
-                  <ChoreCard
-                    key={chore.id}
-                    chore={chore}
-                    onComplete={handleCompleteChore}
-                    isCompleting={completingIds.has(chore.id)}
-                    onEdit={handleOpenEdit}
-                    onDelete={setChoreToDelete}
-                  />
-                ))}
-              </div>
+              {isScheduledOpen && (
+                <div className="flex flex-col gap-2 animate-in fade-in duration-200">
+                  {scheduledChores.map((chore) => (
+                    <ChoreCard
+                      key={chore.id}
+                      chore={chore}
+                      onComplete={handleCompleteChore}
+                      isCompleting={completingIds.has(chore.id)}
+                      onEdit={handleOpenEdit}
+                      onDelete={setChoreToDelete}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
