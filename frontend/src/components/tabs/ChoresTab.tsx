@@ -29,13 +29,6 @@ interface ChoresTabProps {
   userName?: string
 }
 
-const URGENCY_PRIORITY: Record<string, number> = {
-  Neglected: 4,
-  Overdue: 3,
-  DueSoon: 2,
-  Fresh: 1,
-  Unscheduled: 0,
-}
 
 export function ChoresTab({ currentMember, userName }: ChoresTabProps) {
   const { data: chores = [], isLoading, isError, error, refetch } = useChores()
@@ -74,11 +67,11 @@ export function ChoresTab({ currentMember, userName }: ChoresTabProps) {
 
       if (!matchesText) return false
 
-      // 2. Multi-tag AND filter: chore must match all selected tags
+      // 2. Multi-tag OR filter: chore must match at least one selected tag
       if (selectedTags.length > 0) {
         const choreTags = chore.tags || []
-        const matchesAllTags = selectedTags.every((t) => choreTags.includes(t))
-        if (!matchesAllTags) return false
+        const matchesAnyTag = selectedTags.some((t) => choreTags.includes(t))
+        if (!matchesAnyTag) return false
       }
 
       return true
@@ -97,18 +90,6 @@ export function ChoresTab({ currentMember, userName }: ChoresTabProps) {
         unscheduled.push(chore)
       }
     })
-
-    // Sort scheduled chores: Neglected > Overdue > DueSoon > Fresh, then urgencyRatio desc
-    scheduled.sort((a, b) => {
-      const pDiff = (URGENCY_PRIORITY[b.urgency] ?? 0) - (URGENCY_PRIORITY[a.urgency] ?? 0)
-      if (pDiff !== 0) return pDiff
-      const ratioDiff = (b.urgencyRatio ?? 0) - (a.urgencyRatio ?? 0)
-      if (ratioDiff !== 0) return ratioDiff
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    })
-
-    // Sort unscheduled chores by newest first
-    unscheduled.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
     return { scheduledChores: scheduled, unscheduledChores: unscheduled }
   }, [filteredChores])

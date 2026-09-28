@@ -173,7 +173,7 @@ export function ChoreCard({
           }`}
         >
           <Check className="h-4 w-4 stroke-[3]" />
-          <span>{justCompleted ? 'Ukończono! +1 pkt' : 'Zrobione!'}</span>
+          <span>{justCompleted ? `Ukończono! +${chore.points} pkt` : 'Zrobione!'}</span>
         </button>
       </div>
     </div>

@@ -96,10 +96,6 @@ export function useCompleteChore() {
         }
       })
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['chores'] })
-      queryClient.invalidateQueries({ queryKey: memberKey })
-    },
   })
 }
 

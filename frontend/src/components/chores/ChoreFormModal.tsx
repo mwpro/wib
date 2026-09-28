@@ -17,6 +17,9 @@ const CADENCE_PRESETS = [
   { label: 'Co tydzień', days: 7 },
   { label: 'Co 2 tyg.', days: 14 },
   { label: 'Co miesiąc', days: 30 },
+  { label: 'Co 2 mies.', days: 60 },
+  { label: 'Co pół roku', days: 180 },
+  { label: 'Co rok', days: 365 },
 ]
 
 interface InnerFormProps {
