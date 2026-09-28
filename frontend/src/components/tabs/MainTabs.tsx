@@ -3,18 +3,11 @@ import { BottomNav } from '../layout/BottomNav'
 import { ChoresTab } from './ChoresTab'
 import { ScoreboardTab } from './ScoreboardTab'
 import { StoreTab } from './StoreTab'
-import type { Member } from '../../types/member'
-
-interface MainTabsProps {
-  currentMember: Member | null
-  userName?: string
-}
-
-export function MainTabs({ currentMember, userName }: MainTabsProps) {
+export function MainTabs() {
   return (
     <Tabs.Root defaultValue="chores" className="flex flex-col gap-4">
       <Tabs.Content value="chores" className="focus:outline-none">
-        <ChoresTab currentMember={currentMember} userName={userName} />
+        <ChoresTab />
       </Tabs.Content>
 
       <Tabs.Content value="scoreboard" className="focus:outline-none">

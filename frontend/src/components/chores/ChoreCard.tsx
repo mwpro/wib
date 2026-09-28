@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Check, Clock, MoreVertical, Edit2, Trash2, Coins } from 'lucide-react'
+import { Check, Clock, MoreVertical, Edit2, Trash2 } from 'lucide-react'
 import { ChoreBadge } from './ChoreBadge'
 import type { ChoreResponse, FreshnessUrgency } from '../../types/chore'
 
@@ -27,7 +27,7 @@ export function ChoreCard({
   onDelete,
 }: ChoreCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const [justCompleted, setJustCompleted] = useState(false)
+  const [isDone, setIsDone] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -45,12 +45,9 @@ export function ChoreCard({
   }, [menuOpen])
 
   const handleComplete = () => {
-    if (isCompleting) return
-    setJustCompleted(true)
+    if (isCompleting || isDone) return
+    setIsDone(true)
     onComplete(chore.id, chore.points)
-    setTimeout(() => {
-      setJustCompleted(false)
-    }, 1500)
   }
 
   // Formatting cadence text
@@ -83,10 +80,6 @@ export function ChoreCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <ChoreBadge urgency={chore.urgency} />
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900">
-              <Coins className="h-3 w-3" />
-              +{chore.points} pkt
-            </span>
           </div>
           <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 leading-snug break-words">
             {chore.title}
@@ -165,15 +158,15 @@ export function ChoreCard({
       <div className="pt-1">
         <button
           onClick={handleComplete}
-          disabled={isCompleting}
-          className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all duration-200 cursor-pointer ${
-            justCompleted
-              ? 'bg-emerald-500 text-white scale-[1.02]'
-              : 'bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white disabled:opacity-50'
+          disabled={isCompleting || isDone}
+          className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-xs transition-all duration-200 ${
+            isDone
+              ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 cursor-default'
+              : 'bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white cursor-pointer disabled:opacity-50'
           }`}
         >
           <Check className="h-4 w-4 stroke-[3]" />
-          <span>{justCompleted ? `Ukończono! +${chore.points} pkt` : 'Zrobione!'}</span>
+          <span>{isDone ? `Ukończono (+${chore.points} pkt)` : 'Zrobione!'}</span>
         </button>
       </div>
     </div>

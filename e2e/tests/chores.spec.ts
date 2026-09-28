@@ -50,8 +50,10 @@ test.describe('Chores Backlog UI Tests', () => {
     const completeButton = choreCard.getByRole('button', { name: /Zrobione!/i })
     await completeButton.click()
 
-    // 5. Verify optimistic UI feedback
-    await expect(choreCard.getByText(/Ukończono! \+1 pkt|Zrobione!/i)).toBeVisible()
+    // 5. Verify optimistic UI feedback with points gained and disabled state
+    const doneButton = choreCard.getByRole('button', { name: /Ukończono \(\+1 pkt\)/i })
+    await expect(doneButton).toBeVisible()
+    await expect(doneButton).toBeDisabled()
   })
 
   test('creates unscheduled chore and filters by search', async ({ page }) => {
@@ -79,6 +81,12 @@ test.describe('Chores Backlog UI Tests', () => {
     const searchInput = page.getByPlaceholder(/Szukaj zadań/i)
     await searchInput.fill(unscheduledTitle)
     await expect(page.locator('[data-testid="chore-card"]', { hasText: unscheduledTitle })).toBeVisible()
+
+    // Tap "Zrobione!" on unscheduled chore
+    await card.getByRole('button', { name: /Zrobione!/i }).click()
+    await expect(card.getByRole('button', { name: /Ukończono/i })).toBeVisible()
+    await expect(card.getByText('Bez terminu').first()).toBeVisible()
+    await expect(card.getByText('Świeże')).toHaveCount(0)
 
     // Negative search
     await searchInput.fill('Nieistniejące zadanie 12345')

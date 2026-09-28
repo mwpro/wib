@@ -50,10 +50,11 @@ export function useCompleteChore() {
         if (!old) return old
         return old.map((chore) => {
           if (chore.id !== choreId) return chore
+          const isScheduled = chore.cadenceDays != null && chore.cadenceDays > 0
           return {
             ...chore,
-            urgency: 'Fresh' as const,
-            urgencyRatio: 0,
+            urgency: isScheduled ? ('Fresh' as const) : ('Unscheduled' as const),
+            urgencyRatio: isScheduled ? 0 : null,
             daysSinceLastDone: 0,
             lastCompletedAt: new Date().toISOString(),
           }

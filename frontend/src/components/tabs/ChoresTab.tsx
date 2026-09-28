@@ -21,16 +21,9 @@ import { ChoreCard } from '../chores/ChoreCard'
 import { ChoreFilters } from '../chores/ChoreFilters'
 import { ChoreFormModal } from '../chores/ChoreFormModal'
 import { DeleteChoreDialog } from '../chores/DeleteChoreDialog'
-import type { Member } from '../../types/member'
 import type { ChoreResponse, CreateChoreRequest, UpdateChoreRequest } from '../../types/chore'
 
-interface ChoresTabProps {
-  currentMember: Member | null
-  userName?: string
-}
-
-
-export function ChoresTab({ currentMember, userName }: ChoresTabProps) {
+export function ChoresTab() {
   const { data: chores = [], isLoading, isError, error, refetch } = useChores()
   const completeMutation = useCompleteChore()
   const createMutation = useCreateChore()
@@ -156,9 +149,6 @@ export function ChoresTab({ currentMember, userName }: ChoresTabProps) {
               </span>
             )}
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            {`Domownik: ${currentMember?.name || userName || 'Użytkownik'}`}
-          </p>
         </div>
 
         <button
