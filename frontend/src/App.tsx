@@ -6,7 +6,7 @@ import { LoginScreen } from './components/auth/LoginScreen'
 import { MainTabs } from './components/tabs/MainTabs'
 
 export function App() {
-  const { isAuthenticated, isLoading, user, login } = useAuth()
+  const { isAuthenticated, isLoading, login } = useAuth()
   const { currentMember } = useCurrentMember()
 
   if (isLoading) {
@@ -18,13 +18,10 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-[#f8f9fa] text-stone-900 dark:bg-[#0c0e12] dark:text-stone-100 flex flex-col transition-colors selection:bg-amber-500/20 selection:text-amber-900 dark:selection:text-amber-200">
       <Header currentMember={currentMember} />
-      <main className="flex-1 max-w-2xl w-full mx-auto p-4 flex flex-col gap-6">
-        <MainTabs
-          currentMember={currentMember}
-          userName={user?.name}
-        />
+      <main className="flex-1 max-w-2xl w-full mx-auto p-4 pb-24 flex flex-col gap-6">
+        <MainTabs />
       </main>
     </div>
   )
