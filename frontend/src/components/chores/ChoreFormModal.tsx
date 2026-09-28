@@ -3,12 +3,19 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { X, Plus, Calendar, CheckSquare } from 'lucide-react'
 import type { ChoreResponse, CreateChoreRequest, UpdateChoreRequest } from '../../types/chore'
 
+export interface InitialChoreValues {
+  title?: string
+  cadenceDays?: number | null
+  tags?: string[]
+}
+
 interface ChoreFormModalProps {
   isOpen: boolean
   onClose: () => void
   onSubmit: (data: CreateChoreRequest | UpdateChoreRequest) => Promise<void>
   choreToEdit?: ChoreResponse | null
   existingTags: string[]
+  initialValues?: InitialChoreValues
 }
 
 const CADENCE_PRESETS = [
@@ -25,6 +32,7 @@ const CADENCE_PRESETS = [
 interface InnerFormProps {
   choreToEdit?: ChoreResponse | null
   existingTags: string[]
+  initialValues?: InitialChoreValues
   onClose: () => void
   onSubmit: (data: CreateChoreRequest | UpdateChoreRequest) => Promise<void>
 }
@@ -32,20 +40,33 @@ interface InnerFormProps {
 function InnerChoreForm({
   choreToEdit,
   existingTags,
+  initialValues,
   onClose,
   onSubmit,
 }: InnerFormProps) {
-  const [title, setTitle] = useState(choreToEdit?.title ?? '')
+  const [title, setTitle] = useState(
+    choreToEdit?.title ?? initialValues?.title ?? ''
+  )
   const [description, setDescription] = useState(choreToEdit?.description ?? '')
-  const [isScheduled, setIsScheduled] = useState(
-    choreToEdit ? choreToEdit.cadenceDays != null : true
-  )
-  const [cadenceDays, setCadenceDays] = useState<number | ''>(
-    choreToEdit?.cadenceDays ?? 7
-  )
-  const [selectedTags, setSelectedTags] = useState<string[]>(
-    choreToEdit?.tags ? [...choreToEdit.tags] : []
-  )
+  const [isScheduled, setIsScheduled] = useState(() => {
+    if (choreToEdit) return choreToEdit.cadenceDays != null
+    if (initialValues && initialValues.cadenceDays !== undefined) {
+      return initialValues.cadenceDays != null
+    }
+    return true
+  })
+  const [cadenceDays, setCadenceDays] = useState<number | ''>(() => {
+    if (choreToEdit) return choreToEdit.cadenceDays ?? 7
+    if (initialValues && initialValues.cadenceDays !== undefined) {
+      return initialValues.cadenceDays ?? 7
+    }
+    return 7
+  })
+  const [selectedTags, setSelectedTags] = useState<string[]>(() => {
+    if (choreToEdit?.tags) return [...choreToEdit.tags]
+    if (initialValues?.tags) return [...initialValues.tags]
+    return []
+  })
   const [newTagInput, setNewTagInput] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -319,6 +340,7 @@ export function ChoreFormModal({
   onSubmit,
   choreToEdit,
   existingTags,
+  initialValues,
 }: ChoreFormModalProps) {
   if (!isOpen) return null
 
@@ -342,9 +364,15 @@ export function ChoreFormModal({
           </div>
 
           <InnerChoreForm
-            key={choreToEdit?.id ?? (isOpen ? 'open-new' : 'closed')}
+            key={
+              choreToEdit?.id ??
+              (isOpen
+                ? `open-${initialValues?.title ?? ''}-${initialValues?.cadenceDays ?? ''}-${initialValues?.tags?.join(',') ?? ''}`
+                : 'closed')
+            }
             choreToEdit={choreToEdit}
             existingTags={existingTags}
+            initialValues={initialValues}
             onClose={onClose}
             onSubmit={onSubmit}
           />

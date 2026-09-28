@@ -116,4 +116,63 @@ test.describe('Chores Backlog UI Tests', () => {
     const zadaniaTab = bottomNav.getByRole('tab', { name: 'Zadania' })
     await expect(zadaniaTab).toBeVisible()
   })
+
+  test('creates chore quickly via condensed inline top form', async ({ page }) => {
+    await page.goto('/')
+
+    const quickChoreTitle = `Podlać kwiaty ${Date.now()}`
+    const quickAddForm = page.locator('[data-testid="quick-add-chore"]')
+    await expect(quickAddForm).toBeVisible()
+
+    const input = quickAddForm.getByPlaceholder(/Dodaj nowe zadanie/i)
+    await input.fill(quickChoreTitle)
+
+    // Click 'Co tydzień' preset
+    await quickAddForm.getByRole('button', { name: 'Co tydzień' }).click()
+
+    // Click 'Dodaj' button
+    await quickAddForm.getByRole('button', { name: 'Dodaj' }).click()
+
+    // Chore card should appear in the scheduled list
+    const choreCard = page.locator('[data-testid="chore-card"]', { hasText: quickChoreTitle })
+    await expect(choreCard).toBeVisible()
+    await expect(choreCard.getByText('Świeże')).toBeVisible()
+  })
+
+  test('flows all properties from quick add into modal when clicking Więcej', async ({ page }) => {
+    await page.goto('/')
+
+    const quickChoreTitle = `Odkurzanie salonu ${Date.now()}`
+    const quickAddForm = page.locator('[data-testid="quick-add-chore"]')
+    await expect(quickAddForm).toBeVisible()
+
+    const input = quickAddForm.getByPlaceholder(/Dodaj nowe zadanie/i)
+    await input.fill(quickChoreTitle)
+
+    // Select 'Co 2 tyg.' in quick add
+    await quickAddForm.getByRole('button', { name: 'Co 2 tyg.' }).click()
+
+    // Click 'Więcej'
+    await quickAddForm.getByRole('button', { name: /Więcej/i }).click()
+
+    // Modal should be open with title pre-filled
+    const modalTitleInput = page.locator('#chore-title')
+    await expect(modalTitleInput).toHaveValue(quickChoreTitle)
+
+    // The 'Co 2 tyg.' preset should be active in modal (amber active background)
+    const activePreset = page.getByRole('dialog').getByRole('button', { name: 'Co 2 tyg.' })
+    await expect(activePreset).toHaveClass(/bg-amber-500/)
+
+    // Submit modal
+    await page.getByRole('button', { name: /Utwórz zadanie/i }).click()
+
+    // Verify chore appears in backlog with 14 days cadence
+    const choreCard = page.locator('[data-testid="chore-card"]', { hasText: quickChoreTitle })
+    await expect(choreCard).toBeVisible()
+    await expect(choreCard.getByText('co 14 dni')).toBeVisible()
+
+    // Verify quick add form is reset
+    await expect(input).toHaveValue('')
+    await expect(quickAddForm.getByRole('button', { name: 'Co tydzień' })).toHaveClass(/border-amber-300/)
+  })
 })

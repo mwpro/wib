@@ -19,7 +19,8 @@ import {
 } from '../../hooks/useChores'
 import { ChoreCard } from '../chores/ChoreCard'
 import { ChoreFilters } from '../chores/ChoreFilters'
-import { ChoreFormModal } from '../chores/ChoreFormModal'
+import { ChoreFormModal, type InitialChoreValues } from '../chores/ChoreFormModal'
+import { QuickAddChore } from '../chores/QuickAddChore'
 import { DeleteChoreDialog } from '../chores/DeleteChoreDialog'
 import type { ChoreResponse, CreateChoreRequest, UpdateChoreRequest } from '../../types/chore'
 
@@ -37,6 +38,7 @@ export function ChoresTab() {
   // Modal states
   const [isFormModalOpen, setIsFormModalOpen] = useState(false)
   const [choreToEdit, setChoreToEdit] = useState<ChoreResponse | null>(null)
+  const [modalInitialValues, setModalInitialValues] = useState<InitialChoreValues | undefined>()
   const [choreToDelete, setChoreToDelete] = useState<ChoreResponse | null>(null)
 
   // Extract all unique tags dynamically
@@ -106,8 +108,9 @@ export function ChoresTab() {
     completeMutation.mutate({ choreId, points })
   }
 
-  const handleOpenAdd = () => {
+  const handleOpenAdd = (initialValues?: InitialChoreValues) => {
     setChoreToEdit(null)
+    setModalInitialValues(initialValues)
     setIsFormModalOpen(true)
   }
 
@@ -152,7 +155,7 @@ export function ChoresTab() {
         </div>
 
         <button
-          onClick={handleOpenAdd}
+          onClick={() => handleOpenAdd()}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:scale-98 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
         >
           <Plus className="h-4 w-4" />
@@ -199,6 +202,16 @@ export function ChoresTab() {
             />
           )}
 
+          {/* Quick Add Chore Form (Always on top of the list) */}
+          <QuickAddChore
+            onAdd={async (data) => {
+              await createMutation.mutateAsync(data)
+            }}
+            isAdding={createMutation.isPending}
+            availableTags={availableTags}
+            onOpenFullModal={(values) => handleOpenAdd(values)}
+          />
+
           {/* Empty state: No chores at all in household */}
           {chores.length === 0 && (
             <div className="p-10 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 text-center flex flex-col items-center gap-3 shadow-xs">
@@ -212,7 +225,7 @@ export function ChoresTab() {
                 Dodaj pierwsze zadanie ze zdefiniowanym cyklem dni lub zadanie jednorazowe, aby zdobywać punkty w rankingu!
               </p>
               <button
-                onClick={handleOpenAdd}
+                onClick={() => handleOpenAdd()}
                 className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold shadow-xs transition cursor-pointer"
               >
                 <Plus className="h-4 w-4" />
@@ -320,6 +333,7 @@ export function ChoresTab() {
         onSubmit={handleFormSubmit}
         choreToEdit={choreToEdit}
         existingTags={availableTags}
+        initialValues={modalInitialValues}
       />
 
       {/* Delete Chore Confirmation Dialog */}
