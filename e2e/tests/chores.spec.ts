@@ -214,4 +214,132 @@ test.describe.serial('Chores Backlog UI Tests', () => {
     await expect(input).toHaveValue('')
     await expect(quickAddForm.getByRole('button', { name: 'Co tydzień' })).toHaveClass(/border-amber-300/)
   })
+
+  test('edits an existing chore and deletes it with confirmation dialog', async ({ page }) => {
+    await page.goto('/')
+
+    // 1. Create a chore via modal
+    const initialTitle = `E2E_DoEdycji_${Date.now()}`
+    await page.getByRole('button', { name: /Dodaj zadanie/i }).first().click()
+    await page.locator('#chore-title').fill(initialTitle)
+    await page.getByRole('button', { name: 'Co tydzień' }).click()
+    await page.getByRole('button', { name: /Utwórz zadanie/i }).click()
+
+    const card = page.locator('[data-testid="chore-card"]', { hasText: initialTitle })
+    await expect(card).toBeVisible()
+    await expect(card.getByText('co 7 dni')).toBeVisible()
+
+    // 2. Open dropdown menu -> click 'Edytuj'
+    await card.getByRole('button', { name: /Więcej opcji/i }).click()
+    await page.getByRole('button', { name: /Edytuj/i }).click()
+
+    // 3. Modal opens with title pre-filled ('Edytuj zadanie')
+    await expect(page.getByRole('heading', { name: /Edytuj zadanie/i })).toBeVisible()
+    const titleInput = page.locator('#chore-title')
+    await expect(titleInput).toHaveValue(initialTitle)
+
+    // 4. Update title and cadence to 'Co 2 tyg.' (14 days)
+    const updatedTitle = `E2E_Zmienione_${Date.now()}`
+    await titleInput.fill(updatedTitle)
+    await page.getByRole('button', { name: 'Co 2 tyg.' }).click()
+    await page.getByRole('button', { name: /Zapisz zmiany/i }).click()
+
+    // 5. Verify updated card appears with new title and cadence
+    const updatedCard = page.locator('[data-testid="chore-card"]', { hasText: updatedTitle })
+    await expect(updatedCard).toBeVisible()
+    await expect(updatedCard.getByText('co 14 dni')).toBeVisible()
+    await expect(page.locator('[data-testid="chore-card"]', { hasText: initialTitle })).toHaveCount(0)
+
+    // 6. Open dropdown menu -> click 'Usuń'
+    await updatedCard.getByRole('button', { name: /Więcej opcji/i }).click()
+    await page.getByRole('button', { name: /Usuń/i }).click()
+
+    // 7. Verify Delete Confirmation Dialog opens with prompt
+    const deleteDialog = page.getByRole('dialog')
+    await expect(deleteDialog.getByRole('heading', { name: /Usunąć zadanie\?/i })).toBeVisible()
+    await expect(deleteDialog.getByText(updatedTitle)).toBeVisible()
+
+    // 8. Confirm deletion
+    await deleteDialog.getByRole('button', { name: 'Usuń' }).click()
+
+    // 9. Verify card is removed from the backlog
+    await expect(page.locator('[data-testid="chore-card"]', { hasText: updatedTitle })).toHaveCount(0)
+  })
+
+  test('prioritizes neglected and overdue chores at the top of the backlog', async ({ page }) => {
+    // 1. Seed two chores directly in wib_test:
+    // Chore A: Fresh chore (cadence 30 days, done today -> ratio 0.0)
+    const freshTitle = `E2E_Swieze_${Date.now()}`
+    await seedOverdueChore({ title: freshTitle, cadenceDays: 30, daysAgo: 0 })
+
+    // Chore B: Neglected chore (cadence 14 days, done 28 days ago -> ratio 2.0 >= 1.30)
+    const neglectedTitle = `E2E_Zaniedbane_${Date.now()}`
+    await seedOverdueChore({ title: neglectedTitle, cadenceDays: 14, daysAgo: 28 })
+
+    // 2. Load page
+    await page.goto('/')
+
+    // 3. Verify both cards appear
+    const cards = page.locator('[data-testid="chore-card"]')
+    await expect(cards).toHaveCount(2)
+
+    // 4. Invariant: Neglected chore MUST be the first card in the list
+    await expect(cards.first()).toContainText(neglectedTitle)
+    await expect(cards.first().getByText('Zaniedbane', { exact: true })).toBeVisible()
+
+    // 5. Fresh chore MUST be the second card in the list
+    await expect(cards.nth(1)).toContainText(freshTitle)
+    await expect(cards.nth(1).getByText('Świeże', { exact: true })).toBeVisible()
+  })
+
+  test('filters chores by clicking tag chips and clears filter', async ({ page }) => {
+    await page.goto('/')
+
+    // 1. Create Chore 1 with tag 'kuchnia'
+    const titleKitchen = `E2E_Kuchnia_${Date.now()}`
+    await page.getByRole('button', { name: /Dodaj zadanie/i }).first().click()
+    await page.locator('#chore-title').fill(titleKitchen)
+    const tagInput1 = page.getByPlaceholder(/Nowy tag/i)
+    await tagInput1.fill('kuchnia')
+    await page.getByRole('button', { name: /Dodaj/i }).click()
+    await page.getByRole('button', { name: /Utwórz zadanie/i }).click()
+    await expect(page.locator('[data-testid="chore-card"]', { hasText: titleKitchen })).toBeVisible()
+
+    // 2. Create Chore 2 with tag 'ogrod'
+    const titleGarden = `E2E_Ogrod_${Date.now()}`
+    await page.getByRole('button', { name: /Dodaj zadanie/i }).first().click()
+    await page.locator('#chore-title').fill(titleGarden)
+    const tagInput2 = page.getByPlaceholder(/Nowy tag/i)
+    await tagInput2.fill('ogrod')
+    await page.getByRole('button', { name: /Dodaj/i }).click()
+    await page.getByRole('button', { name: /Utwórz zadanie/i }).click()
+    await expect(page.locator('[data-testid="chore-card"]', { hasText: titleGarden })).toBeVisible()
+
+    // 3. Verify tag pills appear in filter bar
+    const filterBar = page.locator('[data-testid="chore-filters"]')
+    const kitchenTagBtn = filterBar.getByRole('button', { name: '#kuchnia' })
+    const gardenTagBtn = filterBar.getByRole('button', { name: '#ogrod' })
+    await expect(kitchenTagBtn).toBeVisible()
+    await expect(gardenTagBtn).toBeVisible()
+
+    // 4. Click '#kuchnia' filter
+    await kitchenTagBtn.click()
+    await expect(page.locator('[data-testid="chore-card"]', { hasText: titleKitchen })).toBeVisible()
+    await expect(page.locator('[data-testid="chore-card"]', { hasText: titleGarden })).toHaveCount(0)
+
+    // 5. Click '#ogrod' filter (multi-tag OR)
+    await gardenTagBtn.click()
+    await expect(page.locator('[data-testid="chore-card"]', { hasText: titleKitchen })).toBeVisible()
+    await expect(page.locator('[data-testid="chore-card"]', { hasText: titleGarden })).toBeVisible()
+
+    // 6. Click '#kuchnia' again to toggle it off -> only garden chore matches
+    await kitchenTagBtn.click()
+    await expect(page.locator('[data-testid="chore-card"]', { hasText: titleKitchen })).toHaveCount(0)
+    await expect(page.locator('[data-testid="chore-card"]', { hasText: titleGarden })).toBeVisible()
+
+    // 7. Click 'Wszystkie' -> reset filter, both chores visible
+    await filterBar.getByRole('button', { name: 'Wszystkie' }).click()
+    await expect(page.locator('[data-testid="chore-card"]', { hasText: titleKitchen })).toBeVisible()
+    await expect(page.locator('[data-testid="chore-card"]', { hasText: titleGarden })).toBeVisible()
+  })
 })
