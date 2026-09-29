@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
+  globalSetup: './global-setup.ts',
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
@@ -24,12 +25,15 @@ export default defineConfig({
   webServer: process.env.BASE_URL ? undefined : {
     command: 'dotnet run --project ../backend/Wib.Api/Wib.Api.csproj --no-launch-profile',
     url: 'http://localhost:8080/api/health',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 60000,
     env: {
       ASPNETCORE_URLS: 'http://localhost:8080',
       ASPNETCORE_ENVIRONMENT: 'Development',
       JwtAuth__BypassAuth: 'true',
+      ConnectionStrings__DefaultConnection:
+        process.env.ConnectionStrings__DefaultConnection ||
+        'Server=localhost;Port=3306;Database=wib_test;User=root;Password=secret;',
     },
   },
 })
