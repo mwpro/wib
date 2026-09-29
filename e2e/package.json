@@ -9,6 +9,7 @@
     "test:headed": "playwright test --headed"
   },
   "devDependencies": {
-    "@playwright/test": "^1.50.1"
+    "@playwright/test": "^1.50.1",
+    "mysql2": "^3.24.5"
   }
 }

@@ -1,6 +1,16 @@
 import { test, expect } from '@playwright/test'
+import { resetTestUser, cleanupTestChores, seedOverdueChore } from '../helpers/db'
 
-test.describe('Chores Backlog UI Tests', () => {
+test.describe.serial('Chores Backlog UI Tests', () => {
+  test.beforeEach(async () => {
+    await resetTestUser()
+    await cleanupTestChores('E2E_')
+  })
+
+  test.afterAll(async () => {
+    await cleanupTestChores('E2E_')
+  })
+
   test('renders chores tab with action bar and search input', async ({ page }) => {
     await page.goto('/')
 
@@ -13,38 +23,41 @@ test.describe('Chores Backlog UI Tests', () => {
     await expect(page.getByRole('button', { name: /Dodaj zadanie/i })).toBeVisible()
   })
 
-  test('creates new scheduled chore and completes it with 1-tap', async ({ page }) => {
+  test('Golden Journey: creates new recurring chore "Mycie okien", completes with 1-tap, verifies points and freshness reset', async ({ page }) => {
     await page.goto('/')
 
-    const initialCoins = page.locator('header').getByText(/pkt/)
+    // Verify test mode and clean 0 pkt balance
+    await expect(page.getByText('Test Mode')).toBeVisible()
+    const initialCoins = page.locator('header').getByText(/0 pkt/)
     await expect(initialCoins).toBeVisible()
 
     // 1. Open Add Chore Modal
     const addButton = page.getByRole('button', { name: /Dodaj zadanie/i }).first()
     await addButton.click()
 
-    // 2. Fill modal form
-    const choreTitle = `Zmywanie naczyń ${Date.now()}`
+    // 2. Fill modal form for "Mycie okien" (cadence 30 days, tag #dom)
+    const choreTitle = `E2E_Mycie okien_${Date.now()}`
     await page.locator('#chore-title').fill(choreTitle)
-    await page.locator('#chore-desc').fill('Wypłukać i wstawić do zmywarki')
+    await page.locator('#chore-desc').fill('Umyć szyby i parapety od wewnątrz i zewnątrz')
 
-    // Select 'Co tydzień' preset
-    await page.getByRole('button', { name: 'Co tydzień' }).click()
+    // Select 'Co miesiąc' preset (30 days)
+    await page.getByRole('button', { name: 'Co miesiąc' }).click()
 
-    // Add a tag
+    // Add tag 'dom'
     const tagInput = page.getByPlaceholder(/Nowy tag/i)
-    await tagInput.fill('kuchnia')
+    await tagInput.fill('dom')
     await page.getByRole('button', { name: /Dodaj/i }).click()
 
     // Submit modal
     await page.getByRole('button', { name: /Utwórz zadanie/i }).click()
 
-    // 3. Verify card appears in Scheduled section with green/freshness badge
+    // 3. Verify card appears in Scheduled section with green/freshness badge, cadence, and tag
     const choreCard = page.locator('[data-testid="chore-card"]', { hasText: choreTitle })
 
     await expect(choreCard).toBeVisible()
     await expect(choreCard.getByText('Świeże')).toBeVisible()
-    await expect(choreCard.getByText('#kuchnia')).toBeVisible()
+    await expect(choreCard.getByText('co 30 dni')).toBeVisible()
+    await expect(choreCard.getByText('#dom')).toBeVisible()
 
     // 4. Tap "Zrobione!"
     const completeButton = choreCard.getByRole('button', { name: /Zrobione!/i })
@@ -55,12 +68,38 @@ test.describe('Chores Backlog UI Tests', () => {
     await expect(doneButton).toBeVisible()
     await expect(doneButton).toBeDisabled()
     await expect(doneButton).toHaveText(/\+1 pkt/)
+    await expect(choreCard.getByText('Świeże')).toBeVisible()
+    await expect(choreCard.getByText('zrobione dzisiaj')).toBeVisible()
 
-    // 6. Verify dropdown menu on completed chore (can still edit/delete)
+    // 6. Verify member points increment in Header (0 pkt -> 1 pkt)
+    const updatedCoins = page.locator('header').getByText(/1 pkt/)
+    await expect(updatedCoins).toBeVisible()
+
+    // 7. Dropdown menu on completed chore (can still edit/delete)
     const optionsButton = choreCard.getByRole('button', { name: /Więcej opcji/i })
     await optionsButton.click()
     await expect(page.getByRole('button', { name: /Edytuj/i })).toBeVisible()
     await expect(page.getByRole('button', { name: /Usuń/i })).toBeVisible()
+
+    // 8. Status Transition Test: seed an overdue/neglected chore directly in wib_test
+    const overdueTitle = `E2E_Piekarnik_${Date.now()}`
+    await seedOverdueChore({ title: overdueTitle, cadenceDays: 14, daysAgo: 21 })
+
+    // Reload page to reflect newly seeded chore
+    await page.goto('/')
+
+    // Verify overdue card appears with Red badge ('Zaniedbane')
+    const overdueCard = page.locator('[data-testid="chore-card"]', { hasText: overdueTitle })
+    await expect(overdueCard).toBeVisible()
+    await expect(overdueCard.getByText('Zaniedbane', { exact: true })).toBeVisible()
+
+    // Click "Zrobione!" on the overdue chore
+    await overdueCard.getByRole('button', { name: /Zrobione!/i }).click()
+
+    // Verify chore freshness resets to Green ('Świeże') and header points increment (1 pkt -> 2 pkt)
+    await expect(overdueCard.getByRole('button', { name: /Ukończono \(\+1 pkt\)/i })).toBeVisible()
+    await expect(overdueCard.getByText('Świeże', { exact: true })).toBeVisible()
+    await expect(page.locator('header').getByText(/2 pkt/)).toBeVisible()
   })
 
   test('creates unscheduled chore and filters by search', async ({ page }) => {
@@ -69,7 +108,7 @@ test.describe('Chores Backlog UI Tests', () => {
     // Open Add Modal
     await page.getByRole('button', { name: /Dodaj zadanie/i }).first().click()
 
-    const unscheduledTitle = `Naprawa kranu ${Date.now()}`
+    const unscheduledTitle = `E2E_Naprawa kranu_${Date.now()}`
     await page.locator('#chore-title').fill(unscheduledTitle)
 
     // Switch to "Bez terminu"
@@ -120,7 +159,7 @@ test.describe('Chores Backlog UI Tests', () => {
   test('creates chore quickly via condensed inline top form', async ({ page }) => {
     await page.goto('/')
 
-    const quickChoreTitle = `Podlać kwiaty ${Date.now()}`
+    const quickChoreTitle = `E2E_Podlać kwiaty_${Date.now()}`
     const quickAddForm = page.locator('[data-testid="quick-add-chore"]')
     await expect(quickAddForm).toBeVisible()
 
@@ -142,7 +181,7 @@ test.describe('Chores Backlog UI Tests', () => {
   test('flows all properties from quick add into modal when clicking Więcej', async ({ page }) => {
     await page.goto('/')
 
-    const quickChoreTitle = `Odkurzanie salonu ${Date.now()}`
+    const quickChoreTitle = `E2E_Odkurzanie salonu_${Date.now()}`
     const quickAddForm = page.locator('[data-testid="quick-add-chore"]')
     await expect(quickAddForm).toBeVisible()
 

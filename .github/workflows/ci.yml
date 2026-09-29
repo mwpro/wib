@@ -66,7 +66,7 @@ jobs:
       - name: Run Playwright E2E smoke tests
         working-directory: e2e
         env:
-          ConnectionStrings__DefaultConnection: "Server=localhost;Port=3306;Database=wib;User=root;Password=secret;"
+          ConnectionStrings__DefaultConnection: "Server=localhost;Port=3306;Database=wib_test;User=root;Password=secret;"
           JwtAuth__BypassAuth: "true"
           ASPNETCORE_URLS: "http://localhost:8080"
           ASPNETCORE_ENVIRONMENT: "Development"
