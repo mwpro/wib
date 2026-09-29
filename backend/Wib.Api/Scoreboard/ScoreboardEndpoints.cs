@@ -20,13 +20,10 @@ public static class ScoreboardEndpoints
             [FromServices] IScoreboardCalculator calculator,
             CancellationToken cancellationToken) =>
         {
-            if (month < 1 || month > 12 || year < 2000 || year > 2100)
-            {
-                return Results.ValidationProblem(new Dictionary<string, string[]>
-                {
-                    ["month"] = ["Month must be between 1 and 12, and year between 2000 and 2100."]
-                });
-            }
+            var errors = new Dictionary<string, string[]>();
+            if (month < 1 || month > 12) errors["month"] = ["Month must be between 1 and 12."];
+            if (year < 2000 || year > 2100) errors["year"] = ["Year must be between 2000 and 2100."];
+            if (errors.Count > 0) return Results.ValidationProblem(errors);
 
             var period = WarsawTimeZone.GetMonthlyPeriod(year, month);
             var response = await BuildScoreboardAsync(period, db, calculator, cancellationToken);
@@ -47,44 +44,32 @@ public static class ScoreboardEndpoints
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var monthlyCompletions = await db.ChoreCompletions
-            .AsNoTracking()
-            .Where(cc => cc.CompletedAt >= period.StartUtc && cc.CompletedAt < period.EndUtc)
-            .GroupBy(cc => cc.CompletedByMemberId)
-            .Select(g => new
-            {
-                MemberId = g.Key,
-                Points = g.Sum(x => x.PointsAwarded),
-                Count = g.Count()
-            })
-            .ToListAsync(cancellationToken);
-
-        var lifetimeStats = await db.ChoreCompletions
+        var allStats = await db.ChoreCompletions
             .AsNoTracking()
             .GroupBy(cc => cc.CompletedByMemberId)
             .Select(g => new
             {
                 MemberId = g.Key,
-                Points = g.Sum(x => x.PointsAwarded),
-                Count = g.Count()
+                MonthlyPoints = g.Where(x => x.CompletedAt >= period.StartUtc && x.CompletedAt < period.EndUtc).Sum(x => x.PointsAwarded),
+                MonthlyCount = g.Count(x => x.CompletedAt >= period.StartUtc && x.CompletedAt < period.EndUtc),
+                LifetimePoints = g.Sum(x => x.PointsAwarded),
+                LifetimeCount = g.Count()
             })
             .ToListAsync(cancellationToken);
 
-        var monthlyMap = monthlyCompletions.ToDictionary(x => x.MemberId);
-        var lifetimeMap = lifetimeStats.ToDictionary(x => x.MemberId);
+        var statsMap = allStats.ToDictionary(x => x.MemberId);
 
         var statsInputs = members.Select(m =>
         {
-            monthlyMap.TryGetValue(m.Id, out var mStats);
-            lifetimeMap.TryGetValue(m.Id, out var lStats);
+            statsMap.TryGetValue(m.Id, out var s);
 
             return new MemberStatsInput(
                 MemberId: m.Id,
                 Name: m.Name,
-                MonthlyPoints: mStats?.Points ?? 0,
-                MonthlyChoresCompleted: mStats?.Count ?? 0,
-                LifetimePoints: lStats?.Points ?? 0,
-                LifetimeChoresCompleted: lStats?.Count ?? 0
+                MonthlyPoints: s?.MonthlyPoints ?? 0,
+                MonthlyChoresCompleted: s?.MonthlyCount ?? 0,
+                LifetimePoints: s?.LifetimePoints ?? 0,
+                LifetimeChoresCompleted: s?.LifetimeCount ?? 0
             );
         }).ToList();
 

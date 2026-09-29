@@ -21,6 +21,9 @@ public class ScoreboardCalculator : IScoreboardCalculator
         var memberItems = new List<MemberScoreboardItem>(sorted.Count);
         var currentRank = 1;
 
+        // Standard Competition Ranking (1, 2, 2, 4 style):
+        // rank is determined by MonthlyPoints only — members tied on points share the same rank,
+        // and the next distinct rank skips the positions occupied by the tie group.
         for (var i = 0; i < sorted.Count; i++)
         {
             var member = sorted[i];
