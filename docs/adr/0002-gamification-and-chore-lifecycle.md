@@ -22,7 +22,7 @@ Traditional chore systems with rigid calendar schedules induce "late guilt" and 
    - **Wallet Balance**: Spendable balance. Incremented when a chore is completed, decremented when a voucher is purchased.
 4. **Monthly Competition Cycle**:
    - Resets at 00:00 on the 1st of each month according to `Europe/Warsaw` local timezone.
-   - Displays a segmented progress bar representing the proportional share (%) of completed chores for each participating member.
+   - Displays a segmented progress bar representing the proportional share (%) of monthly points earned for each participating member.
 5. **Reward Store & Voucher Wallet**:
    - Store catalog items can be created by any household member.
    - Purchasing an item burns points and creates an `Available` voucher in the user's wallet.

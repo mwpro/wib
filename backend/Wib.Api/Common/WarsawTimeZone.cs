@@ -39,4 +39,28 @@ public static class WarsawTimeZone
         var referenceDate = ToWarsawDate(referenceUtc);
         return Math.Max(0, today.DayNumber - referenceDate.DayNumber);
     }
+
+    public static MonthlyPeriod GetMonthlyPeriod(int year, int month)
+    {
+        var tz = GetTimeZone();
+        var startLocal = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Unspecified);
+        var endLocal = startLocal.AddMonths(1);
+
+        var startOffset = tz.GetUtcOffset(startLocal);
+        var endOffset = tz.GetUtcOffset(endLocal);
+
+        var startUtc = new DateTimeOffset(startLocal, startOffset).UtcDateTime;
+        var endUtc = new DateTimeOffset(endLocal, endOffset).UtcDateTime;
+
+        return new MonthlyPeriod(year, month, startUtc, endUtc);
+    }
+
+    public static MonthlyPeriod GetCurrentMonthlyPeriod(DateTimeOffset nowUtc)
+    {
+        var warsawNow = ToWarsawTime(nowUtc);
+        return GetMonthlyPeriod(warsawNow.Year, warsawNow.Month);
+    }
 }
+
+public readonly record struct MonthlyPeriod(int Year, int Month, DateTime StartUtc, DateTime EndUtc);
+

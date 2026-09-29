@@ -228,8 +228,8 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = CreateAuthenticatedClient();
-        int taggedChoreId = 0;
-        int otherChoreId = 0;
+        var taggedChoreId = 0;
+        var otherChoreId = 0;
 
         await _factory.ExecuteDbContextAsync(async db =>
         {
@@ -264,7 +264,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = CreateAuthenticatedClient();
-        int choreId = 0;
+        var choreId = 0;
 
         await _factory.ExecuteDbContextAsync(async db =>
         {
@@ -319,7 +319,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = CreateAuthenticatedClient();
-        int archivedId = 0;
+        var archivedId = 0;
 
         await _factory.ExecuteDbContextAsync(async db =>
         {
@@ -345,7 +345,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = CreateAuthenticatedClient();
-        int choreId = 0;
+        var choreId = 0;
 
         await _factory.ExecuteDbContextAsync(async db =>
         {
@@ -399,7 +399,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = CreateAuthenticatedClient();
-        int archivedId = 0;
+        var archivedId = 0;
 
         await _factory.ExecuteDbContextAsync(async db =>
         {
@@ -424,7 +424,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = CreateAuthenticatedClient();
-        int choreId = 0;
+        var choreId = 0;
 
         await _factory.ExecuteDbContextAsync(async db =>
         {
@@ -475,7 +475,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var memberSub = "auth0|repeat-completer-" + Guid.NewGuid();
         var client = CreateAuthenticatedClient(memberSub);
 
-        int choreId = 0;
+        var choreId = 0;
         await _factory.ExecuteDbContextAsync(async db =>
         {
             var chore = Chore.Create("Wyniesienie śmieci", null, 3, 2, DateTime.UtcNow);
