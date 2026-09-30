@@ -109,4 +109,29 @@ test.describe.serial('Scoreboard & Activity Stream UI Tests', () => {
     // Next button is disabled again
     await expect(nextBtn).toBeDisabled()
   })
+
+  test('persists active tab in URL and restores upon refresh or direct navigation', async ({ page }) => {
+    // 1. Direct navigation to /scoreboard
+    await page.goto('/scoreboard')
+
+    const scoreboardTab = page.getByRole('tab', { name: /Kto jest lepszy\?/i })
+    await expect(scoreboardTab).toHaveAttribute('data-state', 'active')
+    await expect(page.locator('[data-testid="work-share-card"]')).toBeVisible()
+
+    // 2. Reload / refresh page
+    await page.reload()
+    await expect(scoreboardTab).toHaveAttribute('data-state', 'active')
+    await expect(page.locator('[data-testid="work-share-card"]')).toBeVisible()
+
+    // 3. Switch to Zadania tab
+    const choresTab = page.getByRole('tab', { name: 'Zadania' })
+    await choresTab.click()
+    await expect(choresTab).toHaveAttribute('data-state', 'active')
+    expect(new URL(page.url()).pathname).toBe('/')
+
+    // 4. Browser back button
+    await page.goBack()
+    await expect(scoreboardTab).toHaveAttribute('data-state', 'active')
+    await expect(page.locator('[data-testid="work-share-card"]')).toBeVisible()
+  })
 })
