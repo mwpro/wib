@@ -1,23 +1,32 @@
 import { test, expect } from '@playwright/test'
 import { resetTestUser, cleanupTestChores } from '../helpers/db'
 
-const SB_USER = {
-  sub: 'auth0|test-scoreboard-user',
-  name: 'Scoreboard Tester',
-  email: 'sb@test.com',
+const SB_USER_A = {
+  sub: 'auth0|test-sb-user-a',
+  name: 'Kasia',
+  email: 'kasia@test.com',
+}
+
+const SB_USER_B = {
+  sub: 'auth0|test-sb-user-b',
+  name: 'Tomek',
+  email: 'tomek@test.com',
 }
 
 test.describe.serial('Scoreboard & Activity Stream UI Tests', () => {
   test.beforeEach(async ({ page }) => {
-    await resetTestUser(SB_USER.sub)
-    await cleanupTestChores('E2E_SB_')
+    await resetTestUser(SB_USER_A.sub)
+    await resetTestUser(SB_USER_B.sub)
+    await cleanupTestChores('SB_CHORE_')
     await page.addInitScript((user) => {
       localStorage.setItem('wib_test_user', JSON.stringify(user))
-    }, SB_USER)
+    }, SB_USER_A)
   })
 
   test.afterAll(async () => {
-    await cleanupTestChores('E2E_SB_')
+    await resetTestUser(SB_USER_A.sub)
+    await resetTestUser(SB_USER_B.sub)
+    await cleanupTestChores('SB_CHORE_')
   })
 
   test('renders scoreboard tab elements and month navigator', async ({ page }) => {
@@ -41,47 +50,114 @@ test.describe.serial('Scoreboard & Activity Stream UI Tests', () => {
     await expect(page.locator('[data-testid="lifetime-stats"]')).toBeVisible()
   })
 
-  test('updates work share, monthly podium, and activity stream when completing a chore', async ({ page }) => {
+  test('Golden Journey: multi-user chore competition and proportional work share update', async ({ page, browser }) => {
+    // 1. Boot app with synthetic User A (Kasia) and complete a chore
     await page.goto('/')
 
-    // 1. Create a chore
-    const choreTitle = `E2E_SB_Chore_${Date.now()}`
-    const quickAddForm = page.locator('[data-testid="quick-add-chore"]')
-    await quickAddForm.getByPlaceholder(/Dodaj nowe zadanie/i).fill(choreTitle)
-    await quickAddForm.getByRole('button', { name: 'Dodaj' }).click()
+    const choreTitleA = `SB_CHORE_A_${Date.now()}`
+    const quickAddFormA = page.locator('[data-testid="quick-add-chore"]')
+    await quickAddFormA.getByPlaceholder(/Dodaj nowe zadanie/i).fill(choreTitleA)
+    await quickAddFormA.getByRole('button', { name: 'Dodaj' }).click()
 
-    const choreCard = page.locator('[data-testid="chore-card"]', { hasText: choreTitle })
-    await expect(choreCard).toBeVisible()
+    const choreCardA = page.locator('[data-testid="chore-card"]', { hasText: choreTitleA })
+    await expect(choreCardA).toBeVisible()
 
-    // 2. Complete the chore
-    await choreCard.getByRole('button', { name: /Zrobione!/i }).click()
-    await expect(choreCard.getByRole('button', { name: /Ukończono/i })).toBeVisible()
+    const completionPromiseA = page.waitForResponse(
+      (res) => res.url().includes('/completion') && res.status() === 200
+    )
+    await choreCardA.getByRole('button', { name: /Zrobione!/i }).click()
+    await completionPromiseA
+    await expect(choreCardA.getByRole('button', { name: /Ukończono/i })).toBeVisible()
 
-    // 3. Switch to scoreboard tab
-    await page.getByRole('tab', { name: /Kto jest lepszy\?/i }).click()
+    // 2. Switch / authenticate as synthetic User B (Tomek) in a separate browser context and complete chores
+    const contextB = await browser.newContext()
+    await contextB.addInitScript((user) => {
+      localStorage.setItem('wib_test_user', JSON.stringify(user))
+    }, SB_USER_B)
+    const pageB = await contextB.newPage()
 
-    // 4. Verify Work Share reflects points
-    const workShareCard = page.locator('[data-testid="work-share-card"]')
-    await expect(workShareCard).toBeVisible()
-    await expect(workShareCard).toContainText(/Łącznie: [1-9]\d* pkt/)
+    try {
+      await pageB.goto('/')
 
-    // 5. Verify Monthly Podium includes completion
-    const podium = page.locator('[data-testid="monthly-podium"]')
-    await expect(podium).toBeVisible()
-    await expect(podium).toContainText('🥇')
-    await expect(podium).toContainText(/1 zadanie/i)
+      // Tomek completes 2 chores to test asymmetric split (1 pkt vs 2 pkt => 33.3% vs 66.7%)
+      const choreTitleB1 = `SB_CHORE_B1_${Date.now()}`
+      const quickAddFormB = pageB.locator('[data-testid="quick-add-chore"]')
+      await quickAddFormB.getByPlaceholder(/Dodaj nowe zadanie/i).fill(choreTitleB1)
+      await quickAddFormB.getByRole('button', { name: 'Dodaj' }).click()
 
-    // 6. Verify Activity Stream has the entry
-    const activityStream = page.locator('[data-testid="activity-stream"]')
-    await expect(activityStream).toBeVisible()
-    await expect(activityStream).toContainText(choreTitle)
-    await expect(activityStream).toContainText('ukończył(a):')
-    await expect(activityStream).toContainText('+1 pkt')
+      const choreCardB1 = pageB.locator('[data-testid="chore-card"]', { hasText: choreTitleB1 })
+      await expect(choreCardB1).toBeVisible()
 
-    // 7. Verify Lifetime Stats
-    const lifetimeStats = page.locator('[data-testid="lifetime-stats"]')
-    await expect(lifetimeStats).toBeVisible()
-    await expect(lifetimeStats).toContainText(/Łącznie pkt/i)
+      const completionPromiseB1 = pageB.waitForResponse(
+        (res) => res.url().includes('/completion') && res.status() === 200
+      )
+      await choreCardB1.getByRole('button', { name: /Zrobione!/i }).click()
+      await completionPromiseB1
+      await expect(choreCardB1.getByRole('button', { name: /Ukończono/i })).toBeVisible()
+
+      const choreTitleB2 = `SB_CHORE_B2_${Date.now()}`
+      await quickAddFormB.getByPlaceholder(/Dodaj nowe zadanie/i).fill(choreTitleB2)
+      await quickAddFormB.getByRole('button', { name: 'Dodaj' }).click()
+
+      const choreCardB2 = pageB.locator('[data-testid="chore-card"]', { hasText: choreTitleB2 })
+      await expect(choreCardB2).toBeVisible()
+
+      const completionPromiseB2 = pageB.waitForResponse(
+        (res) => res.url().includes('/completion') && res.status() === 200
+      )
+      await choreCardB2.getByRole('button', { name: /Zrobione!/i }).click()
+      await completionPromiseB2
+      await expect(choreCardB2.getByRole('button', { name: /Ukończono/i })).toBeVisible()
+
+      // 3. Navigate to "Kto jest lepszy?" view in User B context
+      const scoreboardTabB = pageB.getByRole('tab', { name: /Kto jest lepszy\?/i })
+      await scoreboardTabB.click()
+      await expect(scoreboardTabB).toHaveAttribute('data-state', 'active')
+
+      // 4. Verify segmented progress bar updates to reflect proportional split (Kasia 33.3%, Tomek 66.7%)
+      const workShareCardB = pageB.locator('[data-testid="work-share-card"]')
+      await expect(workShareCardB).toBeVisible()
+      await expect(workShareCardB).toContainText('Łącznie: 3 pkt')
+
+      // Segment widths in progress bar
+      const kasiaSegment = workShareCardB.locator('div[title*="Kasia"]')
+      await expect(kasiaSegment).toBeVisible()
+      await expect(kasiaSegment).toHaveAttribute('title', 'Kasia: 33.3%')
+
+      const tomekSegment = workShareCardB.locator('div[title*="Tomek"]')
+      await expect(tomekSegment).toBeVisible()
+      await expect(tomekSegment).toHaveAttribute('title', 'Tomek: 66.7%')
+
+      // Legend entries with percentage and points
+      await expect(workShareCardB).toContainText('Kasia')
+      await expect(workShareCardB).toContainText('33.3%')
+      await expect(workShareCardB).toContainText('(1 pkt)')
+
+      await expect(workShareCardB).toContainText('Tomek')
+      await expect(workShareCardB).toContainText('66.7%')
+      await expect(workShareCardB).toContainText('(2 pkt)')
+
+      // 5. Verify Monthly Podium reflects ranking (Tomek #1, Kasia #2)
+      const podiumB = pageB.locator('[data-testid="monthly-podium"]')
+      await expect(podiumB).toBeVisible()
+      await expect(podiumB).toContainText('Tomek')
+      await expect(podiumB).toContainText('🥇')
+      await expect(podiumB).toContainText(/2 zadań/i)
+      await expect(podiumB).toContainText('Kasia')
+      await expect(podiumB).toContainText('🥈')
+      await expect(podiumB).toContainText(/1 zadanie/i)
+
+      // 6. Verify Chronological Activity Stream has entries for both users
+      const activityStreamB = pageB.locator('[data-testid="activity-stream"]')
+      await expect(activityStreamB).toBeVisible()
+      await expect(activityStreamB).toContainText(choreTitleB2)
+      await expect(activityStreamB).toContainText(choreTitleB1)
+      await expect(activityStreamB).toContainText(choreTitleA)
+      await expect(activityStreamB).toContainText('Tomek')
+      await expect(activityStreamB).toContainText('Kasia')
+    } finally {
+      await contextB.close()
+    }
   })
 
   test('supports navigating to previous month and back', async ({ page }) => {
