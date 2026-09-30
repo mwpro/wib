@@ -4,6 +4,8 @@ using Wib.Api.Common;
 using Wib.Api.Config;
 using Wib.Api.Data;
 using Wib.Api.Members;
+using Wib.Api.Scoreboard;
+using Wib.Api.ChoreCompletions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,7 @@ builder.Configuration.AddJsonFile("/run/secrets/appsettings.secret.json", option
 builder.Services.Configure<JwtAuthOptions>(builder.Configuration.GetSection(JwtAuthOptions.SectionName));
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IFreshnessCalculator, FreshnessCalculator>();
+builder.Services.AddSingleton<IScoreboardCalculator, ScoreboardCalculator>();
 builder.Services.AddWibAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
 builder.Services.AddOpenApi();
@@ -40,6 +43,8 @@ app.UseAuthorization();
 app.MapConfigEndpoints();
 app.MapMemberEndpoints();
 app.MapChoreEndpoints();
+app.MapScoreboardEndpoints();
+app.MapChoreCompletionEndpoints();
 
 app.MapHealthChecks("/api/health");
 

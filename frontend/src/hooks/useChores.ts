@@ -96,6 +96,9 @@ export function useCompleteChore() {
           walletBalance: data.memberWalletBalance,
         }
       })
+
+      queryClient.invalidateQueries({ queryKey: ['scoreboard'] })
+      queryClient.invalidateQueries({ queryKey: ['chore-activity'] })
     },
   })
 }

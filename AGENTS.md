@@ -19,6 +19,9 @@ Single-context layout (`CONTEXT.md` + `docs/adr/` at repo root). See `docs/agent
 - **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS + TanStack Query (`frontend/`).
 - **E2E**: Playwright tests (`e2e/`).
 
+### Backend Guidelines
+- **No `InternalsVisibleTo`**: Never use `[InternalsVisibleTo]` or `<InternalsVisibleTo>` to expose internal API symbols to test projects. Tests must interact strictly with public contracts and domain methods, preserving proper encapsulation.
+
 ---
 
 ### 1. Running the Project

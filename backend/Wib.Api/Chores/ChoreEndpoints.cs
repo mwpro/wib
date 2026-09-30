@@ -22,7 +22,7 @@ public static class ChoreEndpoints
             [FromServices] IFreshnessCalculator freshnessCalculator,
             CancellationToken cancellationToken) =>
         {
-            IQueryable<Chore> query = db.Chores
+            var query = db.Chores
                 .Where(c => !c.IsArchived)
                 .Include(c => c.ChoreTags)
                 .ThenInclude(ct => ct.Tag)
