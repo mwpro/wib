@@ -3,9 +3,17 @@ import { BottomNav } from '../layout/BottomNav'
 import { ChoresTab } from './ChoresTab'
 import { ScoreboardTab } from './ScoreboardTab'
 import { StoreTab } from './StoreTab'
+import { useTabNavigation } from '../../hooks/useTabNavigation'
+
 export function MainTabs() {
+  const { activeTab, handleTabChange } = useTabNavigation()
+
   return (
-    <Tabs.Root defaultValue="chores" className="flex flex-col flex-1">
+    <Tabs.Root
+      value={activeTab}
+      onValueChange={handleTabChange}
+      className="flex flex-col flex-1"
+    >
       <div className="flex-1 flex flex-col gap-4">
         <Tabs.Content value="chores" className="focus:outline-none">
           <ChoresTab />
