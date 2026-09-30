@@ -38,4 +38,13 @@ public class Member
     {
         WalletBalance += amount;
     }
+
+    public bool TryDebitWallet(int amount)
+    {
+        if (amount <= 0 || WalletBalance < amount)
+            return false;
+
+        WalletBalance -= amount;
+        return true;
+    }
 }

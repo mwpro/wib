@@ -35,7 +35,7 @@
 * **Monthly Race ("Kto jest lepszy?")**: The primary competition cycle. Tracks points earned during the current calendar month, resetting on the 1st of each month at 00:00 `Europe/Warsaw` time.
 * **Work Share Ratio**: The proportional percentage of monthly points earned by each member in the current period, visualized as a segmented progress bar.
 * **Reward Item**: A catalog item in the in-app store representing a favor, treat, or privilege (e.g. "Masaż", "Wyjście solo", "Kupno książki") with a designated point cost.
-* **Voucher**: An instance of a purchased reward owned by a member in their wallet.
+* **Voucher**: An instance of a purchased reward owned by a member in their wallet, preserving title and point cost snapshots from the time of purchase.
   * Status: `Available` (purchased, unspent) $\rightarrow$ `Redeemed` (claimed/fulfilled with timestamp).
 
 ---
