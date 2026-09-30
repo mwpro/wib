@@ -5,6 +5,7 @@ using Wib.Api.Config;
 using Wib.Api.Data;
 using Wib.Api.Members;
 using Wib.Api.Scoreboard;
+using Wib.Api.ChoreCompletions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +44,7 @@ app.MapConfigEndpoints();
 app.MapMemberEndpoints();
 app.MapChoreEndpoints();
 app.MapScoreboardEndpoints();
+app.MapChoreCompletionEndpoints();
 
 app.MapHealthChecks("/api/health");
 
