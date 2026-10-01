@@ -23,7 +23,7 @@ public static class StoreEndpoints
         {
             var items = await db.RewardItems
                 .AsNoTracking()
-                .Where(r => r.IsActive && (r.Quantity == null || r.Quantity > 0))
+                .Where(r => r.IsActive)
                 .OrderBy(r => r.Title)
                 .Select(r => RewardItemResponse.Create(r))
                 .ToListAsync(cancellationToken);
@@ -126,7 +126,7 @@ public static class StoreEndpoints
                 return Results.NotFound();
             }
 
-            if (!item.IsActive || (item.Quantity.HasValue && item.Quantity.Value <= 0))
+            if (!item.IsActive)
             {
                 return Results.BadRequest(new ProblemDetails
                 {
@@ -144,34 +144,13 @@ public static class StoreEndpoints
                 });
             }
 
-            var isRelational = db.Database.IsRelational();
-            await using var transaction = isRelational ? await db.Database.BeginTransactionAsync(cancellationToken) : null;
-            try
-            {
-                var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-                var voucher = item.Purchase(member, nowUtc);
+            var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
+            var voucher = item.Purchase(member, nowUtc);
 
-                await db.SaveChangesAsync(cancellationToken);
-                if (transaction != null)
-                {
-                    await transaction.CommitAsync(cancellationToken);
-                }
+            await db.SaveChangesAsync(cancellationToken);
 
-                var response = new BuyRewardResponse(VoucherResponse.Create(voucher), member.WalletBalance);
-                return Results.Created($"/api/vouchers/{voucher.Id}", response);
-            }
-            catch (InvalidOperationException ex)
-            {
-                if (transaction != null)
-                {
-                    await transaction.RollbackAsync(cancellationToken);
-                }
-                return Results.BadRequest(new ProblemDetails
-                {
-                    Title = "Błąd zakupu",
-                    Detail = ex.Message
-                });
-            }
+            var response = new BuyRewardResponse(VoucherResponse.Create(voucher), member.WalletBalance);
+            return Results.Created($"/api/vouchers/{voucher.Id}", response);
         })
         .WithName("PurchaseStoreItem");
 

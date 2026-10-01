@@ -17,7 +17,6 @@ public static class VoucherEndpoints
 
         group.MapGet("/", async (
             [FromQuery] bool? isRedeemed,
-            [FromQuery] bool? redeemed,
             [FromServices] WibDbContext db,
             [FromServices] ICurrentMemberAccessor currentMemberAccessor,
             CancellationToken cancellationToken) =>
@@ -32,10 +31,9 @@ public static class VoucherEndpoints
                 .AsNoTracking()
                 .Where(v => v.OwnedByMemberId == member.Id);
 
-            var filter = isRedeemed ?? redeemed;
-            if (filter.HasValue)
+            if (isRedeemed.HasValue)
             {
-                query = filter.Value
+                query = isRedeemed.Value
                     ? query.Where(v => v.RedeemedAt != null)
                     : query.Where(v => v.RedeemedAt == null);
             }
