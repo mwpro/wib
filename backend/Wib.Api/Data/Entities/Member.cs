@@ -39,6 +39,7 @@ public class Member
 
     public void CreditWallet(int amount)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(amount, 1);
         WalletBalance += amount;
     }
 

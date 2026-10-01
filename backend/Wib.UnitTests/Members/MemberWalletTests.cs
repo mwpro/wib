@@ -16,6 +16,20 @@ public class MemberWalletTests
         member.WalletBalance.Should().Be(15);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-10)]
+    public void CreditWallet_WithZeroOrNegativeAmount_ShouldThrowArgumentOutOfRangeException(int creditAmount)
+    {
+        var member = Member.Create("auth0|123", "Test User", DateTime.UtcNow);
+
+        var act = () => member.CreditWallet(creditAmount);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+        member.WalletBalance.Should().Be(0);
+    }
+
     [Fact]
     public void TryDebitWallet_WithSufficientBalance_ShouldDeductAndReturnTrue()
     {
