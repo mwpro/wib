@@ -28,9 +28,13 @@ public class WibDbContext : DbContext
             entity.Property(m => m.ExternalSubjectId).IsRequired().HasMaxLength(255);
             entity.HasIndex(m => m.ExternalSubjectId).IsUnique();
             entity.Property(m => m.Name).IsRequired().HasMaxLength(255);
-            entity.Property(m => m.WalletBalance).HasDefaultValue(0).IsConcurrencyToken();
+            entity.Property(m => m.WalletBalance).HasDefaultValue(0);
             entity.Property(m => m.CreatedAt).IsRequired();
             entity.Property(m => m.UpdatedAt);
+            entity.HasMany(m => m.Vouchers)
+                .WithOne(v => v.OwnedByMember)
+                .HasForeignKey(v => v.OwnedByMemberId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Chore>(entity =>
@@ -93,6 +97,7 @@ public class WibDbContext : DbContext
             entity.Property(r => r.Title).IsRequired().HasMaxLength(255);
             entity.Property(r => r.Description).HasMaxLength(2000);
             entity.Property(r => r.PointCost).IsRequired();
+            entity.Property(r => r.Quantity);
             entity.Property(r => r.IsActive).HasDefaultValue(true);
             entity.Property(r => r.CreatedAt).IsRequired();
             entity.Property(r => r.UpdatedAt);
@@ -108,7 +113,6 @@ public class WibDbContext : DbContext
             entity.HasKey(v => v.Id);
             entity.Property(v => v.TitleSnapshot).IsRequired().HasMaxLength(255);
             entity.Property(v => v.PointCostSnapshot).IsRequired();
-            entity.Property(v => v.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
             entity.Property(v => v.PurchasedAt).IsRequired();
             entity.Property(v => v.RedeemedAt);
             entity.HasOne(v => v.RewardItem)
@@ -116,7 +120,7 @@ public class WibDbContext : DbContext
                 .HasForeignKey(v => v.RewardItemId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(v => v.OwnedByMember)
-                .WithMany()
+                .WithMany(m => m.Vouchers)
                 .HasForeignKey(v => v.OwnedByMemberId)
                 .OnDelete(DeleteBehavior.Restrict);
         });

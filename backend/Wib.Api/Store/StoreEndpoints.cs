@@ -23,8 +23,8 @@ public static class StoreEndpoints
         {
             var items = await db.RewardItems
                 .AsNoTracking()
-                .Where(r => r.IsActive)
-                .OrderByDescending(r => r.CreatedAt)
+                .Where(r => r.IsActive && (r.Quantity == null || r.Quantity > 0))
+                .OrderBy(r => r.Title)
                 .Select(r => RewardItemResponse.Create(r))
                 .ToListAsync(cancellationToken);
 
@@ -46,7 +46,14 @@ public static class StoreEndpoints
             }
 
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-            var item = RewardItem.Create(request.Title, request.Description, request.PointCost, member.Id, nowUtc);
+            var item = RewardItem.Create(
+                request.Title,
+                request.Description,
+                request.PointCost,
+                request.Quantity,
+                member.Id,
+                nowUtc
+            );
 
             db.RewardItems.Add(item);
             await db.SaveChangesAsync(cancellationToken);
@@ -70,7 +77,7 @@ public static class StoreEndpoints
             }
 
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-            item.Update(request.Title, request.Description, request.PointCost, nowUtc);
+            item.Update(request.Title, request.Description, request.PointCost, request.Quantity, nowUtc);
 
             await db.SaveChangesAsync(cancellationToken);
 
@@ -119,7 +126,7 @@ public static class StoreEndpoints
                 return Results.NotFound();
             }
 
-            if (!item.IsActive)
+            if (!item.IsActive || (item.Quantity.HasValue && item.Quantity.Value <= 0))
             {
                 return Results.BadRequest(new ProblemDetails
                 {
@@ -128,7 +135,7 @@ public static class StoreEndpoints
                 });
             }
 
-            if (!member.TryDebitWallet(item.PointCost))
+            if (member.WalletBalance < item.PointCost)
             {
                 return Results.BadRequest(new ProblemDetails
                 {
@@ -137,14 +144,34 @@ public static class StoreEndpoints
                 });
             }
 
-            var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-            var voucher = Voucher.Create(item, member, nowUtc);
+            var isRelational = db.Database.IsRelational();
+            await using var transaction = isRelational ? await db.Database.BeginTransactionAsync(cancellationToken) : null;
+            try
+            {
+                var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
+                var voucher = item.Purchase(member, nowUtc);
 
-            db.Vouchers.Add(voucher);
-            await db.SaveChangesAsync(cancellationToken);
+                await db.SaveChangesAsync(cancellationToken);
+                if (transaction != null)
+                {
+                    await transaction.CommitAsync(cancellationToken);
+                }
 
-            var response = new BuyRewardResponse(VoucherResponse.Create(voucher), member.WalletBalance);
-            return Results.Created($"/api/vouchers/{voucher.Id}", response);
+                var response = new BuyRewardResponse(VoucherResponse.Create(voucher), member.WalletBalance);
+                return Results.Created($"/api/vouchers/{voucher.Id}", response);
+            }
+            catch (InvalidOperationException ex)
+            {
+                if (transaction != null)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                }
+                return Results.BadRequest(new ProblemDetails
+                {
+                    Title = "Błąd zakupu",
+                    Detail = ex.Message
+                });
+            }
         })
         .WithName("PurchaseStoreItem");
 

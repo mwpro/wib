@@ -23,6 +23,7 @@ namespace Wib.Api.Migrations
                     Description = table.Column<string>(type: "varchar(2000)", maxLength: 2000, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     PointCost = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<int>(type: "int", nullable: true),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
                     CreatedByMemberId = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
@@ -51,8 +52,6 @@ namespace Wib.Api.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     PointCostSnapshot = table.Column<int>(type: "int", nullable: false),
                     OwnedByMemberId = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
                     PurchasedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     RedeemedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },

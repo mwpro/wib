@@ -6,11 +6,11 @@ namespace Wib.UnitTests.Vouchers;
 public class VoucherEntityTests
 {
     [Fact]
-    public void Create_FromRewardItemAndMember_ShouldSnapshotAndSetAvailable()
+    public void Create_FromRewardItemAndMember_ShouldSnapshotAndBeAvailable()
     {
         var nowUtc = new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc);
         var member = Member.Create("auth0|123", "Alice", nowUtc);
-        var rewardItem = RewardItem.Create("Masaż", "Relaksujący masaż", 25, member.Id, nowUtc);
+        var rewardItem = RewardItem.Create("Masaż", "Relaksujący masaż", 25, quantity: null, member.Id, nowUtc);
 
         var voucher = Voucher.Create(rewardItem, member, nowUtc);
 
@@ -18,7 +18,7 @@ public class VoucherEntityTests
         voucher.TitleSnapshot.Should().Be("Masaż");
         voucher.PointCostSnapshot.Should().Be(25);
         voucher.OwnedByMemberId.Should().Be(member.Id);
-        voucher.Status.Should().Be(VoucherStatus.Available);
+        voucher.IsRedeemed.Should().BeFalse();
         voucher.PurchasedAt.Should().Be(nowUtc);
         voucher.RedeemedAt.Should().BeNull();
     }
@@ -28,7 +28,7 @@ public class VoucherEntityTests
     {
         var nowUtc = new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc);
         var member = Member.Create("auth0|123", "Alice", nowUtc);
-        var rewardItem = RewardItem.Create("Kino", null, 10, member.Id, nowUtc);
+        var rewardItem = RewardItem.Create("Kino", null, 10, quantity: null, member.Id, nowUtc);
         rewardItem.Deactivate(nowUtc);
 
         var act = () => Voucher.Create(rewardItem, member, nowUtc);
@@ -43,13 +43,13 @@ public class VoucherEntityTests
         var purchasedAt = new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc);
         var redeemedAt = new DateTime(2026, 10, 2, 18, 0, 0, DateTimeKind.Utc);
         var member = Member.Create("auth0|123", "Alice", purchasedAt);
-        var rewardItem = RewardItem.Create("Masaż", null, 25, member.Id, purchasedAt);
+        var rewardItem = RewardItem.Create("Masaż", null, 25, quantity: null, member.Id, purchasedAt);
 
         var voucher = Voucher.Create(rewardItem, member, purchasedAt);
 
         voucher.Redeem(redeemedAt);
 
-        voucher.Status.Should().Be(VoucherStatus.Redeemed);
+        voucher.IsRedeemed.Should().BeTrue();
         voucher.RedeemedAt.Should().Be(redeemedAt);
     }
 
@@ -59,7 +59,7 @@ public class VoucherEntityTests
         var purchasedAt = new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc);
         var redeemedAt = new DateTime(2026, 10, 2, 18, 0, 0, DateTimeKind.Utc);
         var member = Member.Create("auth0|123", "Alice", purchasedAt);
-        var rewardItem = RewardItem.Create("Masaż", null, 25, member.Id, purchasedAt);
+        var rewardItem = RewardItem.Create("Masaż", null, 25, quantity: null, member.Id, purchasedAt);
 
         var voucher = Voucher.Create(rewardItem, member, purchasedAt);
         voucher.Redeem(redeemedAt);

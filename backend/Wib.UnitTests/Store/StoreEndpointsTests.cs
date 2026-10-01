@@ -34,15 +34,15 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var getRes = await unauthenticatedClient.GetAsync("/api/store/items");
         getRes.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
-        var postRes = await unauthenticatedClient.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Test", null, 10));
+        var postRes = await unauthenticatedClient.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Test", 10));
         postRes.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task PostRewardItem_WithValidData_ShouldCreateRewardAndReturn201()
+    public async Task PostRewardItem_WithValidDataAndQuantity_ShouldCreateRewardAndReturn201()
     {
         var client = CreateAuthenticatedClient("auth0|store-creator-1", "Creator 1");
-        var request = new CreateRewardItemRequest("Masaż pleców", "30 minut relaksu", 20);
+        var request = new CreateRewardItemRequest("Masaż pleców", 20, "30 minut relaksu", 2);
 
         var response = await client.PostAsJsonAsync("/api/store/items", request);
 
@@ -53,6 +53,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         item.Title.Should().Be("Masaż pleców");
         item.Description.Should().Be("30 minut relaksu");
         item.PointCost.Should().Be(20);
+        item.Quantity.Should().Be(2);
         item.IsActive.Should().BeTrue();
         item.CreatedByMemberId.Should().BeGreaterThan(0);
         item.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
@@ -63,19 +64,22 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
             var entity = await db.RewardItems.FirstOrDefaultAsync(r => r.Id == item.Id);
             entity.Should().NotBeNull();
             entity!.Title.Should().Be("Masaż pleców");
+            entity.Quantity.Should().Be(2);
             entity.IsActive.Should().BeTrue();
         });
     }
 
     [Theory]
-    [InlineData("", 10)]
-    [InlineData("   ", 10)]
-    [InlineData("Valid Title", 0)]
-    [InlineData("Valid Title", -5)]
-    public async Task PostRewardItem_WithInvalidData_ShouldReturn400(string title, int pointCost)
+    [InlineData("", 10, null)]
+    [InlineData("   ", 10, null)]
+    [InlineData("Valid Title", 0, null)]
+    [InlineData("Valid Title", -5, null)]
+    [InlineData("Valid Title", 10, 0)]
+    [InlineData("Valid Title", 10, -1)]
+    public async Task PostRewardItem_WithInvalidData_ShouldReturn400(string title, int pointCost, int? quantity)
     {
         var client = CreateAuthenticatedClient();
-        var request = new CreateRewardItemRequest(title, null, pointCost);
+        var request = new CreateRewardItemRequest(title, pointCost, null, quantity);
 
         var response = await client.PostAsJsonAsync("/api/store/items", request);
 
@@ -83,20 +87,18 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     }
 
     [Fact]
-    public async Task GetRewardItems_ShouldReturnOnlyActiveItems()
+    public async Task GetRewardItems_ShouldReturnActiveItemsOrderedByTitleAscending()
     {
         var client = CreateAuthenticatedClient("auth0|store-lister", "Lister");
 
-        // Create 2 items, deactivate 1
-        var item1Res = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Kino", null, 15));
-        var item1 = await item1Res.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
+        // Create 3 items: "Zebra", "Albatros", "Bóbr"
+        await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Zebra", 10));
+        await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Albatros", 5));
+        var bRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Bóbr", 15));
+        var bobr = await bRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
 
-        var item2Res = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Kawa", null, 5));
-        var item2 = await item2Res.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
-
-        // Deactivate item1
-        var delRes = await client.DeleteAsync($"/api/store/items/{item1!.Id}");
-        delRes.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        // Deactivate "Bóbr"
+        await client.DeleteAsync($"/api/store/items/{bobr!.Id}");
 
         // Query active items
         var listRes = await client.GetAsync("/api/store/items");
@@ -104,18 +106,21 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var items = await listRes.Content.ReadFromJsonAsync<List<RewardItemResponse>>(_jsonOptions);
 
         items.Should().NotBeNull();
-        items!.Any(i => i.Id == item1.Id).Should().BeFalse();
-        items.Any(i => i.Id == item2!.Id).Should().BeTrue();
+        items!.Any(i => i.Id == bobr.Id).Should().BeFalse();
+
+        // Check alphabetical sorting
+        var titles = items.Select(i => i.Title).ToList();
+        titles.Should().BeInAscendingOrder();
     }
 
     [Fact]
     public async Task PutRewardItem_WithValidData_ShouldUpdateItem()
     {
         var client = CreateAuthenticatedClient();
-        var postRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Stary Tytuł", "Stary", 10));
+        var postRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Stary Tytuł", 10, "Stary"));
         var created = await postRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
 
-        var putRes = await client.PutAsJsonAsync($"/api/store/items/{created!.Id}", new UpdateRewardItemRequest("Nowy Tytuł", "Nowy", 25));
+        var putRes = await client.PutAsJsonAsync($"/api/store/items/{created!.Id}", new UpdateRewardItemRequest("Nowy Tytuł", 25, "Nowy", 3));
 
         putRes.StatusCode.Should().Be(HttpStatusCode.OK);
         var updated = await putRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
@@ -123,6 +128,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         updated!.Title.Should().Be("Nowy Tytuł");
         updated.Description.Should().Be("Nowy");
         updated.PointCost.Should().Be(25);
+        updated.Quantity.Should().Be(3);
         updated.UpdatedAt.Should().NotBeNull();
     }
 
@@ -130,7 +136,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task DeleteRewardItem_ShouldSoftDeactivate()
     {
         var client = CreateAuthenticatedClient();
-        var postRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Do Usunięcia", null, 10));
+        var postRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Do Usunięcia", 10));
         var created = await postRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
 
         var delRes = await client.DeleteAsync($"/api/store/items/{created!.Id}");
@@ -149,7 +155,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task PutRewardItem_WhenNotFound_ShouldReturn404()
     {
         var client = CreateAuthenticatedClient();
-        var putRes = await client.PutAsJsonAsync("/api/store/items/99999", new UpdateRewardItemRequest("Test", null, 10));
+        var putRes = await client.PutAsJsonAsync("/api/store/items/99999", new UpdateRewardItemRequest("Test", 10));
         putRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 

@@ -9,6 +9,7 @@ public record RewardItemResponse(
     string Title,
     string? Description,
     int PointCost,
+    int? Quantity,
     bool IsActive,
     int CreatedByMemberId,
     DateTime CreatedAt,
@@ -22,6 +23,7 @@ public record RewardItemResponse(
             item.Title,
             item.Description,
             item.PointCost,
+            item.Quantity,
             item.IsActive,
             item.CreatedByMemberId,
             item.CreatedAt,
@@ -37,8 +39,9 @@ public record BuyRewardResponse(
 
 public record CreateRewardItemRequest(
     string Title,
+    int PointCost,
     string? Description = null,
-    int PointCost = 1
+    int? Quantity = null
 ) : IValidatableObject
 {
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -60,14 +63,20 @@ public record CreateRewardItemRequest(
         if (PointCost < 1)
         {
             yield return new ValidationResult("PointCost must be at least 1.", [nameof(PointCost)]);
+        }
+
+        if (Quantity.HasValue && Quantity.Value < 1)
+        {
+            yield return new ValidationResult("Quantity must be at least 1 if specified.", [nameof(Quantity)]);
         }
     }
 }
 
 public record UpdateRewardItemRequest(
     string Title,
+    int PointCost,
     string? Description = null,
-    int PointCost = 1
+    int? Quantity = null
 ) : IValidatableObject
 {
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -89,6 +98,11 @@ public record UpdateRewardItemRequest(
         if (PointCost < 1)
         {
             yield return new ValidationResult("PointCost must be at least 1.", [nameof(PointCost)]);
+        }
+
+        if (Quantity.HasValue && Quantity.Value < 1)
+        {
+            yield return new ValidationResult("Quantity must be at least 1 if specified.", [nameof(Quantity)]);
         }
     }
 }

@@ -8,7 +8,7 @@ public record VoucherResponse(
     string TitleSnapshot,
     int PointCostSnapshot,
     int OwnedByMemberId,
-    string Status,
+    bool IsRedeemed,
     DateTime PurchasedAt,
     DateTime? RedeemedAt
 )
@@ -21,7 +21,7 @@ public record VoucherResponse(
             voucher.TitleSnapshot,
             voucher.PointCostSnapshot,
             voucher.OwnedByMemberId,
-            voucher.Status.ToString(),
+            voucher.IsRedeemed,
             voucher.PurchasedAt,
             voucher.RedeemedAt
         );

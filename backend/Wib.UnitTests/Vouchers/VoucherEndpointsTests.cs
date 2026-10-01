@@ -74,7 +74,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         await EnsureMemberHasBalanceAsync(sub, "Poor Buyer", 5);
 
         // Create an item costing 20 points
-        var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Drogi Masaż", null, 20));
+        var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Drogi Masaż", 20));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
 
         // Act: attempt to buy with only 5 points
@@ -93,7 +93,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var client = CreateAuthenticatedClient(sub, "Inactive Buyer");
         await EnsureMemberHasBalanceAsync(sub, "Inactive Buyer", 50);
 
-        var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Wycieczka", null, 20));
+        var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Wycieczka", 20));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
 
         // Deactivate item
@@ -123,7 +123,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var client = CreateAuthenticatedClient(sub, "Wealthy Buyer");
         await EnsureMemberHasBalanceAsync(sub, "Wealthy Buyer", 100);
 
-        var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Kolacja sushi", "Zestaw premium", 40));
+        var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Kolacja sushi", 40, "Zestaw premium"));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
 
         // Act
@@ -137,22 +137,49 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         buyData.Voucher.Should().NotBeNull();
         buyData.Voucher.TitleSnapshot.Should().Be("Kolacja sushi");
         buyData.Voucher.PointCostSnapshot.Should().Be(40);
-        buyData.Voucher.Status.Should().Be("Available");
+        buyData.Voucher.IsRedeemed.Should().BeFalse();
         buyData.Voucher.RedeemedAt.Should().BeNull();
         buyData.Voucher.PurchasedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
 
         // Verify in DB
         await _factory.ExecuteDbContextAsync(async db =>
         {
-            var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == sub);
+            var member = await db.Members
+                .Include(m => m.Vouchers)
+                .FirstOrDefaultAsync(m => m.ExternalSubjectId == sub);
             member!.WalletBalance.Should().Be(60);
+            member.Vouchers.Any(v => v.Id == buyData.Voucher.Id).Should().BeTrue();
 
             var voucher = await db.Vouchers.FirstOrDefaultAsync(v => v.Id == buyData.Voucher.Id);
             voucher.Should().NotBeNull();
-            voucher!.Status.Should().Be(VoucherStatus.Available);
+            voucher!.IsRedeemed.Should().BeFalse();
             voucher.TitleSnapshot.Should().Be("Kolacja sushi");
             voucher.PointCostSnapshot.Should().Be(40);
         });
+    }
+
+    [Fact]
+    public async Task PurchaseRewardItem_SingleClaim_ShouldExhaustQuantityAndPreventSecondPurchase()
+    {
+        var sub = "auth0|single-claim-buyer";
+        var client = CreateAuthenticatedClient(sub, "Single Buyer");
+        await EnsureMemberHasBalanceAsync(sub, "Single Buyer", 100);
+
+        var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Jedyny Masaż", 15, null, 1));
+        var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
+
+        // 1st purchase succeeds
+        var buy1 = await client.PostAsync($"/api/store/items/{item!.Id}/purchase", null);
+        buy1.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        // 2nd purchase fails because quantity is exhausted
+        var buy2 = await client.PostAsync($"/api/store/items/{item.Id}/purchase", null);
+        buy2.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        // Item should no longer appear in store catalog
+        var listRes = await client.GetAsync("/api/store/items");
+        var activeItems = await listRes.Content.ReadFromJsonAsync<List<RewardItemResponse>>(_jsonOptions);
+        activeItems!.Any(i => i.Id == item.Id).Should().BeFalse();
     }
 
     [Fact]
@@ -166,7 +193,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         await EnsureMemberHasBalanceAsync(user1Sub, "User One", 100);
         await EnsureMemberHasBalanceAsync(user2Sub, "User Two", 100);
 
-        var itemRes = await client1.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Książka", null, 10));
+        var itemRes = await client1.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Książka", 10));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
 
         // User 1 buys twice
@@ -193,13 +220,13 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     }
 
     [Fact]
-    public async Task GetVouchers_WithStatusFilter_ShouldFilterCorrectly()
+    public async Task GetVouchers_WithIsRedeemedFilter_ShouldFilterCorrectly()
     {
         var sub = "auth0|filter-test-user";
         var client = CreateAuthenticatedClient(sub, "Filter Tester");
         await EnsureMemberHasBalanceAsync(sub, "Filter Tester", 100);
 
-        var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Kawa latte", null, 5));
+        var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Kawa latte", 5));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
 
         var buy1 = await client.PostAsync($"/api/store/items/{item!.Id}/purchase", null);
@@ -212,25 +239,21 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var redeemRes = await client.PostAsync($"/api/vouchers/{v1.Id}/redemption", null);
         redeemRes.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Filter Available
-        var availRes = await client.GetAsync("/api/vouchers?status=Available");
+        // Filter Available (isRedeemed=false)
+        var availRes = await client.GetAsync("/api/vouchers?isRedeemed=false");
         availRes.StatusCode.Should().Be(HttpStatusCode.OK);
         var availableList = await availRes.Content.ReadFromJsonAsync<List<VoucherResponse>>(_jsonOptions);
         availableList.Should().NotBeNull();
         availableList!.Any(v => v.Id == v2.Id).Should().BeTrue();
         availableList.Any(v => v.Id == v1.Id).Should().BeFalse();
 
-        // Filter Redeemed
-        var redeemedRes = await client.GetAsync("/api/vouchers?status=Redeemed");
+        // Filter Redeemed (isRedeemed=true)
+        var redeemedRes = await client.GetAsync("/api/vouchers?isRedeemed=true");
         redeemedRes.StatusCode.Should().Be(HttpStatusCode.OK);
         var redeemedList = await redeemedRes.Content.ReadFromJsonAsync<List<VoucherResponse>>(_jsonOptions);
         redeemedList.Should().NotBeNull();
         redeemedList!.Any(v => v.Id == v1.Id).Should().BeTrue();
         redeemedList.Any(v => v.Id == v2.Id).Should().BeFalse();
-
-        // Invalid filter
-        var badRes = await client.GetAsync("/api/vouchers?status=NotValid");
-        badRes.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -240,7 +263,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var client = CreateAuthenticatedClient(sub, "Redeemer");
         await EnsureMemberHasBalanceAsync(sub, "Redeemer", 100);
 
-        var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Masaż stóp", null, 15));
+        var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Masaż stóp", 15));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
 
         var buyRes = await client.PostAsync($"/api/store/items/{item!.Id}/purchase", null);
@@ -253,7 +276,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         redeemRes.StatusCode.Should().Be(HttpStatusCode.OK);
         var redeemed = await redeemRes.Content.ReadFromJsonAsync<VoucherResponse>(_jsonOptions);
         redeemed.Should().NotBeNull();
-        redeemed!.Status.Should().Be("Redeemed");
+        redeemed!.IsRedeemed.Should().BeTrue();
         redeemed.RedeemedAt.Should().NotBeNull();
         redeemed.RedeemedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
 
@@ -261,7 +284,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         await _factory.ExecuteDbContextAsync(async db =>
         {
             var entity = await db.Vouchers.FirstOrDefaultAsync(v => v.Id == voucher.Id);
-            entity!.Status.Should().Be(VoucherStatus.Redeemed);
+            entity!.IsRedeemed.Should().BeTrue();
             entity.RedeemedAt.Should().NotBeNull();
         });
     }
@@ -273,7 +296,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var client = CreateAuthenticatedClient(sub, "Double Redeemer");
         await EnsureMemberHasBalanceAsync(sub, "Double Redeemer", 100);
 
-        var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Lody", null, 10));
+        var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Lody", 10));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
 
         var buyRes = await client.PostAsync($"/api/store/items/{item!.Id}/purchase", null);
@@ -299,7 +322,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
 
         await EnsureMemberHasBalanceAsync(ownerSub, "Owner", 100);
 
-        var itemRes = await ownerClient.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Czekolada", null, 10));
+        var itemRes = await ownerClient.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Czekolada", 10));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
 
         var buyRes = await ownerClient.PostAsync($"/api/store/items/{item!.Id}/purchase", null);

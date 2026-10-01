@@ -11,9 +11,10 @@ public class Voucher
     public int PointCostSnapshot { get; private set; }
     public int OwnedByMemberId { get; private set; }
     public Member OwnedByMember { get; private set; } = null!;
-    public VoucherStatus Status { get; private set; }
     public DateTime PurchasedAt { get; private set; }
     public DateTime? RedeemedAt { get; private set; }
+
+    public bool IsRedeemed => RedeemedAt.HasValue;
 
     public static Voucher Create(RewardItem rewardItem, Member member, DateTime nowUtc)
     {
@@ -29,7 +30,6 @@ public class Voucher
             TitleSnapshot = rewardItem.Title,
             PointCostSnapshot = rewardItem.PointCost,
             OwnedByMemberId = member.Id,
-            Status = VoucherStatus.Available,
             PurchasedAt = nowUtc,
             RedeemedAt = null
         };
@@ -37,10 +37,9 @@ public class Voucher
 
     public void Redeem(DateTime nowUtc)
     {
-        if (Status == VoucherStatus.Redeemed)
+        if (IsRedeemed)
             throw new InvalidOperationException("Kupon został już zrealizowany.");
 
-        Status = VoucherStatus.Redeemed;
         RedeemedAt = nowUtc;
     }
 }

@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Wib.Api.Auth;
 using Wib.Api.Common;
 using Wib.Api.Data;
-using Wib.Api.Data.Entities;
 
 namespace Wib.Api.Vouchers;
 
@@ -17,7 +16,8 @@ public static class VoucherEndpoints
             .WithValidation();
 
         group.MapGet("/", async (
-            [FromQuery] string? status,
+            [FromQuery] bool? isRedeemed,
+            [FromQuery] bool? redeemed,
             [FromServices] WibDbContext db,
             [FromServices] ICurrentMemberAccessor currentMemberAccessor,
             CancellationToken cancellationToken) =>
@@ -32,19 +32,12 @@ public static class VoucherEndpoints
                 .AsNoTracking()
                 .Where(v => v.OwnedByMemberId == member.Id);
 
-            if (!string.IsNullOrWhiteSpace(status))
+            var filter = isRedeemed ?? redeemed;
+            if (filter.HasValue)
             {
-                if (Enum.TryParse<VoucherStatus>(status, ignoreCase: true, out var parsedStatus))
-                {
-                    query = query.Where(v => v.Status == parsedStatus);
-                }
-                else
-                {
-                    return Results.ValidationProblem(new Dictionary<string, string[]>
-                    {
-                        ["status"] = ["Status must be either 'Available' or 'Redeemed'."]
-                    });
-                }
+                query = filter.Value
+                    ? query.Where(v => v.RedeemedAt != null)
+                    : query.Where(v => v.RedeemedAt == null);
             }
 
             var vouchers = await query
@@ -80,7 +73,7 @@ public static class VoucherEndpoints
                 return Results.Forbid();
             }
 
-            if (voucher.Status == VoucherStatus.Redeemed)
+            if (voucher.IsRedeemed)
             {
                 return Results.BadRequest(new ProblemDetails
                 {

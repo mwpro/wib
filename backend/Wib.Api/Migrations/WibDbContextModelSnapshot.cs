@@ -131,7 +131,6 @@ namespace Wib.Api.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.Property<int>("WalletBalance")
-                        .IsConcurrencyToken()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
@@ -168,6 +167,9 @@ namespace Wib.Api.Migrations
                         .HasDefaultValue(true);
 
                     b.Property<int>("PointCost")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Quantity")
                         .HasColumnType("int");
 
                     b.Property<string>("Title")
@@ -231,11 +233,6 @@ namespace Wib.Api.Migrations
 
                     b.Property<int>("RewardItemId")
                         .HasColumnType("int");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("TitleSnapshot")
                         .IsRequired()
@@ -303,7 +300,7 @@ namespace Wib.Api.Migrations
             modelBuilder.Entity("Wib.Api.Data.Entities.Voucher", b =>
                 {
                     b.HasOne("Wib.Api.Data.Entities.Member", "OwnedByMember")
-                        .WithMany()
+                        .WithMany("Vouchers")
                         .HasForeignKey("OwnedByMemberId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -324,6 +321,11 @@ namespace Wib.Api.Migrations
                     b.Navigation("ChoreTags");
 
                     b.Navigation("Completions");
+                });
+
+            modelBuilder.Entity("Wib.Api.Data.Entities.Member", b =>
+                {
+                    b.Navigation("Vouchers");
                 });
 
             modelBuilder.Entity("Wib.Api.Data.Entities.Tag", b =>
