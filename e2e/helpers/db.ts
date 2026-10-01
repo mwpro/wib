@@ -42,9 +42,23 @@ export async function resetTestUser(externalSubjectId = 'auth0|test-user-1') {
     )
     if (rows && rows.length > 0) {
       const memberId = rows[0].Id
+      await conn.query('DELETE FROM vouchers WHERE OwnedByMemberId = ?', [memberId])
       await conn.query('DELETE FROM chore_completions WHERE CompletedByMemberId = ?', [memberId])
       await conn.query('UPDATE members SET WalletBalance = 0 WHERE Id = ?', [memberId])
     }
+  } finally {
+    await conn.end()
+  }
+}
+
+export async function setWalletBalance(externalSubjectId: string, balance: number) {
+  const config = getDbConfig()
+  const conn = await mysql.createConnection(config)
+  try {
+    await conn.query(
+      'UPDATE members SET WalletBalance = ? WHERE ExternalSubjectId = ?',
+      [balance, externalSubjectId]
+    )
   } finally {
     await conn.end()
   }
@@ -97,3 +111,21 @@ export async function cleanupTestChores(prefix = 'E2E_') {
     await conn.end()
   }
 }
+
+export async function cleanupTestRewards(prefix = 'TEST_REWARD_') {
+  const config = getDbConfig()
+  const conn = await mysql.createConnection(config)
+  try {
+    const pattern = `%${prefix}%`
+    await conn.query(
+      `DELETE v FROM vouchers v
+       INNER JOIN reward_items r ON v.RewardItemId = r.Id
+       WHERE r.Title LIKE ?`,
+      [pattern]
+    )
+    await conn.query('DELETE FROM reward_items WHERE Title LIKE ?', [pattern])
+  } finally {
+    await conn.end()
+  }
+}
+

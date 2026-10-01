@@ -40,10 +40,13 @@ public static class VoucherEndpoints
 
             var vouchers = await query
                 .OrderByDescending(v => v.PurchasedAt)
-                .Select(v => VoucherResponse.Create(v))
                 .ToListAsync(cancellationToken);
 
-            return Results.Ok(vouchers);
+            var responseList = vouchers
+                .Select(v => VoucherResponse.Create(v))
+                .ToList();
+
+            return Results.Ok(responseList);
         })
         .WithName("GetMyVouchers");
 
