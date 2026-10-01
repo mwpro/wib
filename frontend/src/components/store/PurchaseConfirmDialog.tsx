@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import { Coins } from 'lucide-react'
+import { Coins, AlertCircle } from 'lucide-react'
 import type { RewardItemResponse } from '../../types/store'
 
 interface PurchaseConfirmDialogProps {
@@ -8,6 +8,7 @@ interface PurchaseConfirmDialogProps {
   onClose: () => void
   onConfirm: () => Promise<void> | void
   isPurchasing?: boolean
+  error?: string | null
 }
 
 export function PurchaseConfirmDialog({
@@ -16,6 +17,7 @@ export function PurchaseConfirmDialog({
   onClose,
   onConfirm,
   isPurchasing = false,
+  error = null,
 }: PurchaseConfirmDialogProps) {
   if (!isOpen || !reward) return null
 
@@ -43,6 +45,13 @@ export function PurchaseConfirmDialog({
               ? Punkty zostaną pobrane z Twojego portfela.
             </Dialog.Description>
           </div>
+
+          {error && (
+            <div className="mt-4 p-3 text-xs rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-900 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 mt-px" />
+              <span>{error}</span>
+            </div>
+          )}
 
           <div className="flex items-center justify-end gap-2.5 mt-6">
             <button
