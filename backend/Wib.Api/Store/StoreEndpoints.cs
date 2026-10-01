@@ -25,10 +25,13 @@ public static class StoreEndpoints
                 .AsNoTracking()
                 .Where(r => r.IsActive)
                 .OrderBy(r => r.Title)
-                .Select(r => RewardItemResponse.Create(r))
                 .ToListAsync(cancellationToken);
 
-            return Results.Ok(items);
+            var responseList = items
+                .Select(r => RewardItemResponse.Create(r))
+                .ToList();
+
+            return Results.Ok(responseList);
         })
         .WithName("GetStoreItems");
 
@@ -120,8 +123,6 @@ public static class StoreEndpoints
                 return Results.Unauthorized();
             }
 
-            await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
-
             var item = await db.RewardItems.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
             if (item == null)
             {
@@ -150,7 +151,6 @@ public static class StoreEndpoints
             var voucher = item.Purchase(member, nowUtc);
 
             await db.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
 
             var response = new BuyRewardResponse(VoucherResponse.Create(voucher), member.WalletBalance);
             return Results.Created($"/api/vouchers/{voucher.Id}", response);
