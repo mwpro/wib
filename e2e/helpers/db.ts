@@ -64,6 +64,44 @@ export async function setWalletBalance(externalSubjectId: string, balance: numbe
   }
 }
 
+export async function seedTestUserWithBalance({
+  externalSubjectId,
+  name,
+  walletBalance = 50,
+}: {
+  externalSubjectId: string
+  name: string
+  walletBalance?: number
+}) {
+  const config = getDbConfig()
+  const conn = await mysql.createConnection(config)
+  try {
+    const [rows] = await conn.query<any[]>(
+      'SELECT Id FROM members WHERE ExternalSubjectId = ?',
+      [externalSubjectId]
+    )
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
+    if (rows && rows.length > 0) {
+      const memberId = rows[0].Id
+      await conn.query('DELETE FROM vouchers WHERE OwnedByMemberId = ?', [memberId])
+      await conn.query('DELETE FROM chore_completions WHERE CompletedByMemberId = ?', [memberId])
+      await conn.query(
+        'UPDATE members SET WalletBalance = ?, Name = ?, UpdatedAt = ? WHERE Id = ?',
+        [walletBalance, name, now, memberId]
+      )
+      return memberId
+    } else {
+      const [result] = await conn.query<any>(
+        'INSERT INTO members (ExternalSubjectId, Name, WalletBalance, CreatedAt) VALUES (?, ?, ?, ?)',
+        [externalSubjectId, name, walletBalance, now]
+      )
+      return result.insertId
+    }
+  } finally {
+    await conn.end()
+  }
+}
+
 export async function seedOverdueChore({
   title,
   cadenceDays = 14,
