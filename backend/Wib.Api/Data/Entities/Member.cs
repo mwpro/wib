@@ -11,6 +11,9 @@ public class Member
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
 
+    private readonly List<Voucher> _vouchers = [];
+    public IReadOnlyCollection<Voucher> Vouchers => _vouchers.AsReadOnly();
+
     public static Member Create(string externalSubjectId, string name, DateTime nowUtc)
     {
         return new Member
@@ -36,6 +39,22 @@ public class Member
 
     public void CreditWallet(int amount)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(amount, 1);
         WalletBalance += amount;
+    }
+
+    public bool TryDebitWallet(int amount)
+    {
+        if (amount <= 0 || WalletBalance < amount)
+            return false;
+
+        WalletBalance -= amount;
+        return true;
+    }
+
+    public void AddVoucher(Voucher voucher)
+    {
+        ArgumentNullException.ThrowIfNull(voucher);
+        _vouchers.Add(voucher);
     }
 }

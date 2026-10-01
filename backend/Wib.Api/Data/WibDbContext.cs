@@ -14,6 +14,8 @@ public class WibDbContext : DbContext
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<ChoreTag> ChoreTags => Set<ChoreTag>();
     public DbSet<ChoreCompletion> ChoreCompletions => Set<ChoreCompletion>();
+    public DbSet<RewardItem> RewardItems => Set<RewardItem>();
+    public DbSet<Voucher> Vouchers => Set<Voucher>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,6 +31,10 @@ public class WibDbContext : DbContext
             entity.Property(m => m.WalletBalance).HasDefaultValue(0);
             entity.Property(m => m.CreatedAt).IsRequired();
             entity.Property(m => m.UpdatedAt);
+            entity.HasMany(m => m.Vouchers)
+                .WithOne(v => v.OwnedByMember)
+                .HasForeignKey(v => v.OwnedByMemberId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Chore>(entity =>
@@ -81,6 +87,41 @@ public class WibDbContext : DbContext
             entity.HasOne(cc => cc.CompletedByMember)
                 .WithMany()
                 .HasForeignKey(cc => cc.CompletedByMemberId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RewardItem>(entity =>
+        {
+            entity.ToTable("reward_items");
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.Title).IsRequired().HasMaxLength(255);
+            entity.Property(r => r.Description).HasMaxLength(2000);
+            entity.Property(r => r.PointCost).IsRequired();
+            entity.Property(r => r.Quantity);
+            entity.Property(r => r.IsActive).HasDefaultValue(true);
+            entity.Property(r => r.CreatedAt).IsRequired();
+            entity.Property(r => r.UpdatedAt);
+            entity.HasOne(r => r.CreatedByMember)
+                .WithMany()
+                .HasForeignKey(r => r.CreatedByMemberId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Voucher>(entity =>
+        {
+            entity.ToTable("vouchers");
+            entity.HasKey(v => v.Id);
+            entity.Property(v => v.TitleSnapshot).IsRequired().HasMaxLength(255);
+            entity.Property(v => v.PointCostSnapshot).IsRequired();
+            entity.Property(v => v.PurchasedAt).IsRequired();
+            entity.Property(v => v.RedeemedAt);
+            entity.HasOne(v => v.RewardItem)
+                .WithMany()
+                .HasForeignKey(v => v.RewardItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(v => v.OwnedByMember)
+                .WithMany(m => m.Vouchers)
+                .HasForeignKey(v => v.OwnedByMemberId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

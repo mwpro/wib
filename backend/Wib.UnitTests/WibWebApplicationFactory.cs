@@ -41,6 +41,7 @@ public class WibWebApplicationFactory : WebApplicationFactory<Program>
             services.AddDbContext<WibDbContext>(options =>
             {
                 options.UseInMemoryDatabase(_databaseName)
+                       .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
                        .UseInternalServiceProvider(inMemoryProvider);
             });
             services.AddScoped<IDatabaseMigrator, DatabaseMigrator>();
