@@ -69,7 +69,7 @@ export function ChoreFilters({
                 }`}
               >
                 <TagIcon className="h-2.5 w-2.5" />
-                <span>#{tag}</span>
+                <span>{tag}</span>
               </button>
             )
           })}

@@ -76,7 +76,7 @@ function InnerChoreForm({
   }
 
   const handleAddNewTag = () => {
-    const trimmed = newTagInput.trim().toLowerCase().replace(/^#/, '')
+    const trimmed = newTagInput.trim().toLowerCase()
     if (!trimmed) return
     if (!selectedTags.includes(trimmed)) {
       setSelectedTags((prev) => [...prev, trimmed])
@@ -249,7 +249,7 @@ function InnerChoreForm({
                       : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 font-medium'
                   }`}
                 >
-                  #{tag}
+                  {tag}
                 </button>
               )
             })}
@@ -291,7 +291,7 @@ function InnerChoreForm({
                 key={tag}
                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100/60 dark:bg-amber-950/60 text-amber-950 dark:text-amber-200 border border-amber-300/60 dark:border-amber-800/60"
               >
-                #{tag}
+                {tag}
                 <button
                   type="button"
                   onClick={() => handleToggleTag(tag)}

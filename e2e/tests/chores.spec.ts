@@ -57,7 +57,7 @@ test.describe.serial('Chores Backlog UI Tests', () => {
     await expect(choreCard).toBeVisible()
     await expect(choreCard.getByText('Świeże')).toBeVisible()
     await expect(choreCard.getByText('co 30 dni')).toBeVisible()
-    await expect(choreCard.getByText('#dom')).toBeVisible()
+    await expect(choreCard.getByText('dom', { exact: true })).toBeVisible()
 
     // 4. Tap "Zrobione!"
     const completeButton = choreCard.getByRole('button', { name: /Zrobione!/i })
@@ -258,22 +258,22 @@ test.describe.serial('Chores Backlog UI Tests', () => {
 
     // 3. Verify tag pills appear in filter bar
     const filterBar = page.locator('[data-testid="chore-filters"]')
-    const kitchenTagBtn = filterBar.getByRole('button', { name: '#kuchnia' })
-    const gardenTagBtn = filterBar.getByRole('button', { name: '#ogrod' })
+    const kitchenTagBtn = filterBar.getByRole('button', { name: 'kuchnia', exact: true })
+    const gardenTagBtn = filterBar.getByRole('button', { name: 'ogrod', exact: true })
     await expect(kitchenTagBtn).toBeVisible()
     await expect(gardenTagBtn).toBeVisible()
 
-    // 4. Click '#kuchnia' filter
+    // 4. Click 'kuchnia' filter
     await kitchenTagBtn.click()
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleKitchen })).toBeVisible()
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleGarden })).toHaveCount(0)
 
-    // 5. Click '#ogrod' filter (multi-tag OR)
+    // 5. Click 'ogrod' filter (multi-tag OR)
     await gardenTagBtn.click()
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleKitchen })).toBeVisible()
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleGarden })).toBeVisible()
 
-    // 6. Click '#kuchnia' again to toggle it off -> only garden chore matches
+    // 6. Click 'kuchnia' again to toggle it off -> only garden chore matches
     await kitchenTagBtn.click()
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleKitchen })).toHaveCount(0)
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleGarden })).toBeVisible()
