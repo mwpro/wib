@@ -16,7 +16,6 @@ builder.Configuration.AddJsonFile("/run/secrets/appsettings.secret.json", option
 // Add services to the container.
 builder.Services.Configure<JwtAuthOptions>(builder.Configuration.GetSection(JwtAuthOptions.SectionName));
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddSingleton<IFreshnessCalculator, FreshnessCalculator>();
 builder.Services.AddSingleton<IScoreboardCalculator, ScoreboardCalculator>();
 builder.Services.AddWibAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();

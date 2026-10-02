@@ -19,8 +19,9 @@ public record ChoreResponse(
     DateTime? UpdatedAt
 )
 {
-    public static ChoreResponse Create(Chore chore, FreshnessResult freshness)
+    public static ChoreResponse Create(Chore chore, DateTime nowUtc)
     {
+        var freshness = chore.GetFreshness(nowUtc);
         var tagNames = chore.ChoreTags
             .Select(ct => ct.Tag.Name)
             .OrderBy(t => t)

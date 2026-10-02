@@ -1,27 +1,22 @@
 using FluentAssertions;
 using Wib.Api.Chores;
+using Wib.Api.Data.Entities;
 
 namespace Wib.UnitTests.Chores;
 
-public class FreshnessCalculatorTests
+public class ChoreFreshnessTests
 {
-    private readonly DateTimeOffset _fixedNowUtc = new(2026, 6, 15, 12, 0, 0, TimeSpan.Zero); // Warsaw is UTC+2 (14:00)
-
-    private FreshnessCalculator CreateCalculator(DateTimeOffset? nowUtc = null)
-    {
-        var fakeTimeProvider = new FakeTimeProvider(nowUtc ?? _fixedNowUtc);
-        return new FreshnessCalculator(fakeTimeProvider);
-    }
+    private readonly DateTime _fixedNowUtc = new(2026, 6, 15, 12, 0, 0, DateTimeKind.Utc); // Warsaw is UTC+2 (14:00)
 
     [Fact]
-    public void Calculate_WhenCadenceDaysIsNull_ShouldReturnUnscheduled()
+    public void GetFreshness_WhenCadenceDaysIsNull_ShouldReturnUnscheduled()
     {
         // Arrange
-        var calculator = CreateCalculator();
-        var createdAt = _fixedNowUtc.UtcDateTime.AddDays(-10);
+        var createdAt = _fixedNowUtc.AddDays(-10);
+        var chore = Chore.Create("Test", null, 1, null, createdAt);
 
         // Act
-        var result = calculator.Calculate(lastCompletedAtUtc: null, createdAtUtc: createdAt, cadenceDays: null);
+        var result = chore.GetFreshness(_fixedNowUtc);
 
         // Assert
         result.Urgency.Should().Be(FreshnessUrgency.Unscheduled);
@@ -30,15 +25,16 @@ public class FreshnessCalculatorTests
     }
 
     [Fact]
-    public void Calculate_WhenCadenceDaysIsZeroOrNegative_ShouldReturnUnscheduled()
+    public void GetFreshness_WhenCadenceDaysIsZeroOrNegative_ShouldReturnUnscheduled()
     {
         // Arrange
-        var calculator = CreateCalculator();
-        var createdAt = _fixedNowUtc.UtcDateTime.AddDays(-5);
+        var createdAt = _fixedNowUtc.AddDays(-5);
+        var choreZero = Chore.Create("Test Zero", null, 1, 0, createdAt);
+        var choreNegative = Chore.Create("Test Negative", null, 1, -2, createdAt);
 
         // Act
-        var resultZero = calculator.Calculate(null, createdAt, 0);
-        var resultNegative = calculator.Calculate(null, createdAt, -2);
+        var resultZero = choreZero.GetFreshness(_fixedNowUtc);
+        var resultNegative = choreNegative.GetFreshness(_fixedNowUtc);
 
         // Assert
         resultZero.Urgency.Should().Be(FreshnessUrgency.Unscheduled);
@@ -48,14 +44,14 @@ public class FreshnessCalculatorTests
     }
 
     [Fact]
-    public void Calculate_WhenLastCompletedAtIsNull_ShouldUseCreatedAtAsReference()
+    public void GetFreshness_WhenLastCompletedAtIsNull_ShouldUseCreatedAtAsReference()
     {
         // Arrange: created 2 days ago in Warsaw time, cadence 10 days -> 2/10 = 0.20 (Fresh)
-        var calculator = CreateCalculator();
-        var createdAt = _fixedNowUtc.UtcDateTime.AddDays(-2);
+        var createdAt = _fixedNowUtc.AddDays(-2);
+        var chore = Chore.Create("Test", null, 1, 10, createdAt);
 
         // Act
-        var result = calculator.Calculate(lastCompletedAtUtc: null, createdAtUtc: createdAt, cadenceDays: 10);
+        var result = chore.GetFreshness(_fixedNowUtc);
 
         // Assert
         result.DaysSinceLastDone.Should().Be(2);
@@ -75,18 +71,19 @@ public class FreshnessCalculatorTests
     [InlineData(129, 100, 1.29, FreshnessUrgency.Overdue)]// 129% -> Overdue
     [InlineData(13, 10, 1.3, FreshnessUrgency.Neglected)] // 130% -> Neglected
     [InlineData(25, 10, 2.5, FreshnessUrgency.Neglected)] // 250% -> Neglected
-    public void Calculate_ShouldMapUrgencyThresholdsCorrectly(
+    public void GetFreshness_ShouldMapUrgencyThresholdsCorrectly(
         int daysAgo,
         int cadenceDays,
         double expectedRatio,
         FreshnessUrgency expectedUrgency)
     {
         // Arrange
-        var calculator = CreateCalculator();
-        var completedAt = _fixedNowUtc.UtcDateTime.AddDays(-daysAgo);
+        var chore = Chore.Create("Test", null, 1, cadenceDays, _fixedNowUtc.AddDays(-100));
+        var member = Member.Create("auth0|tester", "Tester", _fixedNowUtc.AddDays(-100));
+        chore.Complete(member, _fixedNowUtc.AddDays(-daysAgo));
 
         // Act
-        var result = calculator.Calculate(completedAt, _fixedNowUtc.UtcDateTime.AddDays(-100), cadenceDays);
+        var result = chore.GetFreshness(_fixedNowUtc);
 
         // Assert
         result.DaysSinceLastDone.Should().Be(daysAgo);
@@ -95,7 +92,7 @@ public class FreshnessCalculatorTests
     }
 
     [Fact]
-    public void Calculate_CrossingWarsawMidnight_ShouldCountAsNewCalendarDay()
+    public void GetFreshness_CrossingWarsawMidnight_ShouldCountAsNewCalendarDay()
     {
         // Warsaw is UTC+2 on 2026-06-15.
         // Completed at 23:30 Warsaw time on 2026-06-15 (which is 21:30 UTC on 2026-06-15).
@@ -103,12 +100,14 @@ public class FreshnessCalculatorTests
 
         // Current time: 00:30 Warsaw time on 2026-06-16 (which is 22:30 UTC on 2026-06-15).
         // Only 1 hour elapsed in physical time, but calendar date in Warsaw rolled from June 15 to June 16.
-        var nowUtc = new DateTimeOffset(2026, 6, 15, 22, 30, 0, TimeSpan.Zero);
+        var nowUtc = new DateTime(2026, 6, 15, 22, 30, 0, DateTimeKind.Utc);
 
-        var calculator = CreateCalculator(nowUtc);
+        var chore = Chore.Create("Test", null, 1, 1, completedAtUtc.AddDays(-5));
+        var member = Member.Create("auth0|tester", "Tester", completedAtUtc.AddDays(-5));
+        chore.Complete(member, completedAtUtc);
 
         // Act: 1 calendar day elapsed, cadence 1 day -> ratio 1.0 (100% Overdue)
-        var result = calculator.Calculate(completedAtUtc, completedAtUtc.AddDays(-5), cadenceDays: 1);
+        var result = chore.GetFreshness(nowUtc);
 
         // Assert
         result.DaysSinceLastDone.Should().Be(1);
@@ -117,14 +116,15 @@ public class FreshnessCalculatorTests
     }
 
     [Fact]
-    public void Calculate_WhenReferenceDateIsInFuture_ShouldClampToZeroDays()
+    public void GetFreshness_WhenReferenceDateIsInFuture_ShouldClampToZeroDays()
     {
         // Arrange: reference time is tomorrow (clock skew)
-        var calculator = CreateCalculator();
-        var completedAt = _fixedNowUtc.UtcDateTime.AddDays(1);
+        var chore = Chore.Create("Test", null, 1, 5, _fixedNowUtc);
+        var member = Member.Create("auth0|tester", "Tester", _fixedNowUtc);
+        chore.Complete(member, _fixedNowUtc.AddDays(1));
 
         // Act
-        var result = calculator.Calculate(completedAt, _fixedNowUtc.UtcDateTime, cadenceDays: 5);
+        var result = chore.GetFreshness(_fixedNowUtc);
 
         // Assert
         result.DaysSinceLastDone.Should().Be(0);

@@ -1,3 +1,6 @@
+using Wib.Api.Chores;
+using Wib.Api.Common;
+
 namespace Wib.Api.Data.Entities;
 
 public class Chore
@@ -64,5 +67,27 @@ public class Chore
         {
             _choreTags.Add(new ChoreTag { Chore = this, Tag = tag });
         }
+    }
+
+    public FreshnessResult GetFreshness(DateTime nowUtc)
+    {
+        if (!CadenceDays.HasValue || CadenceDays.Value <= 0)
+        {
+            return new FreshnessResult(FreshnessUrgency.Unscheduled, null, null);
+        }
+
+        var referenceUtc = LastCompletedAt ?? CreatedAt;
+        var daysElapsed = WarsawTimeZone.GetDaysElapsed(referenceUtc, nowUtc);
+        var ratio = (double)daysElapsed / CadenceDays.Value;
+
+        var urgency = ratio switch
+        {
+            < 0.80 => FreshnessUrgency.Fresh,
+            < 1.00 => FreshnessUrgency.DueSoon,
+            < 1.30 => FreshnessUrgency.Overdue,
+            _ => FreshnessUrgency.Neglected
+        };
+
+        return new FreshnessResult(urgency, ratio, daysElapsed);
     }
 }
