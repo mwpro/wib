@@ -19,7 +19,6 @@ import {
 import { ChoreCard } from '../chores/ChoreCard'
 import { ChoreFilters } from '../chores/ChoreFilters'
 import { ChoreFormModal, type InitialChoreValues } from '../chores/ChoreFormModal'
-import { QuickAddChore } from '../chores/QuickAddChore'
 import { DeleteChoreDialog } from '../chores/DeleteChoreDialog'
 import type { ChoreResponse, CreateChoreRequest, UpdateChoreRequest } from '../../types/chore'
 
@@ -215,16 +214,6 @@ export function ChoresTab() {
               onClearTags={handleClearTags}
             />
           )}
-
-          {/* Quick Add Chore Form (Always on top of the list) */}
-          <QuickAddChore
-            onAdd={async (data) => {
-              await createMutation.mutateAsync(data)
-            }}
-            isAdding={createMutation.isPending}
-            availableTags={availableTags}
-            onOpenFullModal={(values) => handleOpenAdd(values)}
-          />
 
           {/* Empty state: No chores at all in household */}
           {chores.length === 0 && (
