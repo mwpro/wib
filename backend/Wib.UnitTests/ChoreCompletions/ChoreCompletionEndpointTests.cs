@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Wib.Api.ChoreCompletions;
-using Wib.Api.Data.Entities;
+using Wib.Domain.Chores;
 
 namespace Wib.UnitTests.ChoreCompletions;
 

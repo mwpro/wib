@@ -4,7 +4,8 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Wib.Api.Chores;
-using Wib.Api.Data.Entities;
+using Wib.Domain.Chores;
+using Wib.Domain.Members;
 
 namespace Wib.UnitTests.Chores;
 
@@ -75,13 +76,12 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         await _factory.ExecuteDbContextAsync(async db =>
         {
             var entity = await db.Chores
-                .Include(c => c.ChoreTags)
-                .ThenInclude(ct => ct.Tag)
+                .Include(c => c.Tags)
                 .FirstOrDefaultAsync(c => c.Id == chore.Id);
 
             entity.Should().NotBeNull();
             entity.Title.Should().Be("Zmywanie naczyń");
-            entity.ChoreTags.Select(ct => ct.Tag.Name).Should().BeEquivalentTo(["kuchnia", "sprzątanie"]);
+            entity.Tags.Select(t => t.Name).Should().BeEquivalentTo(["kuchnia", "sprzątanie"]);
         });
     }
 

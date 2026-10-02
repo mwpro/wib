@@ -1,4 +1,4 @@
-namespace Wib.Api.Common;
+namespace Wib.Domain.Common;
 
 public static class WarsawTimeZone
 {
@@ -63,4 +63,3 @@ public static class WarsawTimeZone
 }
 
 public readonly record struct MonthlyPeriod(int Year, int Month, DateTime StartUtc, DateTime EndUtc);
-

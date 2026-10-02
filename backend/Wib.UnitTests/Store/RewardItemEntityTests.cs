@@ -1,5 +1,6 @@
 using FluentAssertions;
-using Wib.Api.Data.Entities;
+using Wib.Domain.Members;
+using Wib.Domain.Store;
 
 namespace Wib.UnitTests.Store;
 

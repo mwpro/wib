@@ -2,9 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
-using Wib.Api.Common;
-using Wib.Api.Data.Entities;
-using Wib.Api.Scoreboard;
+using Wib.Domain.Chores;
+using Wib.Domain.Common;
+using Wib.Domain.Scoreboard;
 
 namespace Wib.UnitTests.Scoreboard;
 

@@ -1,4 +1,7 @@
-namespace Wib.Api.Data.Entities;
+using Wib.Domain.Members;
+using Wib.Domain.Vouchers;
+
+namespace Wib.Domain.Store;
 
 public class RewardItem
 {

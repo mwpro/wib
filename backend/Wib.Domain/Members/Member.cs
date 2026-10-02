@@ -1,4 +1,6 @@
-namespace Wib.Api.Data.Entities;
+using Wib.Domain.Vouchers;
+
+namespace Wib.Domain.Members;
 
 public class Member
 {

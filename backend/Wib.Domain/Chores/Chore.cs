@@ -1,11 +1,11 @@
-using Wib.Api.Chores;
-using Wib.Api.Common;
+using Wib.Domain.Common;
+using Wib.Domain.Members;
 
-namespace Wib.Api.Data.Entities;
+namespace Wib.Domain.Chores;
 
 public class Chore
 {
-    private readonly List<ChoreTag> _choreTags = [];
+    private readonly List<Tag> _tags = [];
     private readonly List<ChoreCompletion> _completions = [];
 
     private Chore() { }
@@ -20,7 +20,7 @@ public class Chore
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
 
-    public IReadOnlyCollection<ChoreTag> ChoreTags => _choreTags.AsReadOnly();
+    public IReadOnlyCollection<Tag> Tags => _tags.AsReadOnly();
     public IReadOnlyCollection<ChoreCompletion> Completions => _completions.AsReadOnly();
 
     public static Chore Create(string title, string? description, int points, int? cadenceDays, DateTime nowUtc)
@@ -62,11 +62,8 @@ public class Chore
 
     public void SetTags(IReadOnlyList<Tag> tags)
     {
-        _choreTags.Clear();
-        foreach (var tag in tags)
-        {
-            _choreTags.Add(new ChoreTag { Chore = this, Tag = tag });
-        }
+        _tags.Clear();
+        _tags.AddRange(tags);
     }
 
     public FreshnessResult GetFreshness(DateTime nowUtc)

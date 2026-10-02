@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Wib.Api.Common;
 using Wib.Api.Data;
+using Wib.Domain.Common;
+using Wib.Domain.Scoreboard;
 
 namespace Wib.Api.Scoreboard;
 

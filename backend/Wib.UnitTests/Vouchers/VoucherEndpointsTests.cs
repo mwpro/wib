@@ -3,9 +3,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Wib.Api.Data.Entities;
 using Wib.Api.Store;
 using Wib.Api.Vouchers;
+using Wib.Domain.Members;
 
 namespace Wib.UnitTests.Vouchers;
 

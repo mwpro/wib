@@ -8,6 +8,7 @@ using Wib.Api.Scoreboard;
 using Wib.Api.ChoreCompletions;
 using Wib.Api.Store;
 using Wib.Api.Vouchers;
+using Wib.Domain.Scoreboard;
 
 var builder = WebApplication.CreateBuilder(args);
 

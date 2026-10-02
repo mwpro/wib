@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Wib.Api.Common;
 using Wib.Api.Data;
+using Wib.Domain.Common;
 
 namespace Wib.Api.ChoreCompletions;
 

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Wib.Api.Auth;
 using Wib.Api.Common;
 using Wib.Api.Data;
-using Wib.Api.Data.Entities;
+using Wib.Domain.Chores;
 
 namespace Wib.Api.Chores;
 
@@ -24,14 +24,13 @@ public static class ChoreEndpoints
         {
             var query = db.Chores
                 .Where(c => !c.IsArchived)
-                .Include(c => c.ChoreTags)
-                .ThenInclude(ct => ct.Tag)
+                .Include(c => c.Tags)
                 .AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(tag))
             {
                 var normalizedTag = Tag.NormalizeName(tag);
-                query = query.Where(c => c.ChoreTags.Any(ct => ct.Tag.Name == normalizedTag));
+                query = query.Where(c => c.Tags.Any(t => t.Name == normalizedTag));
             }
 
             var chores = await query.ToListAsync(cancellationToken);
@@ -78,8 +77,7 @@ public static class ChoreEndpoints
             CancellationToken cancellationToken) =>
         {
             var chore = await db.Chores
-                .Include(c => c.ChoreTags)
-                .ThenInclude(ct => ct.Tag)
+                .Include(c => c.Tags)
                 .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
             if (chore == null || chore.IsArchived)
@@ -135,8 +133,7 @@ public static class ChoreEndpoints
             }
 
             var chore = await db.Chores
-                .Include(c => c.ChoreTags)
-                .ThenInclude(ct => ct.Tag)
+                .Include(c => c.Tags)
                 .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
             if (chore == null || chore.IsArchived)

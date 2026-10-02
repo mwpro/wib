@@ -1,4 +1,6 @@
-namespace Wib.Api.Data.Entities;
+using Wib.Domain.Members;
+
+namespace Wib.Domain.Chores;
 
 public class ChoreCompletion
 {

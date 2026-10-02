@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Wib.Api.Data;
-using Wib.Api.Data.Entities;
+using Wib.Domain.Members;
 
 namespace Wib.Api.Auth;
 

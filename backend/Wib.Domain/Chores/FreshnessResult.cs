@@ -1,4 +1,4 @@
-namespace Wib.Api.Chores;
+namespace Wib.Domain.Chores;
 
 public record FreshnessResult(
     FreshnessUrgency Urgency,

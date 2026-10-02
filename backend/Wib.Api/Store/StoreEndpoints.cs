@@ -3,8 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Wib.Api.Auth;
 using Wib.Api.Common;
 using Wib.Api.Data;
-using Wib.Api.Data.Entities;
 using Wib.Api.Vouchers;
+using Wib.Domain.Store;
 
 namespace Wib.Api.Store;
 
