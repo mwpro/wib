@@ -1,4 +1,5 @@
-import { Search, X, Tag as TagIcon } from 'lucide-react'
+import { Search, X } from 'lucide-react'
+import { TagChip } from './TagChip'
 
 interface ChoreFiltersProps {
   searchQuery: string
@@ -55,24 +56,14 @@ export function ChoreFilters({
           >
             Wszystkie
           </button>
-          {availableTags.map((tag) => {
-            const isSelected = selectedTags.includes(tag)
-            return (
-              <button
-                type="button"
-                key={tag}
-                onClick={() => onToggleTag(tag)}
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] transition whitespace-nowrap cursor-pointer ${
-                  isSelected
-                    ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-950 dark:text-amber-300 border border-amber-300 font-bold shadow-xs'
-                    : 'bg-stone-100/90 dark:bg-stone-800/80 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700 font-medium'
-                }`}
-              >
-                <TagIcon className="h-2.5 w-2.5" />
-                <span>{tag}</span>
-              </button>
-            )
-          })}
+          {availableTags.map((tag) => (
+            <TagChip
+              key={tag}
+              tag={tag}
+              isSelected={selectedTags.includes(tag)}
+              onClick={() => onToggleTag(tag)}
+            />
+          ))}
         </div>
       )}
     </div>
