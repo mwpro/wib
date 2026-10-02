@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, Plus, Calendar, CheckSquare } from 'lucide-react'
+import { TagChip } from './TagChip'
 import type { ChoreResponse, CreateChoreRequest, UpdateChoreRequest } from '../../types/chore'
 
 export interface InitialChoreValues {
@@ -20,11 +21,9 @@ interface ChoreFormModalProps {
 
 const CADENCE_PRESETS = [
   { label: 'Codziennie', days: 1 },
-  { label: 'Co 3 dni', days: 3 },
   { label: 'Co tydzień', days: 7 },
-  { label: 'Co 2 tyg.', days: 14 },
   { label: 'Co miesiąc', days: 30 },
-  { label: 'Co 2 mies.', days: 60 },
+  { label: 'Co 3 mies.', days: 90 },
   { label: 'Co pół roku', days: 180 },
   { label: 'Co rok', days: 365 },
 ]
@@ -78,7 +77,7 @@ function InnerChoreForm({
   }
 
   const handleAddNewTag = () => {
-    const trimmed = newTagInput.trim().toLowerCase().replace(/^#/, '')
+    const trimmed = newTagInput.trim().toLowerCase()
     if (!trimmed) return
     if (!selectedTags.includes(trimmed)) {
       setSelectedTags((prev) => [...prev, trimmed])
@@ -238,23 +237,14 @@ function InnerChoreForm({
         {/* Existing tags to toggle */}
         {existingTags.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap">
-            {existingTags.map((tag) => {
-              const isSelected = selectedTags.includes(tag)
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => handleToggleTag(tag)}
-                  className={`px-2.5 py-1 rounded-lg text-xs transition cursor-pointer ${
-                    isSelected
-                      ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-950 dark:text-amber-300 border border-amber-300 font-bold shadow-xs'
-                      : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 font-medium'
-                  }`}
-                >
-                  #{tag}
-                </button>
-              )
-            })}
+            {existingTags.map((tag) => (
+              <TagChip
+                key={tag}
+                tag={tag}
+                isSelected={selectedTags.includes(tag)}
+                onClick={() => handleToggleTag(tag)}
+              />
+            ))}
           </div>
         )}
 
@@ -289,19 +279,12 @@ function InnerChoreForm({
           <div className="flex items-center gap-1.5 flex-wrap mt-1">
             <span className="text-xs text-stone-400 font-medium">Wybrane:</span>
             {selectedTags.map((tag) => (
-              <span
+              <TagChip
                 key={tag}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100/60 dark:bg-amber-950/60 text-amber-950 dark:text-amber-200 border border-amber-300/60 dark:border-amber-800/60"
-              >
-                #{tag}
-                <button
-                  type="button"
-                  onClick={() => handleToggleTag(tag)}
-                  className="hover:text-rose-500 cursor-pointer ml-0.5"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
+                tag={tag}
+                isSelected
+                onRemove={() => handleToggleTag(tag)}
+              />
             ))}
           </div>
         )}

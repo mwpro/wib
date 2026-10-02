@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Check, Clock, ChevronDown, Edit2, Trash2 } from 'lucide-react'
 import { ChoreBadge } from './ChoreBadge'
+import { TagChip } from './TagChip'
 import type { ChoreResponse, FreshnessUrgency } from '../../types/chore'
 
 interface ChoreCardProps {
@@ -182,12 +183,7 @@ export function ChoreCard({
       {chore.tags && chore.tags.length > 0 && (
         <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
           {chore.tags.map((tag) => (
-            <span
-              key={tag}
-              className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-stone-100 dark:bg-stone-800/80 text-stone-600 dark:text-stone-300 border border-stone-200/60 dark:border-stone-700/60"
-            >
-              #{tag}
-            </span>
+            <TagChip key={tag} tag={tag} />
           ))}
         </div>
       )}

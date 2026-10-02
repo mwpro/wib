@@ -57,7 +57,7 @@ test.describe.serial('Chores Backlog UI Tests', () => {
     await expect(choreCard).toBeVisible()
     await expect(choreCard.getByText('Świeże')).toBeVisible()
     await expect(choreCard.getByText('co 30 dni')).toBeVisible()
-    await expect(choreCard.getByText('#dom')).toBeVisible()
+    await expect(choreCard.getByText('dom', { exact: true })).toBeVisible()
 
     // 4. Tap "Zrobione!"
     const completeButton = choreCard.getByRole('button', { name: /Zrobione!/i })
@@ -156,65 +156,6 @@ test.describe.serial('Chores Backlog UI Tests', () => {
     await expect(zadaniaTab).toBeVisible()
   })
 
-  test('creates chore quickly via condensed inline top form', async ({ page }) => {
-    await page.goto('/')
-
-    const quickChoreTitle = `E2E_Podlać kwiaty_${Date.now()}`
-    const quickAddForm = page.locator('[data-testid="quick-add-chore"]')
-    await expect(quickAddForm).toBeVisible()
-
-    const input = quickAddForm.getByPlaceholder(/Dodaj nowe zadanie/i)
-    await input.fill(quickChoreTitle)
-
-    // Click 'Co tydzień' preset
-    await quickAddForm.getByRole('button', { name: 'Co tydzień' }).click()
-
-    // Click 'Dodaj' button
-    await quickAddForm.getByRole('button', { name: 'Dodaj' }).click()
-
-    // Chore card should appear in the scheduled list
-    const choreCard = page.locator('[data-testid="chore-card"]', { hasText: quickChoreTitle })
-    await expect(choreCard).toBeVisible()
-    await expect(choreCard.getByText('Świeże')).toBeVisible()
-  })
-
-  test('flows all properties from quick add into modal when clicking Więcej', async ({ page }) => {
-    await page.goto('/')
-
-    const quickChoreTitle = `E2E_Odkurzanie salonu_${Date.now()}`
-    const quickAddForm = page.locator('[data-testid="quick-add-chore"]')
-    await expect(quickAddForm).toBeVisible()
-
-    const input = quickAddForm.getByPlaceholder(/Dodaj nowe zadanie/i)
-    await input.fill(quickChoreTitle)
-
-    // Select 'Co 2 tyg.' in quick add
-    await quickAddForm.getByRole('button', { name: 'Co 2 tyg.' }).click()
-
-    // Click 'Więcej'
-    await quickAddForm.getByRole('button', { name: /Więcej/i }).click()
-
-    // Modal should be open with title pre-filled
-    const modalTitleInput = page.locator('#chore-title')
-    await expect(modalTitleInput).toHaveValue(quickChoreTitle)
-
-    // The 'Co 2 tyg.' preset should be active in modal (amber active background)
-    const activePreset = page.getByRole('dialog').getByRole('button', { name: 'Co 2 tyg.' })
-    await expect(activePreset).toHaveClass(/bg-amber-500/)
-
-    // Submit modal
-    await page.getByRole('button', { name: /Utwórz zadanie/i }).click()
-
-    // Verify chore appears in backlog with 14 days cadence
-    const choreCard = page.locator('[data-testid="chore-card"]', { hasText: quickChoreTitle })
-    await expect(choreCard).toBeVisible()
-    await expect(choreCard.getByText('co 14 dni')).toBeVisible()
-
-    // Verify quick add form is reset
-    await expect(input).toHaveValue('')
-    await expect(quickAddForm.getByRole('button', { name: 'Co tydzień' })).toHaveClass(/border-amber-300/)
-  })
-
   test('edits an existing chore and deletes it with confirmation dialog', async ({ page }) => {
     await page.goto('/')
 
@@ -238,16 +179,16 @@ test.describe.serial('Chores Backlog UI Tests', () => {
     const titleInput = page.locator('#chore-title')
     await expect(titleInput).toHaveValue(initialTitle)
 
-    // 4. Update title and cadence to 'Co 2 tyg.' (14 days)
+    // 4. Update title and cadence to 'Co 3 mies.' (90 days)
     const updatedTitle = `E2E_Zmienione_${Date.now()}`
     await titleInput.fill(updatedTitle)
-    await page.getByRole('button', { name: 'Co 2 tyg.' }).click()
+    await page.getByRole('button', { name: 'Co 3 mies.' }).click()
     await page.getByRole('button', { name: /Zapisz zmiany/i }).click()
 
     // 5. Verify updated card appears with new title and cadence
     const updatedCard = page.locator('[data-testid="chore-card"]', { hasText: updatedTitle })
     await expect(updatedCard).toBeVisible()
-    await expect(updatedCard.getByText('co 14 dni')).toBeVisible()
+    await expect(updatedCard.getByText('co 90 dni')).toBeVisible()
     await expect(page.locator('[data-testid="chore-card"]', { hasText: initialTitle })).toHaveCount(0)
 
     // 6. Open dropdown menu -> click 'Usuń'
@@ -317,22 +258,22 @@ test.describe.serial('Chores Backlog UI Tests', () => {
 
     // 3. Verify tag pills appear in filter bar
     const filterBar = page.locator('[data-testid="chore-filters"]')
-    const kitchenTagBtn = filterBar.getByRole('button', { name: '#kuchnia' })
-    const gardenTagBtn = filterBar.getByRole('button', { name: '#ogrod' })
+    const kitchenTagBtn = filterBar.getByRole('button', { name: 'kuchnia', exact: true })
+    const gardenTagBtn = filterBar.getByRole('button', { name: 'ogrod', exact: true })
     await expect(kitchenTagBtn).toBeVisible()
     await expect(gardenTagBtn).toBeVisible()
 
-    // 4. Click '#kuchnia' filter
+    // 4. Click 'kuchnia' filter
     await kitchenTagBtn.click()
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleKitchen })).toBeVisible()
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleGarden })).toHaveCount(0)
 
-    // 5. Click '#ogrod' filter (multi-tag OR)
+    // 5. Click 'ogrod' filter (multi-tag OR)
     await gardenTagBtn.click()
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleKitchen })).toBeVisible()
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleGarden })).toBeVisible()
 
-    // 6. Click '#kuchnia' again to toggle it off -> only garden chore matches
+    // 6. Click 'kuchnia' again to toggle it off -> only garden chore matches
     await kitchenTagBtn.click()
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleKitchen })).toHaveCount(0)
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleGarden })).toBeVisible()

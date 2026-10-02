@@ -1,20 +1,22 @@
+import { useEffect } from 'react'
 import { useAuth } from './auth/useAuth'
 import { useCurrentMember } from './hooks/useCurrentMember'
 import { Header } from './components/layout/Header'
 import { LoadingScreen } from './components/layout/LoadingScreen'
-import { LoginScreen } from './components/auth/LoginScreen'
 import { MainTabs } from './components/tabs/MainTabs'
 
 export function App() {
   const { isAuthenticated, isLoading, login } = useAuth()
   const { currentMember } = useCurrentMember()
 
-  if (isLoading) {
-    return <LoadingScreen />
-  }
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      login()
+    }
+  }, [isLoading, isAuthenticated, login])
 
-  if (!isAuthenticated) {
-    return <LoginScreen onLogin={login} />
+  if (isLoading || !isAuthenticated) {
+    return <LoadingScreen />
   }
 
   return (

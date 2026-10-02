@@ -55,9 +55,9 @@ test.describe.serial('Scoreboard & Activity Stream UI Tests', () => {
     await page.goto('/')
 
     const choreTitleA = `SB_CHORE_A_${Date.now()}`
-    const quickAddFormA = page.locator('[data-testid="quick-add-chore"]')
-    await quickAddFormA.getByPlaceholder(/Dodaj nowe zadanie/i).fill(choreTitleA)
-    await quickAddFormA.getByRole('button', { name: 'Dodaj' }).click()
+    await page.getByRole('button', { name: /Dodaj zadanie/i }).first().click()
+    await page.locator('#chore-title').fill(choreTitleA)
+    await page.getByRole('button', { name: /Utwórz zadanie/i }).click()
 
     const choreCardA = page.locator('[data-testid="chore-card"]', { hasText: choreTitleA })
     await expect(choreCardA).toBeVisible()
@@ -81,9 +81,9 @@ test.describe.serial('Scoreboard & Activity Stream UI Tests', () => {
 
       // Tomek completes 2 chores to test asymmetric split (1 pkt vs 2 pkt => 33.3% vs 66.7%)
       const choreTitleB1 = `SB_CHORE_B1_${Date.now()}`
-      const quickAddFormB = pageB.locator('[data-testid="quick-add-chore"]')
-      await quickAddFormB.getByPlaceholder(/Dodaj nowe zadanie/i).fill(choreTitleB1)
-      await quickAddFormB.getByRole('button', { name: 'Dodaj' }).click()
+      await pageB.getByRole('button', { name: /Dodaj zadanie/i }).first().click()
+      await pageB.locator('#chore-title').fill(choreTitleB1)
+      await pageB.getByRole('button', { name: /Utwórz zadanie/i }).click()
 
       const choreCardB1 = pageB.locator('[data-testid="chore-card"]', { hasText: choreTitleB1 })
       await expect(choreCardB1).toBeVisible()
@@ -96,8 +96,9 @@ test.describe.serial('Scoreboard & Activity Stream UI Tests', () => {
       await expect(choreCardB1.getByRole('button', { name: /Ukończono/i })).toBeVisible()
 
       const choreTitleB2 = `SB_CHORE_B2_${Date.now()}`
-      await quickAddFormB.getByPlaceholder(/Dodaj nowe zadanie/i).fill(choreTitleB2)
-      await quickAddFormB.getByRole('button', { name: 'Dodaj' }).click()
+      await pageB.getByRole('button', { name: /Dodaj zadanie/i }).first().click()
+      await pageB.locator('#chore-title').fill(choreTitleB2)
+      await pageB.getByRole('button', { name: /Utwórz zadanie/i }).click()
 
       const choreCardB2 = pageB.locator('[data-testid="chore-card"]', { hasText: choreTitleB2 })
       await expect(choreCardB2).toBeVisible()
