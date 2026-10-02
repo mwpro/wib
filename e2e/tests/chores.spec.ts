@@ -179,16 +179,16 @@ test.describe.serial('Chores Backlog UI Tests', () => {
     const titleInput = page.locator('#chore-title')
     await expect(titleInput).toHaveValue(initialTitle)
 
-    // 4. Update title and cadence to 'Co 2 tyg.' (14 days)
+    // 4. Update title and cadence to 'Co 3 mies.' (90 days)
     const updatedTitle = `E2E_Zmienione_${Date.now()}`
     await titleInput.fill(updatedTitle)
-    await page.getByRole('button', { name: 'Co 2 tyg.' }).click()
+    await page.getByRole('button', { name: 'Co 3 mies.' }).click()
     await page.getByRole('button', { name: /Zapisz zmiany/i }).click()
 
     // 5. Verify updated card appears with new title and cadence
     const updatedCard = page.locator('[data-testid="chore-card"]', { hasText: updatedTitle })
     await expect(updatedCard).toBeVisible()
-    await expect(updatedCard.getByText('co 14 dni')).toBeVisible()
+    await expect(updatedCard.getByText('co 90 dni')).toBeVisible()
     await expect(page.locator('[data-testid="chore-card"]', { hasText: initialTitle })).toHaveCount(0)
 
     // 6. Open dropdown menu -> click 'Usuń'

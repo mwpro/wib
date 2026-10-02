@@ -18,6 +18,7 @@
   * *Recurring Chore*: Has a defined `CadenceDays` interval.
   * *Unscheduled Chore*: Has no schedule (`CadenceDays = null`); lives in the backlog for ad-hoc execution.
 * **Cadence**: A floating interval (in days) representing how often a chore should be performed relative to its last completion date ("days since last done"), rather than fixed calendar slots.
+  * *Cadence Presets*: Standard floating intervals supported in the UI: Daily (1 day), Weekly (7 days), Monthly (30 days), Quarterly (90 days / "Co 3 mies."), Semi-annually (180 days), and Annually (365 days). Custom day values are also supported.
 * **Freshness / Urgency Ratio**: The quotient $\text{Ratio} = \frac{\text{Days Since Last Done}}{\text{CadenceDays}}$:
   * Calculated in whole calendar days elapsed in the `Europe/Warsaw` timezone: $\text{Days Since Last Done} = \max(0, \text{Today}_{\text{Warsaw}} - \text{ReferenceDate}_{\text{Warsaw}})$.
   * When a chore has never been completed (`LastCompletedAt == null`), `ReferenceDate` defaults to `CreatedAt`.
