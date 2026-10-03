@@ -1,13 +1,13 @@
 # ADR 0001: Architecture, Stack, and Deployment Model
 
 ## Status
-Accepted
+Accepted (Amended by [ADR 0003](0003-domain-project-extraction.md))
 
 ## Context
 We need a responsive, low-maintenance, resource-efficient platform for **wib** ("Who is Better"), hosted on a lightweight Mikr.us VPS (Linux) behind an existing Nginx reverse proxy. The primary daily interaction is via mobile phones (iOS Safari).
 
 ## Decision
-1. **Backend**: ASP.NET Core (.NET 10) REST API in C#.
+1. **Backend**: ASP.NET Core (.NET 10) REST API in C# with domain extracted to a dedicated `Wib.Domain` class library (see [ADR 0003](0003-domain-project-extraction.md)).
 2. **Database & ORM**: Entity Framework Core with `Pomelo.EntityFrameworkCore.MySql` connecting to the MariaDB 12.3 database hosted on Mikr.us. Automatic schema migrations will run at application startup.
 3. **Frontend**: React 19 SPA with TypeScript, built with Vite, styled with Tailwind CSS and Radix UI primitives. Uses React Query for server-state caching and React Hook Form for validations.
 4. **Localization**: UI displayed in Polish; code, domain entities, and API contracts in English.

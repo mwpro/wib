@@ -1,4 +1,4 @@
-using Wib.Api.Data.Entities;
+using Wib.Domain.Members;
 
 namespace Wib.Api.Auth;
 

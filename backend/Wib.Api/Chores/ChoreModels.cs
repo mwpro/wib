@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using Wib.Api.Data.Entities;
+using Wib.Domain.Chores;
 
 namespace Wib.Api.Chores;
 
@@ -19,10 +19,11 @@ public record ChoreResponse(
     DateTime? UpdatedAt
 )
 {
-    public static ChoreResponse Create(Chore chore, FreshnessResult freshness)
+    public static ChoreResponse Create(Chore chore, DateTime nowUtc)
     {
-        var tagNames = chore.ChoreTags
-            .Select(ct => ct.Tag.Name)
+        var freshness = chore.GetFreshness(nowUtc);
+        var tagNames = chore.Tags
+            .Select(t => t.Name)
             .OrderBy(t => t)
             .ToList();
 

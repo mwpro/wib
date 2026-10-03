@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using Wib.Api.Data.Entities;
+using Wib.Domain.Chores;
+using Wib.Domain.Members;
+using Wib.Domain.Store;
+using Wib.Domain.Vouchers;
 
 namespace Wib.Api.Data;
 
@@ -12,7 +15,6 @@ public class WibDbContext : DbContext
     public DbSet<Member> Members => Set<Member>();
     public DbSet<Chore> Chores => Set<Chore>();
     public DbSet<Tag> Tags => Set<Tag>();
-    public DbSet<ChoreTag> ChoreTags => Set<ChoreTag>();
     public DbSet<ChoreCompletion> ChoreCompletions => Set<ChoreCompletion>();
     public DbSet<RewardItem> RewardItems => Set<RewardItem>();
     public DbSet<Voucher> Vouchers => Set<Voucher>();
@@ -49,6 +51,17 @@ public class WibDbContext : DbContext
             entity.Property(c => c.IsArchived);
             entity.Property(c => c.CreatedAt).IsRequired();
             entity.Property(c => c.UpdatedAt);
+            entity.HasMany(c => c.Tags)
+                .WithMany(t => t.Chores)
+                .UsingEntity<Dictionary<string, object>>(
+                    "chore_tags",
+                    r => r.HasOne<Tag>().WithMany().HasForeignKey("TagId").OnDelete(DeleteBehavior.Cascade),
+                    l => l.HasOne<Chore>().WithMany().HasForeignKey("ChoreId").OnDelete(DeleteBehavior.Cascade),
+                    j =>
+                    {
+                        j.ToTable("chore_tags");
+                        j.HasKey("ChoreId", "TagId");
+                    });
         });
 
         modelBuilder.Entity<Tag>(entity =>
@@ -58,20 +71,6 @@ public class WibDbContext : DbContext
             entity.Property(t => t.Name).IsRequired().HasMaxLength(50);
             entity.HasIndex(t => t.Name).IsUnique();
             entity.Property(t => t.CreatedAt).IsRequired();
-        });
-
-        modelBuilder.Entity<ChoreTag>(entity =>
-        {
-            entity.ToTable("chore_tags");
-            entity.HasKey(ct => new { ct.ChoreId, ct.TagId });
-            entity.HasOne(ct => ct.Chore)
-                .WithMany(c => c.ChoreTags)
-                .HasForeignKey(ct => ct.ChoreId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(ct => ct.Tag)
-                .WithMany(t => t.ChoreTags)
-                .HasForeignKey(ct => ct.TagId)
-                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ChoreCompletion>(entity =>

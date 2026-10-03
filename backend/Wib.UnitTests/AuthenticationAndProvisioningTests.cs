@@ -5,7 +5,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Wib.Api.Data;
-using Wib.Api.Data.Entities;
+using Wib.Domain.Members;
 
 namespace Wib.UnitTests;
 

@@ -1,6 +1,6 @@
-using Wib.Api.Common;
+using Wib.Domain.Common;
 
-namespace Wib.Api.Scoreboard;
+namespace Wib.Domain.Scoreboard;
 
 public interface IScoreboardCalculator
 {

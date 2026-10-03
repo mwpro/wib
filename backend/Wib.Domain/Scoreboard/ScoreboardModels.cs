@@ -1,4 +1,4 @@
-namespace Wib.Api.Scoreboard;
+namespace Wib.Domain.Scoreboard;
 
 public record ScoreboardResponse(
     int Year,

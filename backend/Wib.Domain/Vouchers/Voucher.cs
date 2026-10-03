@@ -1,4 +1,7 @@
-namespace Wib.Api.Data.Entities;
+using Wib.Domain.Members;
+using Wib.Domain.Store;
+
+namespace Wib.Domain.Vouchers;
 
 public class Voucher
 {

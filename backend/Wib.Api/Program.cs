@@ -8,6 +8,7 @@ using Wib.Api.Scoreboard;
 using Wib.Api.ChoreCompletions;
 using Wib.Api.Store;
 using Wib.Api.Vouchers;
+using Wib.Domain.Scoreboard;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +17,6 @@ builder.Configuration.AddJsonFile("/run/secrets/appsettings.secret.json", option
 // Add services to the container.
 builder.Services.Configure<JwtAuthOptions>(builder.Configuration.GetSection(JwtAuthOptions.SectionName));
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddSingleton<IFreshnessCalculator, FreshnessCalculator>();
 builder.Services.AddSingleton<IScoreboardCalculator, ScoreboardCalculator>();
 builder.Services.AddWibAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();

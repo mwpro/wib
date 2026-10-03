@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Wib.Api.Common;
+using Wib.Domain.Common;
 
 namespace Wib.UnitTests.Scoreboard;
 

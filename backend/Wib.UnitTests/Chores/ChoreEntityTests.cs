@@ -1,5 +1,6 @@
 using FluentAssertions;
-using Wib.Api.Data.Entities;
+using Wib.Domain.Chores;
+using Wib.Domain.Members;
 
 namespace Wib.UnitTests.Chores;
 

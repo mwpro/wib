@@ -9,10 +9,13 @@ RUN npm run build
 # Stage 2: Build and Publish Backend API
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-build
 WORKDIR /src
+COPY backend/Wib.Domain/Wib.Domain.csproj backend/Wib.Domain/
 COPY backend/Wib.Api/Wib.Api.csproj backend/Wib.Api/
 COPY backend/Wib.UnitTests/Wib.UnitTests.csproj backend/Wib.UnitTests/
-RUN dotnet restore backend/Wib.Api/Wib.Api.csproj && \
+RUN dotnet restore backend/Wib.Domain/Wib.Domain.csproj && \
+    dotnet restore backend/Wib.Api/Wib.Api.csproj && \
     dotnet restore backend/Wib.UnitTests/Wib.UnitTests.csproj
+COPY backend/Wib.Domain/ backend/Wib.Domain/
 COPY backend/Wib.Api/ backend/Wib.Api/
 COPY backend/Wib.UnitTests/ backend/Wib.UnitTests/
 RUN dotnet test backend/Wib.UnitTests/Wib.UnitTests.csproj -c Release --no-restore

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using Wib.Api.Data.Entities;
 using Wib.Api.Vouchers;
+using Wib.Domain.Store;
 
 namespace Wib.Api.Store;
 

@@ -1,8 +1,11 @@
-namespace Wib.Api.Data.Entities;
+using Wib.Domain.Common;
+using Wib.Domain.Members;
+
+namespace Wib.Domain.Chores;
 
 public class Chore
 {
-    private readonly List<ChoreTag> _choreTags = [];
+    private readonly List<Tag> _tags = [];
     private readonly List<ChoreCompletion> _completions = [];
 
     private Chore() { }
@@ -17,7 +20,7 @@ public class Chore
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
 
-    public IReadOnlyCollection<ChoreTag> ChoreTags => _choreTags.AsReadOnly();
+    public IReadOnlyCollection<Tag> Tags => _tags.AsReadOnly();
     public IReadOnlyCollection<ChoreCompletion> Completions => _completions.AsReadOnly();
 
     public static Chore Create(string title, string? description, int points, int? cadenceDays, DateTime nowUtc)
@@ -59,10 +62,29 @@ public class Chore
 
     public void SetTags(IReadOnlyList<Tag> tags)
     {
-        _choreTags.Clear();
-        foreach (var tag in tags)
+        _tags.Clear();
+        _tags.AddRange(tags);
+    }
+
+    public FreshnessResult GetFreshness(DateTime nowUtc)
+    {
+        if (!CadenceDays.HasValue || CadenceDays.Value <= 0)
         {
-            _choreTags.Add(new ChoreTag { Chore = this, Tag = tag });
+            return new FreshnessResult(FreshnessUrgency.Unscheduled, null, null);
         }
+
+        var referenceUtc = LastCompletedAt ?? CreatedAt;
+        var daysElapsed = WarsawTimeZone.GetDaysElapsed(referenceUtc, nowUtc);
+        var ratio = (double)daysElapsed / CadenceDays.Value;
+
+        var urgency = ratio switch
+        {
+            < 0.80 => FreshnessUrgency.Fresh,
+            < 1.00 => FreshnessUrgency.DueSoon,
+            < 1.30 => FreshnessUrgency.Overdue,
+            _ => FreshnessUrgency.Neglected
+        };
+
+        return new FreshnessResult(urgency, ratio, daysElapsed);
     }
 }

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Wib.Api.Auth;
 using Wib.Api.Common;
 using Wib.Api.Data;
-using Wib.Api.Data.Entities;
+using Wib.Domain.Chores;
 
 namespace Wib.Api.Chores;
 
@@ -19,37 +19,28 @@ public static class ChoreEndpoints
         group.MapGet("/", async (
             [FromQuery] string? tag,
             [FromServices] WibDbContext db,
-            [FromServices] IFreshnessCalculator freshnessCalculator,
+            [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
             var query = db.Chores
                 .Where(c => !c.IsArchived)
-                .Include(c => c.ChoreTags)
-                .ThenInclude(ct => ct.Tag)
+                .Include(c => c.Tags)
                 .AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(tag))
             {
                 var normalizedTag = Tag.NormalizeName(tag);
-                query = query.Where(c => c.ChoreTags.Any(ct => ct.Tag.Name == normalizedTag));
+                query = query.Where(c => c.Tags.Any(t => t.Name == normalizedTag));
             }
 
             var chores = await query.ToListAsync(cancellationToken);
+            var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
 
             var responseList = chores
-                .Select(chore =>
-                {
-                    var freshness = freshnessCalculator.Calculate(chore.LastCompletedAt, chore.CreatedAt, chore.CadenceDays);
-                    return new
-                    {
-                        Freshness = freshness,
-                        Response = ChoreResponse.Create(chore, freshness)
-                    };
-                })
-                .OrderByDescending(x => x.Freshness.Urgency != FreshnessUrgency.Unscheduled)
-                .ThenByDescending(x => x.Freshness.UrgencyRatio ?? -1.0)
-                .ThenByDescending(x => x.Response.CreatedAt)
-                .Select(x => x.Response)
+                .Select(chore => ChoreResponse.Create(chore, nowUtc))
+                .OrderByDescending(x => x.Urgency != nameof(FreshnessUrgency.Unscheduled))
+                .ThenByDescending(x => x.UrgencyRatio ?? -1.0)
+                .ThenByDescending(x => x.CreatedAt)
                 .ToList();
 
             return Results.Ok(responseList);
@@ -59,7 +50,6 @@ public static class ChoreEndpoints
         group.MapPost("/", async (
             [FromBody] CreateChoreRequest request,
             [FromServices] WibDbContext db,
-            [FromServices] IFreshnessCalculator freshnessCalculator,
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
@@ -73,8 +63,7 @@ public static class ChoreEndpoints
             db.Chores.Add(chore);
             await db.SaveChangesAsync(cancellationToken);
 
-            var freshness = freshnessCalculator.Calculate(chore.LastCompletedAt, chore.CreatedAt, chore.CadenceDays);
-            var response = ChoreResponse.Create(chore, freshness);
+            var response = ChoreResponse.Create(chore, nowUtc);
 
             return Results.Created($"/api/chores/{chore.Id}", response);
         })
@@ -84,13 +73,11 @@ public static class ChoreEndpoints
             [FromRoute] int id,
             [FromBody] UpdateChoreRequest request,
             [FromServices] WibDbContext db,
-            [FromServices] IFreshnessCalculator freshnessCalculator,
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
             var chore = await db.Chores
-                .Include(c => c.ChoreTags)
-                .ThenInclude(ct => ct.Tag)
+                .Include(c => c.Tags)
                 .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
             if (chore == null || chore.IsArchived)
@@ -107,8 +94,7 @@ public static class ChoreEndpoints
 
             await db.SaveChangesAsync(cancellationToken);
 
-            var freshness = freshnessCalculator.Calculate(chore.LastCompletedAt, chore.CreatedAt, chore.CadenceDays);
-            var response = ChoreResponse.Create(chore, freshness);
+            var response = ChoreResponse.Create(chore, nowUtc);
 
             return Results.Ok(response);
         })
@@ -137,7 +123,6 @@ public static class ChoreEndpoints
             [FromRoute] int id,
             [FromServices] WibDbContext db,
             [FromServices] ICurrentMemberAccessor currentMemberAccessor,
-            [FromServices] IFreshnessCalculator freshnessCalculator,
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
@@ -148,8 +133,7 @@ public static class ChoreEndpoints
             }
 
             var chore = await db.Chores
-                .Include(c => c.ChoreTags)
-                .ThenInclude(ct => ct.Tag)
+                .Include(c => c.Tags)
                 .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
             if (chore == null || chore.IsArchived)
@@ -162,8 +146,7 @@ public static class ChoreEndpoints
 
             await db.SaveChangesAsync(cancellationToken);
 
-            var freshness = freshnessCalculator.Calculate(chore.LastCompletedAt, chore.CreatedAt, chore.CadenceDays);
-            var choreResponse = ChoreResponse.Create(chore, freshness);
+            var choreResponse = ChoreResponse.Create(chore, nowUtc);
 
             return Results.Ok(new CompleteChoreResponse(choreResponse, member.WalletBalance, completion.PointsAwarded));
         })
