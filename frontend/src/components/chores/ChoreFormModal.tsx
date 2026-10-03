@@ -118,12 +118,13 @@ function InnerChoreForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-5">
-      {error && (
-        <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-sm border border-rose-200 dark:border-rose-900">
-          {error}
-        </div>
-      )}
+    <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <div className="flex-1 overflow-y-auto overscroll-contain py-3.5 pr-1 -mr-1 flex flex-col gap-5 min-h-0 touch-pan-y">
+        {error && (
+          <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-sm border border-rose-200 dark:border-rose-900">
+            {error}
+          </div>
+        )}
 
       {/* Title */}
       <div className="flex flex-col gap-1.5">
@@ -288,10 +289,11 @@ function InnerChoreForm({
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-100 dark:border-stone-800">
+      <div className="flex items-center justify-end gap-3 pt-3.5 border-t border-stone-100 dark:border-stone-800 shrink-0 mt-auto bg-white dark:bg-[#14161d]">
         <button
           type="button"
           onClick={onClose}
@@ -342,8 +344,8 @@ export function ChoreFormModal({
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/60 z-40 backdrop-blur-xs animate-in fade-in" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg bg-white dark:bg-[#14161d] rounded-2xl p-6 shadow-2xl border border-stone-200/90 dark:border-stone-800/90 max-h-[92vh] overflow-y-auto">
-          <div className="flex items-center justify-between pb-3.5 border-b border-stone-100 dark:border-stone-800">
+        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-lg bg-white dark:bg-[#14161d] rounded-2xl p-4 sm:p-6 shadow-2xl border border-stone-200/90 dark:border-stone-800/90 max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between pb-3.5 border-b border-stone-100 dark:border-stone-800 shrink-0">
             <Dialog.Title className="text-lg font-black tracking-tight text-stone-950 dark:text-white">
               {choreToEdit ? 'Edytuj zadanie' : 'Nowe zadanie domowe'}
             </Dialog.Title>

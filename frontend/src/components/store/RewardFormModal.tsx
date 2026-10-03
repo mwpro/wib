@@ -28,7 +28,7 @@ export function RewardFormModal({
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/60 z-40 backdrop-blur-xs animate-in fade-in" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-[#14161d] rounded-2xl p-6 shadow-2xl border border-stone-200/90 dark:border-stone-800/90 flex flex-col gap-5">
+        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-lg max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden bg-white dark:bg-[#14161d] rounded-2xl p-4 sm:p-6 shadow-2xl border border-stone-200/90 dark:border-stone-800/90">
           <InnerRewardForm
             key={rewardToEdit?.id ?? 'new'}
             rewardToEdit={rewardToEdit}
@@ -109,8 +109,8 @@ function InnerRewardForm({ rewardToEdit, onClose, onSubmit }: InnerFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="flex items-center justify-between pb-3 border-b border-stone-100 dark:border-stone-800">
+    <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <div className="flex items-center justify-between pb-3 border-b border-stone-100 dark:border-stone-800 shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 flex items-center justify-center">
             <Gift className="w-4 h-4" />
@@ -135,13 +135,14 @@ function InnerRewardForm({ rewardToEdit, onClose, onSubmit }: InnerFormProps) {
         </button>
       </div>
 
-      {error && (
-        <div className="p-3 text-xs rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-900">
-          {error}
-        </div>
-      )}
+      <div className="flex-1 overflow-y-auto overscroll-contain py-3 pr-1 -mr-1 flex flex-col gap-4 min-h-0 touch-pan-y">
+        {error && (
+          <div className="p-3 text-xs rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-900">
+            {error}
+          </div>
+        )}
 
-      {/* Field 1: Title */}
+        {/* Field 1: Title */}
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor="reward-title"
@@ -240,9 +241,10 @@ function InnerRewardForm({ rewardToEdit, onClose, onSubmit }: InnerFormProps) {
           maxLength={2000}
           className="w-full px-3.5 py-2 text-sm rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition resize-none"
         />
+        </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-100 dark:border-stone-800 mt-2">
+      <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-100 dark:border-stone-800 shrink-0 mt-auto bg-white dark:bg-[#14161d]">
         <button
           type="button"
           onClick={onClose}

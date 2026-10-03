@@ -24,3 +24,10 @@ body {
   }
 }
 
+/* Enable smooth iOS momentum scrolling and avoid scroll chaining on scrollable areas */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+
