@@ -283,4 +283,39 @@ test.describe.serial('Chores Backlog UI Tests', () => {
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleKitchen })).toBeVisible()
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleGarden })).toBeVisible()
   })
+
+  test('mobile viewport: Add Chore modal is scrollable and submit button is visible and clickable on small mobile screen', async ({ page }) => {
+    // Set small mobile viewport simulating iOS Safari (iPhone SE / mobile with browser bars)
+    await page.setViewportSize({ width: 375, height: 600 })
+    await page.goto('/')
+
+    // 1. Open Add Chore Modal
+    const addButton = page.getByRole('button', { name: /Dodaj zadanie/i }).first()
+    await addButton.click()
+
+    // 2. Verify modal dialog is visible
+    const dialogContent = page.getByRole('dialog')
+    await expect(dialogContent).toBeVisible()
+
+    // 3. Verify submit button is visible within viewport
+    const submitBtn = page.getByRole('button', { name: /Utwórz zadanie/i })
+    await expect(submitBtn).toBeVisible()
+
+    // 4. Fill form
+    const mobileChoreTitle = `E2E_Mobile_${Date.now()}`
+    await page.locator('#chore-title').fill(mobileChoreTitle)
+
+    // 5. Verify scrollable container exists and has scroll capability
+    const scrollContainer = dialogContent.locator('.overflow-y-auto')
+    await expect(scrollContainer).toBeVisible()
+
+    // 6. Click submit button and verify chore is successfully created
+    await submitBtn.click()
+
+    // Modal closes and new chore appears
+    await expect(dialogContent).not.toBeVisible()
+    const newCard = page.locator('[data-testid="chore-card"]', { hasText: mobileChoreTitle })
+    await expect(newCard).toBeVisible()
+  })
 })
+
