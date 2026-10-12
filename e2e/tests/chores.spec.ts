@@ -137,11 +137,15 @@ test.describe.serial('Chores Backlog UI Tests', () => {
     // Submit modal
     await page.getByRole('button', { name: /Utwórz zadanie/i }).click()
 
-    // Should appear under "Do zrobienia (bez terminu)"
-    await expect(page.getByText('Do zrobienia (bez terminu)')).toBeVisible()
     const card = page.locator('[data-testid="chore-card"]', { hasText: unscheduledTitle })
     await expect(card).toBeVisible()
     await expect(card.getByText('Bez terminu').first()).toBeVisible()
+
+    // "Bez terminu" cadence chip narrows the backlog to unscheduled chores
+    const cadenceBar = page.locator('[data-testid="cadence-filters"]')
+    await cadenceBar.getByRole('button', { name: 'Bez terminu' }).click()
+    await expect(page).toHaveURL(/cadence=none/)
+    await expect(card).toBeVisible()
 
     // Test search filter
     const searchInput = page.getByPlaceholder(/Szukaj zadań/i)
@@ -299,9 +303,61 @@ test.describe.serial('Chores Backlog UI Tests', () => {
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleGarden })).toBeVisible()
 
     // 7. Click 'Wszystkie' -> reset filter, both chores visible
-    await filterBar.getByRole('button', { name: 'Wszystkie' }).click()
+    await page.locator('[data-testid="tag-filters"]').getByRole('button', { name: 'Wszystkie' }).click()
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleKitchen })).toBeVisible()
     await expect(page.locator('[data-testid="chore-card"]', { hasText: titleGarden })).toBeVisible()
+  })
+
+  test('filters by cadence range and persists all filters in the URL across reload', async ({ page }) => {
+    const stamp = Date.now()
+    const biweeklyTitle = `E2E_Co2tyg_${stamp}`
+    const weeklyTitle = `E2E_Cotydz_${stamp}`
+    const adHocTitle = `E2E_Adhoc_${stamp}`
+    await seedOverdueChore({ title: biweeklyTitle, cadenceDays: 14, daysAgo: 0 })
+    await seedOverdueChore({ title: weeklyTitle, cadenceDays: 7, daysAgo: 0 })
+    await seedOverdueChore({ title: adHocTitle, cadenceDays: null, daysAgo: 0 })
+
+    await page.goto('/')
+    const cards = page.locator('[data-testid="chore-card"]')
+    await expect(cards).toHaveCount(3)
+
+    // Only buckets with chores get a chip
+    const cadenceBar = page.locator('[data-testid="cadence-filters"]')
+    await expect(cadenceBar.getByRole('button', { name: 'Codziennie' })).toHaveCount(0)
+
+    // 14-day chore falls into the "Co miesiąc" (8–30 days) bucket
+    const monthlyChip = cadenceBar.getByRole('button', { name: 'Co miesiąc' })
+    await monthlyChip.click()
+    await expect(cards).toHaveCount(1)
+    await expect(cards.first()).toContainText(biweeklyTitle)
+
+    // Single-select: picking another chip replaces the previous one
+    await cadenceBar.getByRole('button', { name: 'Co tydzień' }).click()
+    await expect(cards).toHaveCount(1)
+    await expect(cards.first()).toContainText(weeklyTitle)
+    await expect(monthlyChip).toHaveAttribute('aria-pressed', 'false')
+
+    // Clicking the active chip deselects it
+    await cadenceBar.getByRole('button', { name: 'Co tydzień' }).click()
+    await expect(cards).toHaveCount(3)
+
+    // Combine search + cadence, then reload
+    await monthlyChip.click()
+    await page.getByPlaceholder(/Szukaj zadań/i).fill('Co2tyg')
+    await expect(page).toHaveURL(/q=Co2tyg/)
+    await expect(page).toHaveURL(/cadence=30/)
+
+    await page.reload()
+    await expect(page.getByPlaceholder(/Szukaj zadań/i)).toHaveValue('Co2tyg')
+    await expect(monthlyChip).toHaveAttribute('aria-pressed', 'true')
+    await expect(cards).toHaveCount(1)
+    await expect(cards.first()).toContainText(biweeklyTitle)
+
+    // Clear-all resets every filter and the URL
+    await page.getByPlaceholder(/Szukaj zadań/i).fill('Nieistniejące zadanie 12345')
+    await page.getByRole('button', { name: /Wyczyść filtry \(2\)/ }).click()
+    await expect(cards).toHaveCount(3)
+    await expect(page).not.toHaveURL(/\?/)
   })
 
   test('mobile viewport: Add Chore modal is scrollable and submit button is visible and clickable on small mobile screen', async ({ page }) => {

@@ -1,14 +1,5 @@
 import { useState, useMemo } from 'react'
-import {
-  Plus,
-  ChevronDown,
-  ChevronUp,
-  AlertCircle,
-  RefreshCw,
-  Calendar,
-  CheckSquare,
-  Inbox,
-} from 'lucide-react'
+import { Plus, AlertCircle, RefreshCw, CheckSquare, Inbox } from 'lucide-react'
 import {
   useChores,
   useCompleteChore,
@@ -16,6 +7,8 @@ import {
   useUpdateChore,
   useDeleteChore,
 } from '../../hooks/useChores'
+import { useChoreFilters } from '../../hooks/useChoreFilters'
+import { CADENCE_PRESETS, getCadenceBucket, type CadenceFilter } from '../../utils/cadence'
 import { ChoreCard } from '../chores/ChoreCard'
 import { ChoreFilters } from '../chores/ChoreFilters'
 import { ChoreFormModal, type InitialChoreValues } from '../chores/ChoreFormModal'
@@ -29,10 +22,15 @@ export function ChoresTab() {
   const updateMutation = useUpdateChore()
   const deleteMutation = useDeleteChore()
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [isScheduledOpen, setIsScheduledOpen] = useState(true)
-  const [isUnscheduledOpen, setIsUnscheduledOpen] = useState(true)
+  const {
+    searchQuery,
+    setSearchQuery,
+    selectedTags: urlTags,
+    setSelectedTags,
+    cadence,
+    setCadence,
+    clearAll,
+  } = useChoreFilters()
 
   // Modal states
   const [isFormModalOpen, setIsFormModalOpen] = useState(false)
@@ -50,57 +48,48 @@ export function ChoresTab() {
     return Array.from(set).sort()
   }, [chores])
 
-  // Filter chores by search query and multi-tag AND logic
+  // Tags from the URL that no chore carries anymore are ignored
+  const selectedTags = useMemo(
+    () => urlTags.filter((t) => availableTags.includes(t)),
+    [urlTags, availableTags]
+  )
+
+  // Cadence buckets present in the backlog; the selected one stays visible even when empty
+  const availableCadences = useMemo(() => {
+    const present = new Set<CadenceFilter>(chores.map((c) => getCadenceBucket(c.cadenceDays)))
+    if (cadence != null) present.add(cadence)
+    const ordered: CadenceFilter[] = [...CADENCE_PRESETS.map((p) => p.days), 'none']
+    return ordered.filter((c) => present.has(c))
+  }, [chores, cadence])
+
+  // Filter chores: text AND any selected tag AND cadence bucket; backlog order comes from the API
   const filteredChores = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     return chores.filter((chore) => {
-      // 1. Text search on title or description
       const matchesText =
         !q ||
         chore.title.toLowerCase().includes(q) ||
         chore.description?.toLowerCase().includes(q)
-
       if (!matchesText) return false
 
-      // 2. Multi-tag OR filter: chore must match at least one selected tag
       if (selectedTags.length > 0) {
         const choreTags = chore.tags || []
-        const matchesAnyTag = selectedTags.some((t) => choreTags.includes(t))
-        if (!matchesAnyTag) return false
+        if (!selectedTags.some((t) => choreTags.includes(t))) return false
       }
+
+      if (cadence != null && getCadenceBucket(chore.cadenceDays) !== cadence) return false
 
       return true
     })
-  }, [chores, searchQuery, selectedTags])
-
-  // Split into Scheduled and Unscheduled groups
-  const { scheduledChores, unscheduledChores } = useMemo(() => {
-    const scheduled: ChoreResponse[] = []
-    const unscheduled: ChoreResponse[] = []
-
-    filteredChores.forEach((chore) => {
-      if (chore.cadenceDays && chore.cadenceDays > 0) {
-        scheduled.push(chore)
-      } else {
-        unscheduled.push(chore)
-      }
-    })
-
-    return { scheduledChores: scheduled, unscheduledChores: unscheduled }
-  }, [filteredChores])
+  }, [chores, searchQuery, selectedTags, cadence])
 
   const handleToggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    setSelectedTags(
+      selectedTags.includes(tag) ? selectedTags.filter((t) => t !== tag) : [...selectedTags, tag]
     )
   }
 
   const handleClearTags = () => {
-    setSelectedTags([])
-  }
-
-  const handleClearAllFilters = () => {
-    setSearchQuery('')
     setSelectedTags([])
   }
 
@@ -148,7 +137,8 @@ export function ChoresTab() {
     }
   }
 
-  const activeFiltersCount = (searchQuery ? 1 : 0) + selectedTags.length
+  const activeFiltersCount =
+    (searchQuery ? 1 : 0) + selectedTags.length + (cadence != null ? 1 : 0)
 
   return (
     <div className="flex flex-col gap-5">
@@ -208,6 +198,9 @@ export function ChoresTab() {
             <ChoreFilters
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
+              availableCadences={availableCadences}
+              selectedCadence={cadence}
+              onSelectCadence={setCadence}
               availableTags={availableTags}
               selectedTags={selectedTags}
               onToggleTag={handleToggleTag}
@@ -246,12 +239,12 @@ export function ChoresTab() {
                 Brak zadań spełniających kryteria wyszukiwania
               </p>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Spróbuj zmienić zapytanie lub odznaczyć wybrane tagi.
+                Spróbuj zmienić zapytanie lub odznaczyć wybrane filtry.
               </p>
               {activeFiltersCount > 0 && (
                 <button
                   type="button"
-                  onClick={handleClearAllFilters}
+                  onClick={clearAll}
                   className="mt-2 px-3 py-1.5 text-xs font-semibold text-amber-800 dark:text-amber-400 hover:underline cursor-pointer"
                 >
                   Wyczyść filtry ({activeFiltersCount})
@@ -260,85 +253,19 @@ export function ChoresTab() {
             </div>
           )}
 
-          {/* Section 1: Scheduled Chores */}
-          {scheduledChores.length > 0 && (
-            <div className="flex flex-col gap-2.5">
-              <button
-                type="button"
-                onClick={() => setIsScheduledOpen(!isScheduledOpen)}
-                className="flex items-center justify-between p-1.5 -mx-1.5 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800/60 transition cursor-pointer text-left"
-              >
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-                    Zadania cykliczne
-                  </h3>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200/60 dark:border-stone-700/60">
-                    {scheduledChores.length}
-                  </span>
-                </div>
-                {isScheduledOpen ? (
-                  <ChevronUp className="h-4 w-4 text-stone-400" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-stone-400" />
-                )}
-              </button>
-
-              {isScheduledOpen && (
-                <div className="flex flex-col gap-2 animate-in fade-in duration-200">
-                  {scheduledChores.map((chore) => (
-                    <ChoreCard
-                      key={chore.id}
-                      chore={chore}
-                      onComplete={handleCompleteChore}
-                      isCompleting={completingIds.has(chore.id)}
-                      onEdit={handleOpenEdit}
-                      onDelete={setChoreToDelete}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Section 2: Unscheduled Chores ("Do zrobienia (bez terminu)") */}
-          {unscheduledChores.length > 0 && (
-            <div className="flex flex-col gap-2.5 pt-1">
-              <button
-                type="button"
-                onClick={() => setIsUnscheduledOpen(!isUnscheduledOpen)}
-                className="flex items-center justify-between p-1.5 -mx-1.5 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800/60 transition cursor-pointer text-left"
-              >
-                <div className="flex items-center gap-2">
-                  <CheckSquare className="h-3.5 w-3.5 text-stone-400" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
-                    Do zrobienia (bez terminu)
-                  </h3>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200/60 dark:border-stone-700/60">
-                    {unscheduledChores.length}
-                  </span>
-                </div>
-                {isUnscheduledOpen ? (
-                  <ChevronUp className="h-4 w-4 text-stone-400" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-stone-400" />
-                )}
-              </button>
-
-              {isUnscheduledOpen && (
-                <div className="flex flex-col gap-2 animate-in fade-in duration-200">
-                  {unscheduledChores.map((chore) => (
-                    <ChoreCard
-                      key={chore.id}
-                      chore={chore}
-                      onComplete={handleCompleteChore}
-                      isCompleting={completingIds.has(chore.id)}
-                      onEdit={handleOpenEdit}
-                      onDelete={setChoreToDelete}
-                    />
-                  ))}
-                </div>
-              )}
+          {/* Backlog */}
+          {filteredChores.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {filteredChores.map((chore) => (
+                <ChoreCard
+                  key={chore.id}
+                  chore={chore}
+                  onComplete={handleCompleteChore}
+                  isCompleting={completingIds.has(chore.id)}
+                  onEdit={handleOpenEdit}
+                  onDelete={setChoreToDelete}
+                />
+              ))}
             </div>
           )}
         </>
