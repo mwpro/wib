@@ -23,7 +23,7 @@ export default defineConfig({
     },
   ],
   webServer: process.env.BASE_URL ? undefined : {
-    command: 'dotnet run --project ../backend/Wib.Api/Wib.Api.csproj --no-launch-profile',
+    command: 'dotnet run --project ../backend/Wib.Api/Wib.Api.csproj --no-launch-profile --artifacts-path .artifacts',
     url: 'http://localhost:8080/api/health',
     reuseExistingServer: false,
     timeout: 60000,

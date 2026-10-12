@@ -54,8 +54,9 @@ In test or headless development mode, Auth0 authentication can be bypassed by se
 ### 2. Testing the Project
 
 #### Backend Unit Tests
+The test project references `Wib.Api`, so a running dev instance locks `bin/Debug` and `dotnet test` fails with `MSB3027`. Build into a separate folder instead of stopping the backend:
 ```powershell
-dotnet test
+dotnet test --artifacts-path .artifacts
 ```
 Fast xUnit + FluentAssertions suite testing domain math (freshness ratio, Europe/Warsaw timezone boundaries, completion logic).
 
@@ -73,8 +74,4 @@ Playwright automatically starts `Wib.Api` with auth bypass enabled (`webServer` 
 > When testing frontend changes in Playwright, always build and copy `frontend/dist` to `backend/Wib.Api/wwwroot` first:
 > ```powershell
 > cd frontend; npm run build; Copy-Item -Path "dist/*" -Destination "../backend/Wib.Api/wwwroot" -Recurse -Force; cd ../e2e; npm test
-> ```
-> If `Wib.Api.exe` gets locked by a previous run on Windows, terminate it before rebuilding:
-> ```powershell
-> Get-Process Wib.Api -ErrorAction SilentlyContinue | Stop-Process -Force
 > ```
