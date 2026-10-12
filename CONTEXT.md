@@ -23,9 +23,10 @@
   * Calculated in whole calendar days elapsed in the `Europe/Warsaw` timezone: $\text{Days Since Last Done} = \max(0, \text{Today}_{\text{Warsaw}} - \text{ReferenceDate}_{\text{Warsaw}})$.
   * When a chore has never been completed (`LastCompletedAt == null`), `ReferenceDate` defaults to `CreatedAt`.
   * **Fresh** ($0\% \le \text{Ratio} < 80\%$): Recently done, no attention needed (Green).
-  * **Due Soon** ($80\% \le \text{Ratio} < 100\%$): Approaching due date (Yellow).
-  * **Overdue** ($100\% \le \text{Ratio} < 130\%$): Past expected cadence (Orange).
-  * **Neglected** ($\text{Ratio} \ge 130\%$): Significantly overdue; highest priority (Red).
+  * **Due Soon** ($80\% \le \text{Ratio} \le 100\%$): Approaching or on the due date (Yellow). The due day itself (Ratio = 100%) is not late.
+  * **Overdue** ($100\% < \text{Ratio} < 130\%$): Past expected cadence (Orange). The first day past due is always Overdue, even when Ratio ≥ 130% (short cadences, e.g. a daily chore on day 2).
+  * **Neglected** ($\text{Ratio} \ge 130\%$ and at least 2 days past due): Significantly overdue; highest priority (Red).
+  * *Backlog order*: by urgency band (Neglected → Overdue → Due Soon → Fresh → Unscheduled), then by Ratio within a band.
   * *Unscheduled Chore*: Has no cadence (`CadenceDays = null`); urgency is `Unscheduled` with no numerical ratio.
 * **Chore Completion**: An immutable record created when a member marks a chore done. Captures `CompletedAt` (UTC), `PointsAwarded`, `CompletedByMemberId`, and references the completed `ChoreId`.
 * **Tag**: A multi-label category attached to chores for filtering (e.g. `kuchnia`, `sprzątanie`, `ogród`, `konserwacja`).

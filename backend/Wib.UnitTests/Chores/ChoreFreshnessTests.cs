@@ -66,7 +66,8 @@ public class ChoreFreshnessTests
     [InlineData(8, 10, 0.8, FreshnessUrgency.DueSoon)]    // 80% -> Due Soon
     [InlineData(9, 10, 0.9, FreshnessUrgency.DueSoon)]    // 90% -> Due Soon
     [InlineData(99, 100, 0.99, FreshnessUrgency.DueSoon)] // 99% -> Due Soon
-    [InlineData(10, 10, 1.0, FreshnessUrgency.Overdue)]   // 100% -> Overdue
+    [InlineData(10, 10, 1.0, FreshnessUrgency.DueSoon)]   // 100% -> Due Soon (due day is not late)
+    [InlineData(11, 10, 1.1, FreshnessUrgency.Overdue)]   // 110% -> Overdue
     [InlineData(12, 10, 1.2, FreshnessUrgency.Overdue)]   // 120% -> Overdue
     [InlineData(129, 100, 1.29, FreshnessUrgency.Overdue)]// 129% -> Overdue
     [InlineData(13, 10, 1.3, FreshnessUrgency.Neglected)] // 130% -> Neglected
@@ -106,13 +107,43 @@ public class ChoreFreshnessTests
         var member = Member.Create("auth0|tester", "Tester", completedAtUtc.AddDays(-5));
         chore.Complete(member, completedAtUtc);
 
-        // Act: 1 calendar day elapsed, cadence 1 day -> ratio 1.0 (100% Overdue)
+        // Act: 1 calendar day elapsed, cadence 1 day -> ratio 1.0 (due today -> Due Soon)
         var result = chore.GetFreshness(nowUtc);
 
         // Assert
         result.DaysSinceLastDone.Should().Be(1);
         result.UrgencyRatio.Should().Be(1.0);
-        result.Urgency.Should().Be(FreshnessUrgency.Overdue);
+        result.Urgency.Should().Be(FreshnessUrgency.DueSoon);
+    }
+
+    [Theory]
+    [InlineData(0, 1, FreshnessUrgency.Fresh)]      // daily, done today
+    [InlineData(1, 1, FreshnessUrgency.DueSoon)]    // daily, due today
+    [InlineData(2, 1, FreshnessUrgency.Overdue)]    // daily, first day late (200%) -> still Overdue
+    [InlineData(3, 1, FreshnessUrgency.Neglected)]  // daily, second day late
+    [InlineData(3, 2, FreshnessUrgency.Overdue)]    // 2-day cadence, first day late (150%) -> still Overdue
+    [InlineData(4, 2, FreshnessUrgency.Neglected)]  // 2-day cadence, second day late
+    [InlineData(4, 3, FreshnessUrgency.Overdue)]    // 3-day cadence, first day late (133%) -> still Overdue
+    [InlineData(7, 7, FreshnessUrgency.DueSoon)]    // weekly, due today
+    [InlineData(8, 7, FreshnessUrgency.Overdue)]    // weekly, first day late
+    [InlineData(9, 7, FreshnessUrgency.Overdue)]    // weekly, 129%
+    [InlineData(10, 7, FreshnessUrgency.Neglected)] // weekly, 143%
+    public void GetFreshness_FirstDayPastDue_ShouldAlwaysBeOverdue(
+        int daysAgo,
+        int cadenceDays,
+        FreshnessUrgency expectedUrgency)
+    {
+        // Arrange
+        var chore = Chore.Create("Test", null, 1, cadenceDays, _fixedNowUtc.AddDays(-100));
+        var member = Member.Create("auth0|tester", "Tester", _fixedNowUtc.AddDays(-100));
+        chore.Complete(member, _fixedNowUtc.AddDays(-daysAgo));
+
+        // Act
+        var result = chore.GetFreshness(_fixedNowUtc);
+
+        // Assert
+        result.DaysSinceLastDone.Should().Be(daysAgo);
+        result.Urgency.Should().Be(expectedUrgency);
     }
 
     [Fact]

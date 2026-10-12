@@ -14,9 +14,11 @@ Traditional chore systems with rigid calendar schedules induce "late guilt" and 
 2. **Freshness & Urgency Math**:
    - Status is calculated dynamically: $\text{Ratio} = \frac{\text{Days Since Last Done}}{\text{CadenceDays}}$:
      - `0% - 79%`: Fresh (Green)
-     - `80% - 99%`: Due Soon (Yellow)
-     - `100% - 129%`: Overdue (Orange)
-     - `≥ 130%`: Neglected (Red, prioritized at the top of backlog)
+     - `80% - 100%`: Due Soon (Yellow) — the due day itself is not late
+     - `> 100%` and `< 130%`: Overdue (Orange); the first day past due is always Overdue, even when ≥ 130%
+     - `≥ 130%` and at least 2 days past due: Neglected (Red, prioritized at the top of backlog)
+   - The backlog sorts by urgency band first, then by ratio within a band.
+   - *Amended 2026-10-12*: originally `100%` (the due day) counted as Overdue, so a daily chore done yesterday showed "Zaległe" while today was still available, and short cadences jumped from Fresh/Due Soon straight to Neglected. Ratio-only sorting was replaced by band-first sorting so a 1-day-late daily chore (200%, Overdue) cannot outrank a Neglected one.
 3. **Dual-Currency Separation**:
    - **Earned Points (Monthly XP)**: Cumulative points awarded for completions within the active month. Drives the leaderboard and work-share progress bar. Never decreases upon purchasing rewards.
    - **Wallet Balance**: Spendable balance. Incremented when a chore is completed, decremented when a voucher is purchased.

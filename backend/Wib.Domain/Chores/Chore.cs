@@ -76,12 +76,14 @@ public class Chore
         var referenceUtc = LastCompletedAt ?? CreatedAt;
         var daysElapsed = WarsawTimeZone.GetDaysElapsed(referenceUtc, nowUtc);
         var ratio = (double)daysElapsed / CadenceDays.Value;
+        var daysPastDue = daysElapsed - CadenceDays.Value;
 
         var urgency = ratio switch
         {
             < 0.80 => FreshnessUrgency.Fresh,
-            < 1.00 => FreshnessUrgency.DueSoon,
+            <= 1.00 => FreshnessUrgency.DueSoon,
             < 1.30 => FreshnessUrgency.Overdue,
+            _ when daysPastDue == 1 => FreshnessUrgency.Overdue,
             _ => FreshnessUrgency.Neglected
         };
 
