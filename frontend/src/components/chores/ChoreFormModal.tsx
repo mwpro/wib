@@ -2,6 +2,7 @@ import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, Plus, Calendar, CheckSquare } from 'lucide-react'
 import { TagChip } from './TagChip'
+import { CADENCE_PRESETS } from '../../utils/cadence'
 import type { ChoreResponse, CreateChoreRequest, UpdateChoreRequest } from '../../types/chore'
 
 export interface InitialChoreValues {
@@ -18,15 +19,6 @@ interface ChoreFormModalProps {
   existingTags: string[]
   initialValues?: InitialChoreValues
 }
-
-const CADENCE_PRESETS = [
-  { label: 'Codziennie', days: 1 },
-  { label: 'Co tydzień', days: 7 },
-  { label: 'Co miesiąc', days: 30 },
-  { label: 'Co 3 mies.', days: 90 },
-  { label: 'Co pół roku', days: 180 },
-  { label: 'Co rok', days: 365 },
-]
 
 interface InnerFormProps {
   choreToEdit?: ChoreResponse | null
