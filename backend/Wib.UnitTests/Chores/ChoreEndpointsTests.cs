@@ -176,7 +176,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
             await db.SaveChangesAsync();
 
             freshChore.Complete(seedMember, now);          // 0 days ago -> 0%
-            overdueChore.Complete(seedMember, now.AddDays(-5));   // 5 days ago -> 100%
+            overdueChore.Complete(seedMember, now.AddDays(-6));   // 6 days ago -> 120%
             neglectedChore.Complete(seedMember, now.AddDays(-10)); // 10 days ago -> 200%
 
             await db.SaveChangesAsync();
@@ -197,7 +197,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
 
         var ourChores = list.Where(c => c.Id == freshId || c.Id == overdueId || c.Id == neglectedId || c.Id == unscheduledId).ToList();
 
-        // Order: Neglected (200%) -> Overdue (100%) -> Fresh (0%) -> Unscheduled
+        // Order: Neglected (200%) -> Overdue (120%) -> Fresh (0%) -> Unscheduled
         ourChores.Should().SatisfyRespectively(
             neglected =>
             {
@@ -219,6 +219,60 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
                 unscheduled.Id.Should().Be(unscheduledId);
                 unscheduled.Urgency.Should().Be("Unscheduled");
                 unscheduled.UrgencyRatio.Should().BeNull();
+            }
+        );
+    }
+
+    [Fact]
+    public async Task GetChores_ShouldSortByUrgencyBandBeforeRatio()
+    {
+        // Arrange: a daily chore one day late (Overdue, 200%) must not outrank a weekly chore that is Neglected (143%)
+        var client = CreateAuthenticatedClient();
+        var now = DateTime.UtcNow;
+
+        int dailyOverdueId = 0, weeklyNeglectedId = 0;
+
+        await _factory.ExecuteDbContextAsync(async db =>
+        {
+            var seedMember = Member.Create("auth0|seed-band-sort-test", "Seed Member", now);
+            db.Members.Add(seedMember);
+
+            var dailyChore = Chore.Create("Daily Overdue Chore", null, 1, 1, now.AddDays(-30));
+            var weeklyChore = Chore.Create("Weekly Neglected Chore", null, 1, 7, now.AddDays(-30));
+
+            db.Chores.AddRange(dailyChore, weeklyChore);
+            await db.SaveChangesAsync();
+
+            dailyChore.Complete(seedMember, now.AddDays(-2));   // 2 days ago -> 200%, first day late -> Overdue
+            weeklyChore.Complete(seedMember, now.AddDays(-10)); // 10 days ago -> 143% -> Neglected
+
+            await db.SaveChangesAsync();
+
+            dailyOverdueId = dailyChore.Id;
+            weeklyNeglectedId = weeklyChore.Id;
+        });
+
+        // Act
+        var response = await client.GetAsync("/api/chores");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var list = await response.Content.ReadFromJsonAsync<List<ChoreResponse>>(_jsonOptions);
+        list.Should().NotBeNull();
+
+        var ourChores = list.Where(c => c.Id == dailyOverdueId || c.Id == weeklyNeglectedId).ToList();
+
+        // Order: Neglected band first, regardless of the Overdue chore's higher ratio
+        ourChores.Should().SatisfyRespectively(
+            neglected =>
+            {
+                neglected.Id.Should().Be(weeklyNeglectedId);
+                neglected.Urgency.Should().Be("Neglected");
+            },
+            overdue =>
+            {
+                overdue.Id.Should().Be(dailyOverdueId);
+                overdue.Urgency.Should().Be("Overdue");
             }
         );
     }
@@ -466,6 +520,32 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
             memberEntity.Should().NotBeNull();
             memberEntity!.WalletBalance.Should().Be(4);
         });
+    }
+
+    [Fact]
+    public async Task PostCompletion_WithUnscheduledChore_ShouldReturnZeroDaysSinceLastDone()
+    {
+        // Arrange: own member so the shared test member's wallet balance isn't affected
+        var client = CreateAuthenticatedClient("auth0|unscheduled-completer-" + Guid.NewGuid());
+        var choreId = 0;
+
+        await _factory.ExecuteDbContextAsync(async db =>
+        {
+            var chore = Chore.Create("Wynieść śmieci", null, 1, null, DateTime.UtcNow.AddDays(-5));
+            db.Chores.Add(chore);
+            await db.SaveChangesAsync();
+            choreId = chore.Id;
+        });
+
+        // Act
+        var response = await client.PostAsync($"/api/chores/{choreId}/completion", null);
+
+        // Assert: frontend locks "Zrobione" for the rest of the day based on DaysSinceLastDone == 0
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<CompleteChoreResponse>(_jsonOptions);
+        result!.Chore.Urgency.Should().Be("Unscheduled");
+        result.Chore.UrgencyRatio.Should().BeNull();
+        result.Chore.DaysSinceLastDone.Should().Be(0);
     }
 
     [Fact]

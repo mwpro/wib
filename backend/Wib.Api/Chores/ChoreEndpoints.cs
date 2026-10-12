@@ -36,11 +36,8 @@ public static class ChoreEndpoints
             var chores = await query.ToListAsync(cancellationToken);
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
 
-            var responseList = chores
-                .Select(chore => ChoreResponse.Create(chore, nowUtc))
-                .OrderByDescending(x => x.Urgency != nameof(FreshnessUrgency.Unscheduled))
-                .ThenByDescending(x => x.UrgencyRatio ?? -1.0)
-                .ThenByDescending(x => x.CreatedAt)
+            var responseList = ChoreBacklog.Order(chores, nowUtc)
+                .Select(ChoreResponse.Create)
                 .ToList();
 
             return Results.Ok(responseList);

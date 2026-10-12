@@ -86,15 +86,21 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     }
 
     [Fact]
-    public async Task GetRewardItems_ShouldReturnActiveItemsOrderedByTitleAscending()
+    public async Task GetRewardItems_ShouldReturnActiveItemsOrderedByPointCostDescendingThenTitle()
     {
         var client = CreateAuthenticatedClient("auth0|store-lister", "Lister");
 
-        // Create 3 items: "Zebra", "Albatros", "Bóbr"
-        await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Zebra", 10));
-        await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Albatros", 5));
-        var bRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Bóbr", 15));
-        var bobr = await bRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
+        async Task<RewardItemResponse> CreateItem(string title, int pointCost)
+        {
+            var res = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest(title, pointCost));
+            return (await res.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions))!;
+        }
+
+        var zebra = await CreateItem("Zebra", 10);
+        var albatros = await CreateItem("Albatros", 5);
+        var kot = await CreateItem("Kot", 10);
+        var mysz = await CreateItem("Mysz", 20);
+        var bobr = await CreateItem("Bóbr", 15);
 
         // Deactivate "Bóbr"
         await client.DeleteAsync($"/api/store/items/{bobr!.Id}");
@@ -107,9 +113,10 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         items.Should().NotBeNull();
         items!.Any(i => i.Id == bobr.Id).Should().BeFalse();
 
-        // Check alphabetical sorting
-        var titles = items.Select(i => i.Title).ToList();
-        titles.Should().BeInAscendingOrder();
+        // Most expensive first, same cost ordered by title
+        var ourIds = new[] { zebra.Id, albatros.Id, kot.Id, mysz.Id };
+        items.Where(i => ourIds.Contains(i.Id)).Select(i => i.Title)
+            .Should().Equal("Mysz", "Kot", "Zebra", "Albatros");
     }
 
     [Fact]

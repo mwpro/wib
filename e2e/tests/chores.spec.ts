@@ -102,6 +102,26 @@ test.describe.serial('Chores Backlog UI Tests', () => {
     await expect(page.locator('header').getByText(/2 pkt/)).toBeVisible()
   })
 
+  test('unscheduled chore shows real last-done day and stays locked after completion and reload', async ({ page }) => {
+    const title = `E2E_Smieci_${Date.now()}`
+    await seedOverdueChore({ title, cadenceDays: null, daysAgo: 3 })
+
+    await page.goto('/')
+    const card = page.locator('[data-testid="chore-card"]', { hasText: title })
+    await expect(card).toBeVisible()
+    await expect(card.getByText('zrobione 3 dni temu')).toBeVisible()
+
+    const completion = page.waitForResponse((res) => res.url().endsWith('/completion') && res.ok())
+    await card.getByRole('button', { name: /Zrobione!/i }).click()
+    await expect(card.getByRole('button', { name: /Ukończono \(\+1 pkt\)/i })).toBeDisabled()
+    await completion
+
+    // After a refetch from the server the lock must survive
+    await page.reload()
+    await expect(card.getByRole('button', { name: /Ukończono \(\+1 pkt\)/i })).toBeDisabled()
+    await expect(card.getByText('zrobione dzisiaj')).toBeVisible()
+  })
+
   test('creates unscheduled chore and filters by search', async ({ page }) => {
     await page.goto('/')
 

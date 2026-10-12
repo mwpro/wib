@@ -70,18 +70,23 @@ public class Chore
     {
         if (!CadenceDays.HasValue || CadenceDays.Value <= 0)
         {
-            return new FreshnessResult(FreshnessUrgency.Unscheduled, null, null);
+            int? daysSinceLastDone = LastCompletedAt.HasValue
+                ? WarsawTimeZone.GetDaysElapsed(LastCompletedAt.Value, nowUtc)
+                : null;
+            return new FreshnessResult(FreshnessUrgency.Unscheduled, null, daysSinceLastDone);
         }
 
         var referenceUtc = LastCompletedAt ?? CreatedAt;
         var daysElapsed = WarsawTimeZone.GetDaysElapsed(referenceUtc, nowUtc);
         var ratio = (double)daysElapsed / CadenceDays.Value;
+        var daysPastDue = daysElapsed - CadenceDays.Value;
 
         var urgency = ratio switch
         {
             < 0.80 => FreshnessUrgency.Fresh,
-            < 1.00 => FreshnessUrgency.DueSoon,
+            <= 1.00 => FreshnessUrgency.DueSoon,
             < 1.30 => FreshnessUrgency.Overdue,
+            _ when daysPastDue == 1 => FreshnessUrgency.Overdue,
             _ => FreshnessUrgency.Neglected
         };
 

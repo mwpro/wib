@@ -24,7 +24,8 @@ public static class StoreEndpoints
             var items = await db.RewardItems
                 .AsNoTracking()
                 .Where(r => r.IsActive)
-                .OrderBy(r => r.Title)
+                .OrderByDescending(r => r.PointCost)
+                .ThenBy(r => r.Title)
                 .ToListAsync(cancellationToken);
 
             var responseList = items

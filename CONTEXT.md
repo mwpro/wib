@@ -23,11 +23,13 @@
   * Calculated in whole calendar days elapsed in the `Europe/Warsaw` timezone: $\text{Days Since Last Done} = \max(0, \text{Today}_{\text{Warsaw}} - \text{ReferenceDate}_{\text{Warsaw}})$.
   * When a chore has never been completed (`LastCompletedAt == null`), `ReferenceDate` defaults to `CreatedAt`.
   * **Fresh** ($0\% \le \text{Ratio} < 80\%$): Recently done, no attention needed (Green).
-  * **Due Soon** ($80\% \le \text{Ratio} < 100\%$): Approaching due date (Yellow).
-  * **Overdue** ($100\% \le \text{Ratio} < 130\%$): Past expected cadence (Orange).
-  * **Neglected** ($\text{Ratio} \ge 130\%$): Significantly overdue; highest priority (Red).
+  * **Due Soon** ($80\% \le \text{Ratio} \le 100\%$): Approaching or on the due date (Yellow). The due day itself (Ratio = 100%) is not late.
+  * **Overdue** ($100\% < \text{Ratio} < 130\%$): Past expected cadence (Orange). The first day past due is always Overdue, even when Ratio ≥ 130% (short cadences, e.g. a daily chore on day 2).
+  * **Neglected** ($\text{Ratio} \ge 130\%$ and at least 2 days past due): Significantly overdue; highest priority (Red).
+  * *Backlog order*: by urgency band (Neglected → Overdue → Due Soon → Fresh → Unscheduled), then by Ratio within a band.
   * *Unscheduled Chore*: Has no cadence (`CadenceDays = null`); urgency is `Unscheduled` with no numerical ratio.
 * **Chore Completion**: An immutable record created when a member marks a chore done. Captures `CompletedAt` (UTC), `PointsAwarded`, `CompletedByMemberId`, and references the completed `ChoreId`.
+  * *Once per day*: a chore can be marked done at most once per `Europe/Warsaw` calendar day. This is enforced in the UI only; the API accepts repeats by design — abuse is visible to the household in the scoreboard activity stream, and social accountability is the guard.
 * **Tag**: A multi-label category attached to chores for filtering (e.g. `kuchnia`, `sprzątanie`, `ogród`, `konserwacja`).
 
 ### 3. Gamification & Economy
@@ -36,6 +38,7 @@
 * **Monthly Race ("Kto jest lepszy?")**: The primary competition cycle. Tracks points earned during the current calendar month, resetting on the 1st of each month at 00:00 `Europe/Warsaw` time.
 * **Work Share Ratio**: The proportional percentage of monthly points earned by each member in the current period, visualized as a segmented progress bar.
 * **Reward Item**: A catalog item in the in-app store representing a favor, treat, or privilege (e.g. "Masaż", "Wyjście solo", "Kupno książki") with a designated point cost and optional available quantity (supports single-claim or batch perks; automatically deactivates when inventory is exhausted).
+  * *Catalog order*: most expensive first (point cost descending), then by title.
 * **Voucher**: An instance of a purchased reward owned by a member in their wallet, preserving title and point cost snapshots from the time of purchase. Marked redeemed with a completion timestamp (`RedeemedAt`) once fulfilled.
 
 ---
