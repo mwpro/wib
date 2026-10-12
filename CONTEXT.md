@@ -29,6 +29,7 @@
   * *Backlog order*: by urgency band (Neglected → Overdue → Due Soon → Fresh → Unscheduled), then by Ratio within a band.
   * *Unscheduled Chore*: Has no cadence (`CadenceDays = null`); urgency is `Unscheduled` with no numerical ratio.
 * **Chore Completion**: An immutable record created when a member marks a chore done. Captures `CompletedAt` (UTC), `PointsAwarded`, `CompletedByMemberId`, and references the completed `ChoreId`.
+  * *Once per day*: a chore can be marked done at most once per `Europe/Warsaw` calendar day. This is enforced in the UI only; the API accepts repeats by design — abuse is visible to the household in the scoreboard activity stream, and social accountability is the guard.
 * **Tag**: A multi-label category attached to chores for filtering (e.g. `kuchnia`, `sprzątanie`, `ogród`, `konserwacja`).
 
 ### 3. Gamification & Economy

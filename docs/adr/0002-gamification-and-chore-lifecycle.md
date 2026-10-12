@@ -10,7 +10,7 @@ Traditional chore systems with rigid calendar schedules induce "late guilt" and 
 1. **Floating Cadence ("Needs-Based Freshness")**:
    - Chores are scheduled by floating interval (`CadenceDays`) elapsed since their last completion, rather than static calendar days.
    - When completed, the next expected interval starts from the completion date. Missed cycles never stack or generate multiple overdue instances.
-   - Chores can also be unscheduled (`CadenceDays = null`) to support one-off tasks.
+   - Chores can also be unscheduled (`CadenceDays = null`) to support ad-hoc tasks, repeatable at most once per calendar day.
 2. **Freshness & Urgency Math**:
    - Status is calculated dynamically: $\text{Ratio} = \frac{\text{Days Since Last Done}}{\text{CadenceDays}}$:
      - `0% - 79%`: Fresh (Green)

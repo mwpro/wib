@@ -108,7 +108,7 @@ export async function seedOverdueChore({
   daysAgo = 21,
 }: {
   title: string
-  cadenceDays?: number
+  cadenceDays?: number | null
   daysAgo?: number
 }) {
   const config = getDbConfig()

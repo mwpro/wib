@@ -70,7 +70,10 @@ public class Chore
     {
         if (!CadenceDays.HasValue || CadenceDays.Value <= 0)
         {
-            return new FreshnessResult(FreshnessUrgency.Unscheduled, null, null);
+            int? daysSinceLastDone = LastCompletedAt.HasValue
+                ? WarsawTimeZone.GetDaysElapsed(LastCompletedAt.Value, nowUtc)
+                : null;
+            return new FreshnessResult(FreshnessUrgency.Unscheduled, null, daysSinceLastDone);
         }
 
         var referenceUtc = LastCompletedAt ?? CreatedAt;

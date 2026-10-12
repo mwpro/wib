@@ -523,6 +523,32 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     }
 
     [Fact]
+    public async Task PostCompletion_WithUnscheduledChore_ShouldReturnZeroDaysSinceLastDone()
+    {
+        // Arrange: own member so the shared test member's wallet balance isn't affected
+        var client = CreateAuthenticatedClient("auth0|unscheduled-completer-" + Guid.NewGuid());
+        var choreId = 0;
+
+        await _factory.ExecuteDbContextAsync(async db =>
+        {
+            var chore = Chore.Create("Wynieść śmieci", null, 1, null, DateTime.UtcNow.AddDays(-5));
+            db.Chores.Add(chore);
+            await db.SaveChangesAsync();
+            choreId = chore.Id;
+        });
+
+        // Act
+        var response = await client.PostAsync($"/api/chores/{choreId}/completion", null);
+
+        // Assert: frontend locks "Zrobione" for the rest of the day based on DaysSinceLastDone == 0
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<CompleteChoreResponse>(_jsonOptions);
+        result!.Chore.Urgency.Should().Be("Unscheduled");
+        result.Chore.UrgencyRatio.Should().BeNull();
+        result.Chore.DaysSinceLastDone.Should().Be(0);
+    }
+
+    [Fact]
     public async Task PostCompletion_MultipleTimes_ShouldAccumulatePointsAndCompletions()
     {
         // Arrange

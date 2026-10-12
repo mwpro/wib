@@ -24,6 +24,44 @@ public class ChoreFreshnessTests
         result.DaysSinceLastDone.Should().BeNull();
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(7)]
+    public void GetFreshness_WhenUnscheduledAndCompleted_ShouldReturnDaysSinceLastDoneWithoutRatio(int daysAgo)
+    {
+        // Arrange
+        var chore = Chore.Create("Test", null, 1, null, _fixedNowUtc.AddDays(-100));
+        var member = Member.Create("auth0|tester", "Tester", _fixedNowUtc.AddDays(-100));
+        chore.Complete(member, _fixedNowUtc.AddDays(-daysAgo));
+
+        // Act
+        var result = chore.GetFreshness(_fixedNowUtc);
+
+        // Assert
+        result.Urgency.Should().Be(FreshnessUrgency.Unscheduled);
+        result.UrgencyRatio.Should().BeNull();
+        result.DaysSinceLastDone.Should().Be(daysAgo);
+    }
+
+    [Fact]
+    public void GetFreshness_WhenUnscheduledAndCompletedBeforeWarsawMidnight_ShouldCountAsPreviousDay()
+    {
+        // Completed 23:30 Warsaw on 2026-06-15 (21:30 UTC), now 00:30 Warsaw on 2026-06-16 (22:30 UTC)
+        var completedAtUtc = new DateTime(2026, 6, 15, 21, 30, 0, DateTimeKind.Utc);
+        var nowUtc = new DateTime(2026, 6, 15, 22, 30, 0, DateTimeKind.Utc);
+
+        var chore = Chore.Create("Test", null, 1, null, completedAtUtc.AddDays(-5));
+        var member = Member.Create("auth0|tester", "Tester", completedAtUtc.AddDays(-5));
+        chore.Complete(member, completedAtUtc);
+
+        // Act
+        var result = chore.GetFreshness(nowUtc);
+
+        // Assert: a new calendar day -> can be completed again
+        result.DaysSinceLastDone.Should().Be(1);
+    }
+
     [Fact]
     public void GetFreshness_WhenCadenceDaysIsZeroOrNegative_ShouldReturnUnscheduled()
     {
