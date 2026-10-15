@@ -1,6 +1,6 @@
 # wib TRMNL Display
 
-Private TRMNL polling plugin (quadrant layout only) that shows the Monthly Race and up to 10 scheduled chores in backlog order (due first, then Fresh). TRMNL authenticates to the wib API as an **Auth0 OAuth client**. See [ADR 0004](../docs/adr/0004-trmnl-display-via-oauth.md) for the reasoning.
+Private TRMNL polling plugin (quadrant layout only) that shows the Monthly Race and up to 10 scheduled chores in backlog order (Neglected, Overdue and Due Soon first, then Fresh). TRMNL authenticates to the wib API as an **Auth0 OAuth client**. See [ADR 0004](../docs/adr/0004-trmnl-display-via-oauth.md) for the reasoning.
 
 ```
 trmnl/
@@ -10,7 +10,7 @@ trmnl/
     └── quadrant.liquid  # the only layout
 ```
 
-`trmnlp pull` writes the non-secret OAuth config (`oauth_*` keys: URLs, scopes, audience param) into `settings.yml`, so it's versioned. The **client ID/secret and the Auth0 subdomain** stay in the TRMNL UI only. Never commit them.
+`trmnlp pull` writes the non-secret OAuth config (`oauth_*` keys: URLs, scopes, audience param, Auth0 subdomain) into `settings.yml`, so it's versioned. The **client ID/secret** stay in the TRMNL UI only. Never commit them.
 
 ## One-time setup
 

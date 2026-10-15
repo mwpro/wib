@@ -16,7 +16,7 @@ TRMNL offers three relevant mechanisms:
 ## Decision
 1. **Private polling plugin** with source in [`trmnl/`](../../trmnl/), managed with `trmnlp`. **Quadrant layout only.** Refreshes every 15 minutes.
 2. **Regular API endpoints only**. No TRMNL-specific endpoint and no backend changes:
-   - `GET /api/chores`: backlog order is already applied server-side. The template shows up to 10 **scheduled** chores in backlog order: due chores first, then Fresh ones fill the remaining rows. Unscheduled chores are never shown.
+   - `GET /api/chores`: backlog order is already applied server-side. The template shows up to 10 **scheduled** chores in backlog order: Neglected, Overdue and Due Soon first, then Fresh ones fill the remaining rows. Unscheduled chores are never shown.
    - `GET /api/scoreboard/{year}/{month}`: year and month come from Liquid's `now` in the polling URL. **Accepted defect**: around the start of a month the date may resolve in UTC and show the previous month's race for an hour or two.
 3. **Auth: TRMNL as an Auth0 client** of the existing tenant (shared with `tiny-money`):
    - Dedicated Auth0 **Regular Web Application** "TRMNL" with `authorization_code` + `refresh_token` grants and the `offline_access` scope.
@@ -26,7 +26,7 @@ TRMNL offers three relevant mechanisms:
      2. If the hosted UI can't do that, set the tenant **Default Audience** to the wib API. This is safe today because both SPAs (wib and tiny-money) send their audience explicitly. Any future client in the tenant that omits `audience` will silently receive wib tokens.
      3. If neither works, fall back to the API-key approach (see Consequences).
 4. **The TRMNL token intentionally has full member access**: it carries the `sub` of whoever connected it. We deliberately skip `azp`/scope restrictions and leave JIT member provisioning untouched. The device is in the home, the plugin is private, and the data is household-wide anyway. The accepted risk is that a leaked TRMNL token equals that member's account.
-5. **The non-secret OAuth config is versioned; the secrets are not.** `trmnlp pull` writes the `oauth_*` keys (URLs, scopes, audience param) into `settings.yml`. The client ID/secret stay in the TRMNL UI only and are never committed. The wib base URL is a plugin custom field.
+5. **The non-secret OAuth config is versioned; the secrets are not.** `trmnlp pull` writes the `oauth_*` keys (URLs, scopes, audience param, Auth0 subdomain) into `settings.yml`. The client ID/secret stay in the TRMNL UI only and are never committed. The wib base URL is a plugin custom field.
 
 ## Consequences
 - No API key storage, hashing, rotation UI or custom auth handler in wib. Standard JWT Bearer validation covers TRMNL.

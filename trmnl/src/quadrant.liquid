@@ -5,39 +5,40 @@
 {% endcomment %}
 {% assign chores = IDX_0.data | default: IDX_0 %}
 {% assign members = IDX_1.members | sort: 'rank' %}
-{% assign totalPoints = 0 %}
-{% for m in members %}{% assign totalPoints = totalPoints | plus: m.monthlyPoints %}{% endfor %}
-{% assign segmentClasses = 'bg--black,bg--gray-4,bg--gray-6,bg--white' | split: ',' %}
+{% assign leader = members.first %}
+{% assign segmentClasses = 'bg--black,bg--gray-4,bg--gray-6,bg--gray-2' | split: ',' %}
 <style>
   .wib-regular { font-weight: 400; font-variation-settings: "wght" 400; }
-  .wib-regular b { font-weight: 700; font-variation-settings: "wght" 700; }
+  .wib-regular.wib-strong { font-weight: 700; font-variation-settings: "wght" 700; }
 </style>
-{% assign shown = 0 %}
-{% assign dueTotal = 0 %}
-{% for c in chores %}{% if c.urgency == 'Fresh' or c.urgency == 'Unscheduled' %}{% break %}{% endif %}{% assign dueTotal = dueTotal | plus: 1 %}{% endfor %}
+{% assign rowCount = 0 %}
+{% assign dueCount = 0 %}
+{% for c in chores %}{% if c.urgency == 'Fresh' or c.urgency == 'Unscheduled' %}{% break %}{% endif %}{% assign dueCount = dueCount | plus: 1 %}{% endfor %}
 
 <div class="layout layout--col layout--top gap--small">
 
   <!-- Monthly Race: Work Share Ratio bar, as in the app -->
   <div class="w--full">
     <div class="flex" style="gap: 0; height: 14px; border: 2px solid var(--black); border-radius: 9px; overflow: hidden;">
-      {% if totalPoints == 0 %}
+      {% if leader.monthlyPoints == 0 %}
         <div class="bg--white" style="width: 100%;"></div>
       {% else %}
         {% for m in members %}
           {% if m.workSharePercentage > 0 %}
-            {% assign i = forloop.index0 | modulo: 4 %}
-            <div class="{{ segmentClasses[i] }}" style="width: {{ m.workSharePercentage }}%;"></div>
+            {% assign segmentIndex = forloop.index0 | modulo: 4 %}
+            <div class="{{ segmentClasses[segmentIndex] }}" style="width: {{ m.workSharePercentage }}%;{% unless forloop.first %} border-left: 2px solid var(--black);{% endunless %}"></div>
           {% endif %}
         {% endfor %}
       {% endif %}
     </div>
     <div class="flex gap--small" style="justify-content: space-between; flex-wrap: wrap; margin-top: 4px;">
       {% for m in members %}
-        {% assign i = forloop.index0 | modulo: 4 %}
+        {% assign segmentIndex = forloop.index0 | modulo: 4 %}
+        {% assign isLeader = false %}{% if m.rank == 1 and m.monthlyPoints > 0 %}{% assign isLeader = true %}{% endif %}
         <span class="flex gap--xsmall" style="align-items: center;">
-          <span class="{{ segmentClasses[i] }}" style="width: 10px; height: 10px; border: 1px solid var(--black); border-radius: 50%; flex-shrink: 0;"></span>
-          <span class="description description--large wib-regular">{% if m.rank == 1 and m.monthlyPoints > 0 %}<b>{{ m.name }} {{ m.workSharePercentage }}%</b>{% else %}{{ m.name }} {{ m.workSharePercentage }}%{% endif %} ({{ m.monthlyPoints }} pkt)</span>
+          <span class="{{ segmentClasses[segmentIndex] }}" style="width: 10px; height: 10px; border: 1px solid var(--black); border-radius: 50%; flex-shrink: 0;"></span>
+          <span class="description description--large wib-regular{% if isLeader %} wib-strong{% endif %}">{{ m.name }} {{ m.workSharePercentage }}%</span>
+          <span class="description description--large wib-regular">({{ m.monthlyPoints }} pkt)</span>
         </span>
       {% endfor %}
     </div>
@@ -47,22 +48,24 @@
 
   <!-- Top of backlog: scheduled chores in backlog order, Fresh ones fill the remaining rows -->
   {% for c in chores %}
-    {% if c.urgency == 'Unscheduled' or shown >= 10 %}{% break %}{% endif %}
-    {% assign shown = shown | plus: 1 %}
-    {% assign over = c.daysSinceLastDone | minus: c.cadenceDays %}
+    {% if c.urgency == 'Unscheduled' or rowCount >= 10 %}{% break %}{% endif %}
+    {% assign rowCount = rowCount | plus: 1 %}
+    {% assign daysPastDue = c.daysSinceLastDone | minus: c.cadenceDays %}
+    {% comment %} Labels mirror frontend/src/components/chores/ChoreBadge.tsx {% endcomment %}
+    {% assign titleClass = '' %}
     {% case c.urgency %}
-      {% when 'Neglected' %}{% assign badge = 'Zaniedbane' %}{% assign badgeClass = 'label--inverted' %}
+      {% when 'Neglected' %}{% assign badge = 'Zaniedbane' %}{% assign badgeClass = 'label--inverted' %}{% assign titleClass = 'wib-strong' %}
       {% when 'Overdue' %}{% assign badge = 'Zaległe' %}{% assign badgeClass = 'label--outline' %}
       {% when 'DueSoon' %}{% assign badge = 'Wkrótce' %}{% assign badgeClass = 'label--underline' %}
       {% else %}{% assign badge = 'Świeże' %}{% assign badgeClass = 'label--gray' %}
     {% endcase %}
     <div class="item w--full">
       <div class="content" style="flex: 1; min-width: 0;">
-        <span class="description description--large wib-regular" style="display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{% if c.urgency == 'Neglected' %}<b>{{ c.title }}</b>{% else %}{{ c.title }}{% endif %}</span>
+        <span class="description description--large wib-regular {{ titleClass }}" style="display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ c.title }}</span>
       </div>
       <span class="flex gap--xsmall" style="align-items: center; white-space: nowrap; flex-shrink: 0; padding-left: var(--gap-small);">
         <span class="label {{ badgeClass }}">{{ badge }}</span>
-        <span class="description description--large value--tnums">{% if over > 0 %}+{{ over }} d{% elsif over == 0 %}dziś{% else %}za {{ over | abs }} d{% endif %}</span>
+        <span class="description description--large value--tnums">{% if daysPastDue > 0 %}+{{ daysPastDue }} d{% elsif daysPastDue == 0 %}dziś{% else %}za {{ daysPastDue | abs }} d{% endif %}</span>
       </span>
     </div>
   {% endfor %}
@@ -72,5 +75,5 @@
 <div class="title_bar">
   <img class="image" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13.5 10.5 22 2'/%3E%3Cpath d='M14.734 13.841a2 2 0 0 0-.314-2.42L12.58 9.58a2 2 0 0 0-2.421-.314l-7.657 4.461A1 1 0 0 0 2.3 15.3l6.403 6.403a1 1 0 0 0 1.571-.204z'/%3E%3Cpath d='m5 18 2-2'/%3E%3Cpath d='m7.699 10.7 5.602 5.601'/%3E%3C/svg%3E" />
   <span class="title">wib</span>
-  <span class="instance">{{ 'now' | date: '%m.%Y' }} · {% if dueTotal > 0 %}{{ dueTotal }} do zrobienia{% else %}wszystko ogarnięte ✓{% endif %}</span>
+  <span class="instance">{{ 'now' | date: '%m.%Y' }} · {% if dueCount > 0 %}{{ dueCount }} do zrobienia{% else %}wszystko ogarnięte ✓{% endif %}</span>
 </div>
