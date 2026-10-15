@@ -42,6 +42,9 @@
   * *Catalog order*: most expensive first (point cost descending), then by title.
 * **Voucher**: An instance of a purchased reward owned by a member in their wallet, preserving title and point cost snapshots from the time of purchase. Marked redeemed with a completion timestamp (`RedeemedAt`) once fulfilled.
 
+### 4. Integrations
+* **TRMNL Display**: A read-only, household-wide view of wib rendered on the home's TRMNL e-ink device (quadrant layout). Shows the Monthly Race standings and up to 10 scheduled chores in backlog order (due first, Fresh filling the rest; never Unscheduled); when nothing is due, its footer says "wszystko ogarnięte". It has no member identity of its own: TRMNL polls the regular API as an Auth0 OAuth client (see [ADR 0004](docs/adr/0004-trmnl-display-via-oauth.md)).
+
 ---
 
 ## Boundaries & Non-Goals

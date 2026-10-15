@@ -1,0 +1,33 @@
+---
+strategy: polling
+no_screen_padding: 'no'
+dark_mode: 'no'
+static_data: ''
+polling_verb: get
+framework_version: 3.4.0
+serverless_language: ''
+refresh_interval_floor: ''
+polling_url: "{{ wib_url }}api/chores\r\n{{ wib_url }}api/scoreboard/{{ 'now' | date: '%Y' }}/{{ 'now' | date: '%m' }}"
+polling_headers: 'Authorization: Bearer {{ oauth_access_token }}'
+polling_body: ''
+id: 504090
+oauth_enabled: 'true'
+oauth_pkce_enabled: 'no'
+oauth_authorize_url: https://${connectionConfig.subdomain}.auth0.com/authorize
+oauth_token_url: https://${connectionConfig.subdomain}.auth0.com/oauth/token
+oauth_scopes: openid offline_access
+oauth_auth_params: "{\r\n  \"audience\":\"https://prod.wib\"\r\n}"
+oauth_token_request_auth_method: body
+oauth_body_format: form
+oauth_authorization_method: body
+oauth_expiry_strategy: expirein
+oauth_connection_config:
+  subdomain: mwpro.eu
+custom_fields:
+- keyname: wib_url
+  field_type: url
+  name: Instancja wib
+  description: Adres instancji wib, zakończony ukośnikiem
+name: wib
+description: ''
+refresh_interval: 15
