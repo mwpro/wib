@@ -146,7 +146,19 @@ public record ChoreHistoryItem(
     DateTime CompletedAt,
     int DaysSincePrevious,
     string UrgencyAtCompletion
-);
+)
+{
+    public static ChoreHistoryItem Create(ChoreCompletion completion, string memberName) =>
+        new(
+            completion.Id,
+            completion.CompletedByMemberId,
+            memberName,
+            completion.PointsAwarded,
+            completion.CompletedAt,
+            completion.DaysSincePrevious,
+            completion.UrgencyAtCompletion.ToString()
+        );
+}
 
 public record ChoreHistoryMemberShare(
     int MemberId,
@@ -167,6 +179,5 @@ public record ChoreHistoryResponse(
     int Page,
     int PageSize,
     int TotalCount,
-    bool HasMore,
-    ChoreHistorySummary Summary
+    bool HasMore
 );

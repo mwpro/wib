@@ -63,19 +63,8 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
         return choreId;
     }
 
-    [Fact]
-    public async Task GetHistory_WithoutAuthentication_ShouldReturnUnauthorized()
+    private async Task<int> SeedArchivedChoreAsync()
     {
-        var response = await _factory.CreateClient().GetAsync("/api/chores/1/completions");
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task GetHistory_WhenChoreNotFoundOrArchived_ShouldReturnNotFound()
-    {
-        // Arrange
-        var client = CreateAuthenticatedClient();
         var archivedId = 0;
         await _factory.ExecuteDbContextAsync(async db =>
         {
@@ -85,6 +74,25 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
             await db.SaveChangesAsync();
             archivedId = archived.Id;
         });
+        return archivedId;
+    }
+
+    // ---- GET /api/chores/{id}/completions ----
+
+    [Fact]
+    public async Task GetCompletions_WithoutAuthentication_ShouldReturnUnauthorized()
+    {
+        var response = await _factory.CreateClient().GetAsync("/api/chores/1/completions");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task GetCompletions_WhenChoreNotFoundOrArchived_ShouldReturnNotFound()
+    {
+        // Arrange
+        var client = CreateAuthenticatedClient();
+        var archivedId = await SeedArchivedChoreAsync();
 
         // Act & Assert
         (await client.GetAsync("/api/chores/999999/completions")).StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -92,7 +100,7 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
     }
 
     [Fact]
-    public async Task GetHistory_ShouldPageNewestFirst_WithSummaryAcrossAllPages()
+    public async Task GetCompletions_ShouldPageNewestFirstWithStoredOutcomes()
     {
         // Arrange
         var client = CreateAuthenticatedClient();
@@ -123,26 +131,10 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
         }
         oldestFirst[0].MemberName.Should().Be("Ania");
         oldestFirst[0].PointsAwarded.Should().Be(3);
-
-        // Assert - summary is identical on every page and spans all completions
-        foreach (var summary in new[] { first.Summary, second.Summary })
-        {
-            summary.TotalCount.Should().Be(25);
-            summary.OutcomeCounts.Should().BeEquivalentTo(new Dictionary<string, int>
-            {
-                ["Fresh"] = 5,
-                ["DueSoon"] = 10,
-                ["Overdue"] = 5,
-                ["Neglected"] = 5
-            });
-            summary.OnTimeCount.Should().Be(15);
-            summary.Members.Select(m => (m.MemberName, m.Count))
-                .Should().Equal(("Ania", 13), ("Tomek", 12));
-        }
     }
 
     [Fact]
-    public async Task GetHistory_WithNoCompletions_ShouldReturnEmptyListAndZeroSummary()
+    public async Task GetCompletions_WithNoCompletions_ShouldReturnEmptyPage()
     {
         // Arrange
         var client = CreateAuthenticatedClient();
@@ -153,14 +145,12 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
 
         // Assert
         response!.Items.Should().BeEmpty();
+        response.TotalCount.Should().Be(0);
         response.HasMore.Should().BeFalse();
-        response.Summary.TotalCount.Should().Be(0);
-        response.Summary.OutcomeCounts.Should().HaveCount(4).And.OnlyContain(o => o.Value == 0);
-        response.Summary.Members.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task GetHistory_WithInvalidPageSize_ShouldReturn400()
+    public async Task GetCompletions_WithInvalidPageSize_ShouldReturn400()
     {
         var client = CreateAuthenticatedClient();
         var choreId = await SeedChoreWithHistoryAsync(1);
@@ -168,5 +158,68 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
         var response = await client.GetAsync($"/api/chores/{choreId}/completions?pageSize=101");
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    // ---- GET /api/chores/{id}/completions/summary ----
+
+    [Fact]
+    public async Task GetSummary_WithoutAuthentication_ShouldReturnUnauthorized()
+    {
+        var response = await _factory.CreateClient().GetAsync("/api/chores/1/completions/summary");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task GetSummary_WhenChoreNotFoundOrArchived_ShouldReturnNotFound()
+    {
+        // Arrange
+        var client = CreateAuthenticatedClient();
+        var archivedId = await SeedArchivedChoreAsync();
+
+        // Act & Assert
+        (await client.GetAsync("/api/chores/999999/completions/summary")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await client.GetAsync($"/api/chores/{archivedId}/completions/summary")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task GetSummary_ShouldSpanAllCompletions()
+    {
+        // Arrange
+        var client = CreateAuthenticatedClient();
+        var choreId = await SeedChoreWithHistoryAsync(25);
+
+        // Act
+        var summary = await client.GetFromJsonAsync<ChoreHistorySummary>($"/api/chores/{choreId}/completions/summary", _jsonOptions);
+
+        // Assert
+        summary!.TotalCount.Should().Be(25);
+        summary.OutcomeCounts.Should().BeEquivalentTo(new Dictionary<string, int>
+        {
+            ["Fresh"] = 5,
+            ["DueSoon"] = 10,
+            ["Overdue"] = 5,
+            ["Neglected"] = 5
+        });
+        summary.OnTimeCount.Should().Be(15);
+        summary.Members.Select(m => (m.MemberName, m.Count))
+            .Should().Equal(("Ania", 13), ("Tomek", 12));
+    }
+
+    [Fact]
+    public async Task GetSummary_WithNoCompletions_ShouldReturnZeroCountsForEveryOutcome()
+    {
+        // Arrange
+        var client = CreateAuthenticatedClient();
+        var choreId = await SeedChoreWithHistoryAsync(0);
+
+        // Act
+        var summary = await client.GetFromJsonAsync<ChoreHistorySummary>($"/api/chores/{choreId}/completions/summary", _jsonOptions);
+
+        // Assert
+        summary!.TotalCount.Should().Be(0);
+        summary.OutcomeCounts.Should().HaveCount(4).And.OnlyContain(o => o.Value == 0);
+        summary.OnTimeCount.Should().Be(0);
+        summary.Members.Should().BeEmpty();
     }
 }

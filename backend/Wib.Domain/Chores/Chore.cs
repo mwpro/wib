@@ -1,4 +1,3 @@
-using Wib.Domain.Common;
 using Wib.Domain.Members;
 
 namespace Wib.Domain.Chores;
@@ -71,12 +70,10 @@ public class Chore
 
     public FreshnessResult GetFreshness(DateTime nowUtc)
     {
-        if (!CadenceDays.HasValue || CadenceDays.Value <= 0)
+        // An unscheduled chore that was never done has no meaningful "days since"; a scheduled one counts from creation.
+        if (LastCompletedAt is null && CadenceDays is not > 0)
         {
-            int? daysSinceLastDone = LastCompletedAt.HasValue
-                ? WarsawTimeZone.GetDaysElapsed(LastCompletedAt.Value, nowUtc)
-                : null;
-            return new FreshnessResult(FreshnessUrgency.Unscheduled, null, daysSinceLastDone);
+            return new FreshnessResult(FreshnessUrgency.Unscheduled, null, null);
         }
 
         return FreshnessCalculator.Evaluate(LastCompletedAt ?? CreatedAt, nowUtc, CadenceDays);

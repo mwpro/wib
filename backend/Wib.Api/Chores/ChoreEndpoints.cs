@@ -179,17 +179,34 @@ public static class ChoreEndpoints
                 .ThenByDescending(cc => cc.Id)
                 .Skip((effectivePage - 1) * effectivePageSize)
                 .Take(effectivePageSize)
-                .Select(cc => new
-                {
-                    cc.Id,
-                    cc.CompletedByMemberId,
-                    MemberName = cc.CompletedByMember.Name,
-                    cc.PointsAwarded,
-                    cc.CompletedAt,
-                    cc.DaysSincePrevious,
-                    cc.UrgencyAtCompletion
-                })
+                .Select(cc => ChoreHistoryItem.Create(cc, cc.CompletedByMember.Name))
                 .ToListAsync(cancellationToken);
+
+            var totalCount = await completions.CountAsync(cancellationToken);
+
+            return Results.Ok(new ChoreHistoryResponse(
+                items,
+                effectivePage,
+                effectivePageSize,
+                totalCount,
+                effectivePage * effectivePageSize < totalCount));
+        })
+        .WithName("GetChoreCompletionHistory");
+
+        group.MapGet("/{id:int}/completions/summary", async (
+            [FromRoute] int id,
+            [FromServices] WibDbContext db,
+            CancellationToken cancellationToken) =>
+        {
+            var choreExists = await db.Chores.AnyAsync(c => c.Id == id && !c.IsArchived, cancellationToken);
+            if (!choreExists)
+            {
+                return Results.NotFound();
+            }
+
+            var completions = db.ChoreCompletions
+                .AsNoTracking()
+                .Where(cc => cc.ChoreId == id);
 
             var outcomes = await completions
                 .GroupBy(cc => cc.UrgencyAtCompletion)
@@ -198,37 +215,18 @@ public static class ChoreEndpoints
 
             var members = await completions
                 .GroupBy(cc => new { cc.CompletedByMemberId, cc.CompletedByMember.Name })
+                .OrderByDescending(g => g.Count())
+                .ThenBy(g => g.Key.Name)
                 .Select(g => new ChoreHistoryMemberShare(g.Key.CompletedByMemberId, g.Key.Name, g.Count()))
                 .ToListAsync(cancellationToken);
 
-            var totalCount = outcomes.Values.Sum();
-            var summary = new ChoreHistorySummary(
-                totalCount,
-                Enum.GetValues<FreshnessUrgency>()
-                    .Where(u => u != FreshnessUrgency.Unscheduled)
-                    .ToDictionary(u => u.ToString(), u => outcomes.GetValueOrDefault(u)),
-                outcomes.Where(o => o.Key.IsOnTime()).Sum(o => o.Value),
-                members
-                    .OrderByDescending(m => m.Count)
-                    .ThenBy(m => m.MemberName)
-                    .ToList());
-
-            return Results.Ok(new ChoreHistoryResponse(
-                items.Select(i => new ChoreHistoryItem(
-                    i.Id,
-                    i.CompletedByMemberId,
-                    i.MemberName,
-                    i.PointsAwarded,
-                    i.CompletedAt,
-                    i.DaysSincePrevious,
-                    i.UrgencyAtCompletion.ToString())).ToList(),
-                effectivePage,
-                effectivePageSize,
-                totalCount,
-                effectivePage * effectivePageSize < totalCount,
-                summary));
+            return Results.Ok(new ChoreHistorySummary(
+                outcomes.Values.Sum(),
+                FreshnessUrgency.Judged.ToDictionary(u => u.ToString(), u => outcomes.GetValueOrDefault(u)),
+                outcomes.Where(o => o.Key.IsOnTime).Sum(o => o.Value),
+                members));
         })
-        .WithName("GetChoreCompletionHistory");
+        .WithName("GetChoreCompletionSummary");
 
         return app;
     }

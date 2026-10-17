@@ -88,7 +88,14 @@ public class ChoreCompletionOutcomeTests
     [InlineData(FreshnessUrgency.Unscheduled, false)]
     public void IsOnTime_ShouldCountEarlyAndOnTimeOutcomesOnly(FreshnessUrgency urgency, bool expected)
     {
-        urgency.IsOnTime().Should().Be(expected);
+        urgency.IsOnTime.Should().Be(expected);
+    }
+
+    [Fact]
+    public void Judged_ShouldListEveryUrgencyExceptUnscheduled()
+    {
+        FreshnessUrgency.Judged.Should().Equal(
+            FreshnessUrgency.Fresh, FreshnessUrgency.DueSoon, FreshnessUrgency.Overdue, FreshnessUrgency.Neglected);
     }
 
     [Fact]
