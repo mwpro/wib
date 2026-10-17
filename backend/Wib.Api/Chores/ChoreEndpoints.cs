@@ -149,6 +149,87 @@ public static class ChoreEndpoints
         })
         .WithName("CreateChoreCompletion");
 
+        group.MapGet("/{id:int}/completions", async (
+            [FromRoute] int id,
+            [FromQuery] int? page,
+            [FromQuery] int? pageSize,
+            [FromServices] WibDbContext db,
+            CancellationToken cancellationToken) =>
+        {
+            var effectivePage = page is null or <= 0 ? 1 : page.Value;
+            var effectivePageSize = pageSize ?? 20;
+
+            var errors = new Dictionary<string, string[]>();
+            if (page < 0) errors["page"] = ["Page must be greater than or equal to 1."];
+            if (effectivePageSize is < 1 or > 100) errors["pageSize"] = ["Page size must be between 1 and 100."];
+            if (errors.Count > 0) return Results.ValidationProblem(errors);
+
+            var choreExists = await db.Chores.AnyAsync(c => c.Id == id && !c.IsArchived, cancellationToken);
+            if (!choreExists)
+            {
+                return Results.NotFound();
+            }
+
+            var completions = db.ChoreCompletions
+                .AsNoTracking()
+                .Where(cc => cc.ChoreId == id);
+
+            var items = await completions
+                .OrderByDescending(cc => cc.CompletedAt)
+                .ThenByDescending(cc => cc.Id)
+                .Skip((effectivePage - 1) * effectivePageSize)
+                .Take(effectivePageSize)
+                .Select(cc => new
+                {
+                    cc.Id,
+                    cc.CompletedByMemberId,
+                    MemberName = cc.CompletedByMember.Name,
+                    cc.PointsAwarded,
+                    cc.CompletedAt,
+                    cc.DaysSincePrevious,
+                    cc.UrgencyAtCompletion
+                })
+                .ToListAsync(cancellationToken);
+
+            var outcomes = await completions
+                .GroupBy(cc => cc.UrgencyAtCompletion)
+                .Select(g => new { Urgency = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.Urgency, g => g.Count, cancellationToken);
+
+            var members = await completions
+                .GroupBy(cc => new { cc.CompletedByMemberId, cc.CompletedByMember.Name })
+                .Select(g => new ChoreHistoryMemberShare(g.Key.CompletedByMemberId, g.Key.Name, g.Count()))
+                .ToListAsync(cancellationToken);
+
+            var totalCount = outcomes.Values.Sum();
+            var summary = new ChoreHistorySummary(
+                totalCount,
+                Enum.GetValues<FreshnessUrgency>()
+                    .Where(u => u != FreshnessUrgency.Unscheduled)
+                    .ToDictionary(u => u.ToString(), u => outcomes.GetValueOrDefault(u)),
+                outcomes.Where(o => o.Key.IsOnTime()).Sum(o => o.Value),
+                members
+                    .OrderByDescending(m => m.Count)
+                    .ThenBy(m => m.MemberName)
+                    .ToList());
+
+            return Results.Ok(new ChoreHistoryResponse(
+                items.Select(i => new ChoreHistoryItem(
+                    i.Id,
+                    i.CompletedByMemberId,
+                    i.MemberName,
+                    i.PointsAwarded,
+                    i.CompletedAt,
+                    i.DaysSincePrevious,
+                    i.UrgencyAtCompletion.ToString())).ToList(),
+                effectivePage,
+                effectivePageSize,
+                totalCount,
+                effectivePage * effectivePageSize < totalCount,
+                summary));
+        })
+        .WithName("GetChoreCompletionHistory");
+
         return app;
     }
 

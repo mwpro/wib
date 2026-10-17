@@ -79,6 +79,9 @@ public class WibDbContext : DbContext
             entity.HasKey(cc => cc.Id);
             entity.Property(cc => cc.CompletedAt).IsRequired();
             entity.Property(cc => cc.PointsAwarded).IsRequired();
+            entity.Property(cc => cc.DaysSincePrevious).IsRequired();
+            entity.Property(cc => cc.UrgencyAtCompletion).IsRequired().HasConversion<string>().HasMaxLength(20);
+            entity.HasIndex(cc => new { cc.ChoreId, cc.CompletedAt });
             entity.HasOne(cc => cc.Chore)
                 .WithMany(c => c.Completions)
                 .HasForeignKey(cc => cc.ChoreId)

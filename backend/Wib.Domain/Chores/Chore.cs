@@ -52,10 +52,13 @@ public class Chore
 
     public ChoreCompletion Complete(Member member, DateTime completedAtUtc)
     {
+        var outcome = FreshnessCalculator.JudgeCompletion(LastCompletedAt ?? CreatedAt, completedAtUtc, CadenceDays);
+
         LastCompletedAt = completedAtUtc;
         member.CreditWallet(Points);
 
-        var completion = ChoreCompletion.Create(Id, member.Id, Points, completedAtUtc);
+        var completion = ChoreCompletion.Create(
+            Id, member.Id, Points, completedAtUtc, outcome.DaysSincePrevious, outcome.Urgency);
         _completions.Add(completion);
         return completion;
     }
@@ -76,20 +79,6 @@ public class Chore
             return new FreshnessResult(FreshnessUrgency.Unscheduled, null, daysSinceLastDone);
         }
 
-        var referenceUtc = LastCompletedAt ?? CreatedAt;
-        var daysElapsed = WarsawTimeZone.GetDaysElapsed(referenceUtc, nowUtc);
-        var ratio = (double)daysElapsed / CadenceDays.Value;
-        var daysPastDue = daysElapsed - CadenceDays.Value;
-
-        var urgency = ratio switch
-        {
-            < 0.80 => FreshnessUrgency.Fresh,
-            <= 1.00 => FreshnessUrgency.DueSoon,
-            < 1.30 => FreshnessUrgency.Overdue,
-            _ when daysPastDue == 1 => FreshnessUrgency.Overdue,
-            _ => FreshnessUrgency.Neglected
-        };
-
-        return new FreshnessResult(urgency, ratio, daysElapsed);
+        return FreshnessCalculator.Evaluate(LastCompletedAt ?? CreatedAt, nowUtc, CadenceDays);
     }
 }

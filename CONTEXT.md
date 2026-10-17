@@ -29,8 +29,12 @@
   * **Neglected** ($\text{Ratio} \ge 130\%$ and at least 2 days past due): Significantly overdue; highest priority (Red).
   * *Backlog order*: by urgency band (Neglected → Overdue → Due Soon → Fresh → Unscheduled), then by Ratio within a band.
   * *Unscheduled Chore*: Has no cadence (`CadenceDays = null`); urgency is `Unscheduled` with no numerical ratio.
-* **Chore Completion**: An immutable record created when a member marks a chore done. Captures `CompletedAt` (UTC), `PointsAwarded`, `CompletedByMemberId`, and references the completed `ChoreId`.
+* **Chore Completion**: An immutable record created when a member marks a chore done. Captures `CompletedAt` (UTC), `PointsAwarded`, `CompletedByMemberId`, and references the completed `ChoreId`. Also snapshots its **Completion Outcome**: `DaysSincePrevious` and `UrgencyAtCompletion`.
   * *Once per day*: a chore can be marked done at most once per `Europe/Warsaw` calendar day. This is enforced in the UI only; the API accepts repeats by design — abuse is visible to the household in the scoreboard activity stream, and social accountability is the guard.
+* **Completion Outcome**: How timely a completion was, judged at the moment it happened with the same Freshness math as the backlog (see ADR 0005). The reference date is the chore's previous completion, or `CreatedAt` for the first one, and the cadence is the one in force at that moment. The outcome is stored and never recomputed.
+  * Outcome labels: Fresh → "Przed czasem", Due Soon → "W terminie", Overdue → "Z opóźnieniem", Neglected → "Mocno spóźnione". A chore without a cadence gets `Unscheduled` and no label.
+  * *On time* ("na czas"): Przed czasem + W terminie. The on-time share is taken over judged completions only; completions made while the chore had no cadence (`Unscheduled`) count neither for nor against it, though they still count toward the total.
+* **Completion History**: A read-only, per-chore view of its Chore Completions, opened from "Historia" in the chore card menu. It lists completions newest first, grouped by `Europe/Warsaw` month, showing date, member, points, gap since the previous completion, and outcome. Its summary covers all time: total, outcome counts, on-time share, and how completions split between members (counts only — no per-member performance).
 * **Tag**: A multi-label category attached to chores for filtering (e.g. `kuchnia`, `sprzątanie`, `ogród`, `konserwacja`).
 
 ### 3. Gamification & Economy

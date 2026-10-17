@@ -22,7 +22,7 @@ namespace Wib.Api.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
-            modelBuilder.Entity("Wib.Api.Data.Entities.Chore", b =>
+            modelBuilder.Entity("Wib.Domain.Chores.Chore", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -62,7 +62,7 @@ namespace Wib.Api.Migrations
                     b.ToTable("chores", (string)null);
                 });
 
-            modelBuilder.Entity("Wib.Api.Data.Entities.ChoreCompletion", b =>
+            modelBuilder.Entity("Wib.Domain.Chores.ChoreCompletion", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -79,34 +79,51 @@ namespace Wib.Api.Migrations
                     b.Property<int>("CompletedByMemberId")
                         .HasColumnType("int");
 
+                    b.Property<int>("DaysSincePrevious")
+                        .HasColumnType("int");
+
                     b.Property<int>("PointsAwarded")
                         .HasColumnType("int");
 
+                    b.Property<string>("UrgencyAtCompletion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ChoreId");
-
                     b.HasIndex("CompletedByMemberId");
+
+                    b.HasIndex("ChoreId", "CompletedAt");
 
                     b.ToTable("chore_completions", (string)null);
                 });
 
-            modelBuilder.Entity("Wib.Api.Data.Entities.ChoreTag", b =>
+            modelBuilder.Entity("Wib.Domain.Chores.Tag", b =>
                 {
-                    b.Property<int>("ChoreId")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("TagId")
-                        .HasColumnType("int");
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.HasKey("ChoreId", "TagId");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
 
-                    b.HasIndex("TagId");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
-                    b.ToTable("chore_tags", (string)null);
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("tags", (string)null);
                 });
 
-            modelBuilder.Entity("Wib.Api.Data.Entities.Member", b =>
+            modelBuilder.Entity("Wib.Domain.Members.Member", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -143,7 +160,7 @@ namespace Wib.Api.Migrations
                     b.ToTable("members", (string)null);
                 });
 
-            modelBuilder.Entity("Wib.Api.Data.Entities.RewardItem", b =>
+            modelBuilder.Entity("Wib.Domain.Store.RewardItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -187,31 +204,7 @@ namespace Wib.Api.Migrations
                     b.ToTable("reward_items", (string)null);
                 });
 
-            modelBuilder.Entity("Wib.Api.Data.Entities.Tag", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("tags", (string)null);
-                });
-
-            modelBuilder.Entity("Wib.Api.Data.Entities.Voucher", b =>
+            modelBuilder.Entity("Wib.Domain.Vouchers.Voucher", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -248,15 +241,30 @@ namespace Wib.Api.Migrations
                     b.ToTable("vouchers", (string)null);
                 });
 
-            modelBuilder.Entity("Wib.Api.Data.Entities.ChoreCompletion", b =>
+            modelBuilder.Entity("chore_tags", b =>
                 {
-                    b.HasOne("Wib.Api.Data.Entities.Chore", "Chore")
+                    b.Property<int>("ChoreId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TagId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ChoreId", "TagId");
+
+                    b.HasIndex("TagId");
+
+                    b.ToTable("chore_tags", (string)null);
+                });
+
+            modelBuilder.Entity("Wib.Domain.Chores.ChoreCompletion", b =>
+                {
+                    b.HasOne("Wib.Domain.Chores.Chore", "Chore")
                         .WithMany("Completions")
                         .HasForeignKey("ChoreId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Wib.Api.Data.Entities.Member", "CompletedByMember")
+                    b.HasOne("Wib.Domain.Members.Member", "CompletedByMember")
                         .WithMany()
                         .HasForeignKey("CompletedByMemberId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -267,28 +275,9 @@ namespace Wib.Api.Migrations
                     b.Navigation("CompletedByMember");
                 });
 
-            modelBuilder.Entity("Wib.Api.Data.Entities.ChoreTag", b =>
+            modelBuilder.Entity("Wib.Domain.Store.RewardItem", b =>
                 {
-                    b.HasOne("Wib.Api.Data.Entities.Chore", "Chore")
-                        .WithMany("ChoreTags")
-                        .HasForeignKey("ChoreId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Wib.Api.Data.Entities.Tag", "Tag")
-                        .WithMany("ChoreTags")
-                        .HasForeignKey("TagId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Chore");
-
-                    b.Navigation("Tag");
-                });
-
-            modelBuilder.Entity("Wib.Api.Data.Entities.RewardItem", b =>
-                {
-                    b.HasOne("Wib.Api.Data.Entities.Member", "CreatedByMember")
+                    b.HasOne("Wib.Domain.Members.Member", "CreatedByMember")
                         .WithMany()
                         .HasForeignKey("CreatedByMemberId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -297,15 +286,15 @@ namespace Wib.Api.Migrations
                     b.Navigation("CreatedByMember");
                 });
 
-            modelBuilder.Entity("Wib.Api.Data.Entities.Voucher", b =>
+            modelBuilder.Entity("Wib.Domain.Vouchers.Voucher", b =>
                 {
-                    b.HasOne("Wib.Api.Data.Entities.Member", "OwnedByMember")
+                    b.HasOne("Wib.Domain.Members.Member", "OwnedByMember")
                         .WithMany("Vouchers")
                         .HasForeignKey("OwnedByMemberId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Wib.Api.Data.Entities.RewardItem", "RewardItem")
+                    b.HasOne("Wib.Domain.Store.RewardItem", "RewardItem")
                         .WithMany()
                         .HasForeignKey("RewardItemId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -316,21 +305,29 @@ namespace Wib.Api.Migrations
                     b.Navigation("RewardItem");
                 });
 
-            modelBuilder.Entity("Wib.Api.Data.Entities.Chore", b =>
+            modelBuilder.Entity("chore_tags", b =>
                 {
-                    b.Navigation("ChoreTags");
+                    b.HasOne("Wib.Domain.Chores.Chore", null)
+                        .WithMany()
+                        .HasForeignKey("ChoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
+                    b.HasOne("Wib.Domain.Chores.Tag", null)
+                        .WithMany()
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Wib.Domain.Chores.Chore", b =>
+                {
                     b.Navigation("Completions");
                 });
 
-            modelBuilder.Entity("Wib.Api.Data.Entities.Member", b =>
+            modelBuilder.Entity("Wib.Domain.Members.Member", b =>
                 {
                     b.Navigation("Vouchers");
-                });
-
-            modelBuilder.Entity("Wib.Api.Data.Entities.Tag", b =>
-                {
-                    b.Navigation("ChoreTags");
                 });
 #pragma warning restore 612, 618
         }
