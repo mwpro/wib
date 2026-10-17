@@ -167,3 +167,67 @@ export async function cleanupTestRewards(prefix = 'TEST_REWARD_') {
   }
 }
 
+export interface SeededCompletion {
+  memberId: number
+  daysSincePrevious: number
+  urgencyAtCompletion: 'Fresh' | 'DueSoon' | 'Overdue' | 'Neglected' | 'Unscheduled'
+}
+
+/**
+ * Seeds a chore created `createdDaysAgo` days ago with completions spaced by their
+ * `daysSincePrevious` gaps (oldest first). Stored outcomes are taken verbatim.
+ * Timestamps sit at 10:00 UTC to stay clear of Warsaw calendar-day boundaries.
+ */
+export async function seedChoreWithHistory({
+  title,
+  cadenceDays,
+  points = 2,
+  createdDaysAgo,
+  completions,
+}: {
+  title: string
+  cadenceDays: number | null
+  points?: number
+  createdDaysAgo: number
+  completions: SeededCompletion[]
+}) {
+  const toSql = (d: Date) => d.toISOString().slice(0, 19).replace('T', ' ')
+  // Anchor on today's Europe/Warsaw date (what the domain counts days in), not the UTC date,
+  // which lags behind for an hour or two around Warsaw midnight.
+  const [year, month, day] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' })
+    .format(new Date())
+    .split('-')
+    .map(Number)
+  const createdAt = new Date(Date.UTC(year, month - 1, day - createdDaysAgo, 10))
+
+  const config = getDbConfig()
+  const conn = await mysql.createConnection(config)
+  try {
+    let at = createdAt
+    const rows = completions.map((c) => {
+      at = new Date(at.getTime() + c.daysSincePrevious * 24 * 60 * 60 * 1000)
+      return { ...c, completedAt: toSql(at) }
+    })
+
+    const [result] = await conn.query<any>(
+      `INSERT INTO chores (Title, Description, Points, CadenceDays, LastCompletedAt, IsArchived, CreatedAt)
+       VALUES (?, NULL, ?, ?, ?, 0, ?)`,
+      [title, points, cadenceDays, rows.length > 0 ? toSql(at) : null, toSql(createdAt)]
+    )
+    const choreId = result.insertId
+
+    for (const row of rows) {
+      await conn.query(
+        `INSERT INTO chore_completions
+           (ChoreId, CompletedByMemberId, CompletedAt, PointsAwarded, DaysSincePrevious, UrgencyAtCompletion)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [choreId, row.memberId, row.completedAt, points, row.daysSincePrevious, row.urgencyAtCompletion]
+      )
+    }
+
+    return { id: choreId, title }
+  } finally {
+    await conn.end()
+  }
+}
+

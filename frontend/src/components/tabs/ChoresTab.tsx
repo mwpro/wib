@@ -13,6 +13,7 @@ import { ChoreCard } from '../chores/ChoreCard'
 import { ChoreFilters } from '../chores/ChoreFilters'
 import { ChoreFormModal, type InitialChoreValues } from '../chores/ChoreFormModal'
 import { DeleteChoreDialog } from '../chores/DeleteChoreDialog'
+import { ChoreHistoryModal } from '../chores/ChoreHistoryModal'
 import type { ChoreResponse, CreateChoreRequest, UpdateChoreRequest } from '../../types/chore'
 
 export function ChoresTab() {
@@ -37,6 +38,7 @@ export function ChoresTab() {
   const [choreToEdit, setChoreToEdit] = useState<ChoreResponse | null>(null)
   const [modalInitialValues, setModalInitialValues] = useState<InitialChoreValues | undefined>()
   const [choreToDelete, setChoreToDelete] = useState<ChoreResponse | null>(null)
+  const [choreForHistory, setChoreForHistory] = useState<ChoreResponse | null>(null)
   const [completingIds, setCompletingIds] = useState<Set<number>>(new Set())
 
   // Extract all unique tags dynamically
@@ -264,6 +266,7 @@ export function ChoresTab() {
                   isCompleting={completingIds.has(chore.id)}
                   onEdit={handleOpenEdit}
                   onDelete={setChoreToDelete}
+                  onHistory={setChoreForHistory}
                 />
               ))}
             </div>
@@ -289,6 +292,8 @@ export function ChoresTab() {
         onConfirm={handleConfirmDelete}
         isDeleting={deleteMutation.isPending}
       />
+
+      <ChoreHistoryModal chore={choreForHistory} onClose={() => setChoreForHistory(null)} />
     </div>
   )
 }

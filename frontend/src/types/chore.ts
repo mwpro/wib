@@ -1,5 +1,8 @@
 export type FreshnessUrgency = 'Fresh' | 'DueSoon' | 'Overdue' | 'Neglected' | 'Unscheduled'
 
+/** A completion outcome that was judged against a cadence. */
+export type JudgedOutcome = Exclude<FreshnessUrgency, 'Unscheduled'>
+
 export interface ChoreResponse {
   id: number
   title: string
@@ -36,4 +39,35 @@ export interface UpdateChoreRequest {
   points?: number
   cadenceDays?: number | null
   tags?: string[]
+}
+
+export interface ChoreHistoryItem {
+  id: number
+  memberId: number
+  memberName: string
+  pointsAwarded: number
+  completedAt: string
+  daysSincePrevious: number
+  urgencyAtCompletion: FreshnessUrgency
+}
+
+export interface ChoreHistoryMemberShare {
+  memberId: number
+  memberName: string
+  count: number
+}
+
+export interface ChoreHistorySummary {
+  totalCount: number
+  outcomeCounts: Record<JudgedOutcome, number>
+  onTimeCount: number
+  members: ChoreHistoryMemberShare[]
+}
+
+export interface ChoreHistoryResponse {
+  items: ChoreHistoryItem[]
+  page: number
+  pageSize: number
+  totalCount: number
+  hasMore: boolean
 }
