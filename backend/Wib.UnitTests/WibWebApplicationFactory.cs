@@ -19,7 +19,7 @@ public class WibWebApplicationFactory : WebApplicationFactory<Program>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["JwtAuth:Authority"] = "https://test.eu.auth0.com/",
+                ["JwtAuth:Authority"] = "https://identity.test.example/",
                 ["JwtAuth:ClientId"] = "test-client",
                 ["JwtAuth:Audience"] = "https://api.test",
                 ["JwtAuth:BypassAuth"] = "true"
@@ -55,10 +55,35 @@ public class WibWebApplicationFactory : WebApplicationFactory<Program>
         await action(db);
     }
 
-    public async Task<T> ExecuteDbContextAsync<T>(Func<WibDbContext, Task<T>> action)
+    /// <summary>
+    /// Subject id of the member that <see cref="CreateAuthenticatedClient"/> authenticates as by default.
+    /// </summary>
+    public const string DefaultTestSub = "test-user";
+
+    /// <summary>
+    /// A client authenticated through the test auth handler; the member is provisioned on first request.
+    /// </summary>
+    public HttpClient CreateAuthenticatedClient(string sub = DefaultTestSub, string name = "Test User")
     {
-        using var scope = Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<WibDbContext>();
-        return await action(db);
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Add("X-Test-Sub", sub);
+        client.DefaultRequestHeaders.Add("X-Test-User-Name", name);
+        return client;
+    }
+
+    /// <summary>
+    /// Adds and saves the entities, returning them with database-generated ids filled in.
+    /// </summary>
+    public async Task<T> SeedAsync<T>(T entity) where T : class => (await SeedAsync([entity]))[0];
+
+    /// <inheritdoc cref="SeedAsync{T}(T)"/>
+    public async Task<T[]> SeedAsync<T>(params T[] entities) where T : class
+    {
+        await ExecuteDbContextAsync(async db =>
+        {
+            db.AddRange(entities);
+            await db.SaveChangesAsync();
+        });
+        return entities;
     }
 }

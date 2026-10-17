@@ -5,7 +5,6 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Wib.Api.Chores;
 using Wib.Domain.Chores;
-using Wib.Domain.Members;
 
 namespace Wib.UnitTests.Chores;
 
@@ -17,14 +16,6 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public ChoreEndpointsTests(WibWebApplicationFactory factory)
     {
         _factory = factory;
-    }
-
-    private HttpClient CreateAuthenticatedClient(string? sub = null)
-    {
-        var client = _factory.CreateClient();
-        client.DefaultRequestHeaders.Add("X-Test-Sub", sub ?? "auth0|test-chores-user");
-        client.DefaultRequestHeaders.Add("X-Test-User-Name", sub is null ? "Chores Tester" : "Test User");
-        return client;
     }
 
     [Fact]
@@ -45,7 +36,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task PostChore_WithValidDataAndTags_ShouldCreateChoreAndReturn201()
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var request = new CreateChoreRequest(
             Title: "Zmywanie naczyń",
             Description: "Umyć wszystko w zlewie",
@@ -95,7 +86,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task PostChore_WithInvalidData_ShouldReturn400(string title, int points, int cadenceDays)
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var request = new CreateChoreRequest(
             Title: title,
             Description: null,
@@ -115,7 +106,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task PostChore_WithNullCadenceDays_ShouldReturnUnscheduled()
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var request = new CreateChoreRequest(Title: "Zadanie ad-hoc", Points: 2);
 
         // Act
@@ -139,7 +130,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         int titleLength, int? descriptionLength, int? tagNameLength)
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var request = new CreateChoreRequest(
             Title: new string('x', titleLength),
             Description: descriptionLength.HasValue ? new string('x', descriptionLength.Value) : null,
@@ -157,35 +148,23 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task GetChores_ShouldReturnSortedByUrgencyDescendingAndUnscheduledLast()
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var now = DateTime.UtcNow;
 
-        int freshId = 0, overdueId = 0, neglectedId = 0, unscheduledId = 0;
+        var seedMember = await _factory.SeedAsync(A.Member().Build());
 
-        await _factory.ExecuteDbContextAsync(async db =>
-        {
-            var seedMember = Member.Create("auth0|seed-urgency-test", "Seed Member", now);
-            db.Members.Add(seedMember);
+        var freshChore = A.Chore().WithCadenceDays(10).Build();
+        var overdueChore = A.Chore().WithCadenceDays(5).Build();
+        var neglectedChore = A.Chore().WithCadenceDays(5).Build();
+        var unscheduledChore = A.Chore().Unscheduled().Build();
 
-            var freshChore = Chore.Create("Fresh Chore", null, 1, 10, now);
-            var overdueChore = Chore.Create("Overdue Chore", null, 2, 5, now.AddDays(-10));
-            var neglectedChore = Chore.Create("Neglected Chore", null, 3, 5, now.AddDays(-20));
-            var unscheduledChore = Chore.Create("Unscheduled Chore", null, 5, null, now.AddDays(-1));
+        freshChore.Complete(seedMember, now);                  // 0 days ago -> 0%
+        overdueChore.Complete(seedMember, now.AddDays(-6));    // 6 days ago -> 120%
+        neglectedChore.Complete(seedMember, now.AddDays(-10)); // 10 days ago -> 200%
 
-            db.Chores.AddRange(freshChore, overdueChore, neglectedChore, unscheduledChore);
-            await db.SaveChangesAsync();
-
-            freshChore.Complete(seedMember, now);          // 0 days ago -> 0%
-            overdueChore.Complete(seedMember, now.AddDays(-6));   // 6 days ago -> 120%
-            neglectedChore.Complete(seedMember, now.AddDays(-10)); // 10 days ago -> 200%
-
-            await db.SaveChangesAsync();
-
-            freshId = freshChore.Id;
-            overdueId = overdueChore.Id;
-            neglectedId = neglectedChore.Id;
-            unscheduledId = unscheduledChore.Id;
-        });
+        await _factory.SeedAsync(freshChore, overdueChore, neglectedChore, unscheduledChore);
+        var (freshId, overdueId, neglectedId, unscheduledId) =
+            (freshChore.Id, overdueChore.Id, neglectedChore.Id, unscheduledChore.Id);
 
         // Act
         var response = await client.GetAsync("/api/chores");
@@ -227,30 +206,19 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task GetChores_ShouldSortByUrgencyBandBeforeRatio()
     {
         // Arrange: a daily chore one day late (Overdue, 200%) must not outrank a weekly chore that is Neglected (143%)
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var now = DateTime.UtcNow;
 
-        int dailyOverdueId = 0, weeklyNeglectedId = 0;
+        var seedMember = await _factory.SeedAsync(A.Member().Build());
 
-        await _factory.ExecuteDbContextAsync(async db =>
-        {
-            var seedMember = Member.Create("auth0|seed-band-sort-test", "Seed Member", now);
-            db.Members.Add(seedMember);
+        var dailyChore = A.Chore().WithCadenceDays(1).Build();
+        var weeklyChore = A.Chore().WithCadenceDays(7).Build();
 
-            var dailyChore = Chore.Create("Daily Overdue Chore", null, 1, 1, now.AddDays(-30));
-            var weeklyChore = Chore.Create("Weekly Neglected Chore", null, 1, 7, now.AddDays(-30));
+        dailyChore.Complete(seedMember, now.AddDays(-2));   // 2 days ago -> 200%, first day late -> Overdue
+        weeklyChore.Complete(seedMember, now.AddDays(-10)); // 10 days ago -> 143% -> Neglected
 
-            db.Chores.AddRange(dailyChore, weeklyChore);
-            await db.SaveChangesAsync();
-
-            dailyChore.Complete(seedMember, now.AddDays(-2));   // 2 days ago -> 200%, first day late -> Overdue
-            weeklyChore.Complete(seedMember, now.AddDays(-10)); // 10 days ago -> 143% -> Neglected
-
-            await db.SaveChangesAsync();
-
-            dailyOverdueId = dailyChore.Id;
-            weeklyNeglectedId = weeklyChore.Id;
-        });
+        await _factory.SeedAsync(dailyChore, weeklyChore);
+        var (dailyOverdueId, weeklyNeglectedId) = (dailyChore.Id, weeklyChore.Id);
 
         // Act
         var response = await client.GetAsync("/api/chores");
@@ -281,26 +249,13 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task GetChores_WithTagFilter_ShouldOnlyReturnMatchingChores()
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
-        var taggedChoreId = 0;
-        var otherChoreId = 0;
+        var client = _factory.CreateAuthenticatedClient();
+        var tagged = A.Chore().Build();
+        tagged.SetTags([Tag.Create("ogród", DateTime.UtcNow)]); // the new tag is inserted with the chore
+        var other = A.Chore().Build();
 
-        await _factory.ExecuteDbContextAsync(async db =>
-        {
-            var gardenTag = Tag.Create("ogród", DateTime.UtcNow);
-            db.Tags.Add(gardenTag);
-
-            var tagged = Chore.Create("Koszenie trawy", null, 2, 7, DateTime.UtcNow);
-            tagged.SetTags([gardenTag]);
-
-            var other = Chore.Create("Inne zadanie", null, 1, 7, DateTime.UtcNow);
-
-            db.Chores.AddRange(tagged, other);
-            await db.SaveChangesAsync();
-
-            taggedChoreId = tagged.Id;
-            otherChoreId = other.Id;
-        });
+        await _factory.SeedAsync(tagged, other);
+        var (taggedChoreId, otherChoreId) = (tagged.Id, other.Id);
 
         // Act
         var response = await client.GetAsync("/api/chores?tag=ogród");
@@ -317,16 +272,8 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task PutChore_ShouldUpdateFieldsAndTags()
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
-        var choreId = 0;
-
-        await _factory.ExecuteDbContextAsync(async db =>
-        {
-            var chore = Chore.Create("Stary tytuł", null, 1, 3, DateTime.UtcNow);
-            db.Chores.Add(chore);
-            await db.SaveChangesAsync();
-            choreId = chore.Id;
-        });
+        var client = _factory.CreateAuthenticatedClient();
+        var choreId = (await _factory.SeedAsync(A.Chore().WithCadenceDays(3).Build())).Id;
 
         var updateRequest = new UpdateChoreRequest(
             Title: "Nowy tytuł",
@@ -358,7 +305,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task PutChore_WithInvalidData_ShouldReturn400(string title, int points, int cadenceDays)
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var request = new UpdateChoreRequest(title, null, points, cadenceDays, null);
 
         // Act
@@ -372,17 +319,8 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task PutChore_WhenArchivedOrNotFound_ShouldReturn404()
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
-        var archivedId = 0;
-
-        await _factory.ExecuteDbContextAsync(async db =>
-        {
-            var archived = Chore.Create("Archived", null, 1, null, DateTime.UtcNow);
-            archived.Archive(DateTime.UtcNow);
-            db.Chores.Add(archived);
-            await db.SaveChangesAsync();
-            archivedId = archived.Id;
-        });
+        var client = _factory.CreateAuthenticatedClient();
+        var archivedId = (await _factory.SeedAsync(A.Chore().Archived().Build())).Id;
 
         var request = new UpdateChoreRequest("Update", null, 1, 1, null);
 
@@ -398,16 +336,8 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task DeleteChore_ShouldSoftDeleteAndExcludeFromGet()
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
-        var choreId = 0;
-
-        await _factory.ExecuteDbContextAsync(async db =>
-        {
-            var chore = Chore.Create("Do usunięcia", null, 1, null, DateTime.UtcNow);
-            db.Chores.Add(chore);
-            await db.SaveChangesAsync();
-            choreId = chore.Id;
-        });
+        var client = _factory.CreateAuthenticatedClient();
+        var choreId = (await _factory.SeedAsync(A.Chore().Build())).Id;
 
         // Act
         var deleteResponse = await client.DeleteAsync($"/api/chores/{choreId}");
@@ -452,17 +382,8 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task PostCompletion_WhenChoreNotFoundOrArchived_ShouldReturnNotFound()
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
-        var archivedId = 0;
-
-        await _factory.ExecuteDbContextAsync(async db =>
-        {
-            var archived = Chore.Create("Archived Chore", null, 2, 3, DateTime.UtcNow);
-            archived.Archive(DateTime.UtcNow);
-            db.Chores.Add(archived);
-            await db.SaveChangesAsync();
-            archivedId = archived.Id;
-        });
+        var client = _factory.CreateAuthenticatedClient();
+        var archivedId = (await _factory.SeedAsync(A.Chore().Archived().Build())).Id;
 
         // Act & Assert - non-existent
         var notFoundRes = await client.PostAsync("/api/chores/999999/completion", null);
@@ -477,16 +398,8 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task PostCompletion_WithValidChore_ShouldUpdateChore_CreditWallet_AndReturnCompleteChoreResponse()
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
-        var choreId = 0;
-
-        await _factory.ExecuteDbContextAsync(async db =>
-        {
-            var chore = Chore.Create("Odkurzanie", "Dokładnie w sypialni", 4, 3, DateTime.UtcNow.AddDays(-5));
-            db.Chores.Add(chore);
-            await db.SaveChangesAsync();
-            choreId = chore.Id;
-        });
+        var client = _factory.CreateAuthenticatedClient();
+        var choreId = (await _factory.SeedAsync(A.Chore().WithPoints(4).Build())).Id;
 
         // Act
         var response = await client.PostAsync($"/api/chores/{choreId}/completion", null);
@@ -516,7 +429,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
             completion.ChoreId.Should().Be(choreId);
             completion.PointsAwarded.Should().Be(4);
 
-            var memberEntity = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == "auth0|test-chores-user");
+            var memberEntity = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == WibWebApplicationFactory.DefaultTestSub);
             memberEntity.Should().NotBeNull();
             memberEntity!.WalletBalance.Should().Be(4);
         });
@@ -526,16 +439,8 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task PostCompletion_WithUnscheduledChore_ShouldReturnZeroDaysSinceLastDone()
     {
         // Arrange: own member so the shared test member's wallet balance isn't affected
-        var client = CreateAuthenticatedClient("auth0|unscheduled-completer-" + Guid.NewGuid());
-        var choreId = 0;
-
-        await _factory.ExecuteDbContextAsync(async db =>
-        {
-            var chore = Chore.Create("Wynieść śmieci", null, 1, null, DateTime.UtcNow.AddDays(-5));
-            db.Chores.Add(chore);
-            await db.SaveChangesAsync();
-            choreId = chore.Id;
-        });
+        var client = _factory.CreateAuthenticatedClient("unscheduled-completer-" + Guid.NewGuid());
+        var choreId = (await _factory.SeedAsync(A.Chore().Unscheduled().Build())).Id;
 
         // Act
         var response = await client.PostAsync($"/api/chores/{choreId}/completion", null);
@@ -552,17 +457,10 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     public async Task PostCompletion_MultipleTimes_ShouldAccumulatePointsAndCompletions()
     {
         // Arrange
-        var memberSub = "auth0|repeat-completer-" + Guid.NewGuid();
-        var client = CreateAuthenticatedClient(memberSub);
+        var memberSub = "repeat-completer-" + Guid.NewGuid();
+        var client = _factory.CreateAuthenticatedClient(memberSub);
 
-        var choreId = 0;
-        await _factory.ExecuteDbContextAsync(async db =>
-        {
-            var chore = Chore.Create("Wyniesienie śmieci", null, 3, 2, DateTime.UtcNow);
-            db.Chores.Add(chore);
-            await db.SaveChangesAsync();
-            choreId = chore.Id;
-        });
+        var choreId = (await _factory.SeedAsync(A.Chore().WithPoints(3).Build())).Id;
 
         // Act: Complete twice
         var firstResponse = await client.PostAsync($"/api/chores/{choreId}/completion", null);

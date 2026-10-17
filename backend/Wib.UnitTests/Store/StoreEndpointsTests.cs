@@ -17,14 +17,6 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         _factory = factory;
     }
 
-    private HttpClient CreateAuthenticatedClient(string? sub = null, string? name = null)
-    {
-        var client = _factory.CreateClient();
-        client.DefaultRequestHeaders.Add("X-Test-Sub", sub ?? "auth0|test-store-user");
-        client.DefaultRequestHeaders.Add("X-Test-User-Name", name ?? "Store Tester");
-        return client;
-    }
-
     [Fact]
     public async Task StoreEndpoints_WithoutAuthentication_ShouldReturnUnauthorized()
     {
@@ -40,7 +32,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task PostRewardItem_WithValidDataAndQuantity_ShouldCreateRewardAndReturn201()
     {
-        var client = CreateAuthenticatedClient("auth0|store-creator-1", "Creator 1");
+        var client = _factory.CreateAuthenticatedClient("store-creator-1", "Creator 1");
         var request = new CreateRewardItemRequest("Masaż pleców", 20, "30 minut relaksu", 2);
 
         var response = await client.PostAsJsonAsync("/api/store/items", request);
@@ -77,7 +69,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [InlineData("Valid Title", 10, -1)]
     public async Task PostRewardItem_WithInvalidData_ShouldReturn400(string title, int pointCost, int? quantity)
     {
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var request = new CreateRewardItemRequest(title, pointCost, null, quantity);
 
         var response = await client.PostAsJsonAsync("/api/store/items", request);
@@ -88,7 +80,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task GetRewardItems_ShouldReturnActiveItemsOrderedByPointCostDescendingThenTitle()
     {
-        var client = CreateAuthenticatedClient("auth0|store-lister", "Lister");
+        var client = _factory.CreateAuthenticatedClient("store-lister", "Lister");
 
         async Task<RewardItemResponse> CreateItem(string title, int pointCost)
         {
@@ -122,7 +114,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task PutRewardItem_WithValidData_ShouldUpdateItem()
     {
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var postRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Stary Tytuł", 10, "Stary"));
         var created = await postRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
 
@@ -141,7 +133,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task DeleteRewardItem_ShouldSoftDeactivate()
     {
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var postRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Do Usunięcia", 10));
         var created = await postRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
 
@@ -160,7 +152,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task PutRewardItem_WhenNotFound_ShouldReturn404()
     {
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var putRes = await client.PutAsJsonAsync("/api/store/items/99999", new UpdateRewardItemRequest("Test", 10));
         putRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -168,7 +160,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task DeleteRewardItem_WhenNotFound_ShouldReturn404()
     {
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var delRes = await client.DeleteAsync("/api/store/items/99999");
         delRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }

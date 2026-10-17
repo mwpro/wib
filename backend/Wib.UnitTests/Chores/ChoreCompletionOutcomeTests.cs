@@ -9,13 +9,13 @@ public class ChoreCompletionOutcomeTests
     // 10:00 UTC is midday in Warsaw, far from any calendar-day boundary.
     private static readonly DateTime CreatedAt = new(2026, 3, 2, 10, 0, 0, DateTimeKind.Utc);
 
-    private static Member NewMember() => Member.Create("auth0|outcome-member", "Outcome Member", CreatedAt);
+    private static Member NewMember() => A.Member().Build();
 
     [Fact]
     public void Complete_FirstCompletion_ShouldMeasureGapFromCreation()
     {
         // Arrange
-        var chore = Chore.Create("Odkurzanie", null, 2, 7, CreatedAt);
+        var chore = A.Chore().WithCadenceDays(7).CreatedAt(CreatedAt).Build();
 
         // Act
         var completion = chore.Complete(NewMember(), CreatedAt.AddDays(3));
@@ -36,7 +36,7 @@ public class ChoreCompletionOutcomeTests
     {
         // Arrange
         var member = NewMember();
-        var chore = Chore.Create("Odkurzanie", null, 2, 7, CreatedAt);
+        var chore = A.Chore().WithCadenceDays(7).CreatedAt(CreatedAt).Build();
         var previous = CreatedAt.AddDays(20);
         chore.Complete(member, previous);
 
@@ -53,7 +53,7 @@ public class ChoreCompletionOutcomeTests
     {
         // Arrange
         var member = NewMember();
-        var chore = Chore.Create("Zmywanie", null, 1, 1, CreatedAt);
+        var chore = A.Chore().WithCadenceDays(1).CreatedAt(CreatedAt).Build();
         chore.Complete(member, CreatedAt.AddDays(1));
 
         // Act
@@ -69,7 +69,7 @@ public class ChoreCompletionOutcomeTests
     {
         // Arrange
         var member = NewMember();
-        var chore = Chore.Create("Zmywanie", null, 1, 1, CreatedAt);
+        var chore = A.Chore().WithCadenceDays(1).CreatedAt(CreatedAt).Build();
         chore.Complete(member, CreatedAt.AddDays(1));
 
         // Act
@@ -102,7 +102,7 @@ public class ChoreCompletionOutcomeTests
     public void Complete_UnscheduledChore_ShouldRecordGapWithUnscheduledOutcome()
     {
         // Arrange
-        var chore = Chore.Create("Mycie okien", null, 5, null, CreatedAt);
+        var chore = A.Chore().Unscheduled().CreatedAt(CreatedAt).Build();
 
         // Act
         var completion = chore.Complete(NewMember(), CreatedAt.AddDays(40));
@@ -117,7 +117,7 @@ public class ChoreCompletionOutcomeTests
     {
         // Arrange
         var member = NewMember();
-        var chore = Chore.Create("Odkurzanie", null, 2, 7, CreatedAt);
+        var chore = A.Chore().WithCadenceDays(7).CreatedAt(CreatedAt).Build();
         var early = chore.Complete(member, CreatedAt.AddDays(10));
 
         // Act

@@ -8,7 +8,7 @@ public class MemberWalletTests
     [Fact]
     public void CreditWallet_ShouldIncreaseBalance()
     {
-        var member = Member.Create("auth0|123", "Test User", DateTime.UtcNow);
+        var member = Member.Create("123", "Test User", DateTime.UtcNow);
         member.WalletBalance.Should().Be(0);
 
         member.CreditWallet(15);
@@ -22,7 +22,7 @@ public class MemberWalletTests
     [InlineData(-10)]
     public void CreditWallet_WithZeroOrNegativeAmount_ShouldThrowArgumentOutOfRangeException(int creditAmount)
     {
-        var member = Member.Create("auth0|123", "Test User", DateTime.UtcNow);
+        var member = Member.Create("123", "Test User", DateTime.UtcNow);
 
         var act = () => member.CreditWallet(creditAmount);
 
@@ -33,7 +33,7 @@ public class MemberWalletTests
     [Fact]
     public void TryDebitWallet_WithSufficientBalance_ShouldDeductAndReturnTrue()
     {
-        var member = Member.Create("auth0|123", "Test User", DateTime.UtcNow);
+        var member = Member.Create("123", "Test User", DateTime.UtcNow);
         member.CreditWallet(20);
 
         var result = member.TryDebitWallet(15);
@@ -45,7 +45,7 @@ public class MemberWalletTests
     [Fact]
     public void TryDebitWallet_WithExactBalance_ShouldDeductToZeroAndReturnTrue()
     {
-        var member = Member.Create("auth0|123", "Test User", DateTime.UtcNow);
+        var member = Member.Create("123", "Test User", DateTime.UtcNow);
         member.CreditWallet(10);
 
         var result = member.TryDebitWallet(10);
@@ -59,7 +59,7 @@ public class MemberWalletTests
     [InlineData(50)]
     public void TryDebitWallet_WithInsufficientBalance_ShouldNotDeductAndReturnFalse(int debitAmount)
     {
-        var member = Member.Create("auth0|123", "Test User", DateTime.UtcNow);
+        var member = Member.Create("123", "Test User", DateTime.UtcNow);
         member.CreditWallet(10);
 
         var result = member.TryDebitWallet(debitAmount);
@@ -73,7 +73,7 @@ public class MemberWalletTests
     [InlineData(-5)]
     public void TryDebitWallet_WithZeroOrNegativeAmount_ShouldReturnFalse(int debitAmount)
     {
-        var member = Member.Create("auth0|123", "Test User", DateTime.UtcNow);
+        var member = Member.Create("123", "Test User", DateTime.UtcNow);
         member.CreditWallet(10);
 
         var result = member.TryDebitWallet(debitAmount);

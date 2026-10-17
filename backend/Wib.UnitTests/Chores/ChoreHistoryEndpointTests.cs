@@ -3,8 +3,6 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Wib.Api.Chores;
-using Wib.Domain.Chores;
-using Wib.Domain.Members;
 
 namespace Wib.UnitTests.Chores;
 
@@ -28,54 +26,29 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
         _factory = factory;
     }
 
-    private HttpClient CreateAuthenticatedClient()
-    {
-        var client = _factory.CreateClient();
-        client.DefaultRequestHeaders.Add("X-Test-Sub", "auth0|test-history-user");
-        client.DefaultRequestHeaders.Add("X-Test-User-Name", "History Tester");
-        return client;
-    }
-
     private async Task<int> SeedChoreWithHistoryAsync(int completionCount)
     {
-        var choreId = 0;
-        await _factory.ExecuteDbContextAsync(async db =>
-        {
-            var createdAt = DateTime.UtcNow.Date.AddHours(10).AddDays(-400);
-            var ania = Member.Create($"auth0|ania-{Guid.NewGuid()}", "Ania", createdAt);
-            var tomek = Member.Create($"auth0|tomek-{Guid.NewGuid()}", "Tomek", createdAt);
-            db.Members.AddRange(ania, tomek);
+        var createdAt = DateTime.UtcNow.Date.AddHours(10).AddDays(-400);
+        var members = await _factory.SeedAsync(
+            A.Member().WithName("Ania").Build(),
+            A.Member().WithName("Tomek").Build());
+        var chore = await _factory.SeedAsync(A.Chore().WithPoints(3).WithCadenceDays(7).CreatedAt(createdAt).Build());
 
-            var chore = Chore.Create("Odkurzanie", null, 3, 7, createdAt);
-            db.Chores.Add(chore);
-            await db.SaveChangesAsync();
-
-            var at = createdAt;
-            for (var i = 0; i < completionCount; i++)
+        var at = createdAt;
+        var completions = Enumerable.Range(0, completionCount)
+            .Select(i =>
             {
                 at = at.AddDays(Pattern[i % Pattern.Length].Gap);
-                chore.Complete(i % 2 == 0 ? ania : tomek, at);
-            }
+                return chore.Complete(members[i % 2], at);
+            })
+            .ToArray();
+        await _factory.SeedAsync(completions);
 
-            await db.SaveChangesAsync();
-            choreId = chore.Id;
-        });
-        return choreId;
+        return chore.Id;
     }
 
-    private async Task<int> SeedArchivedChoreAsync()
-    {
-        var archivedId = 0;
-        await _factory.ExecuteDbContextAsync(async db =>
-        {
-            var archived = Chore.Create("Archived History Chore", null, 2, 3, DateTime.UtcNow);
-            archived.Archive(DateTime.UtcNow);
-            db.Chores.Add(archived);
-            await db.SaveChangesAsync();
-            archivedId = archived.Id;
-        });
-        return archivedId;
-    }
+    private async Task<int> SeedArchivedChoreAsync() =>
+        (await _factory.SeedAsync(A.Chore().Archived().Build())).Id;
 
     // ---- GET /api/chores/{id}/completions ----
 
@@ -91,7 +64,7 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
     public async Task GetCompletions_WhenChoreNotFoundOrArchived_ShouldReturnNotFound()
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var archivedId = await SeedArchivedChoreAsync();
 
         // Act & Assert
@@ -103,7 +76,7 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
     public async Task GetCompletions_ShouldPageNewestFirstWithStoredOutcomes()
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var choreId = await SeedChoreWithHistoryAsync(25);
 
         // Act
@@ -137,7 +110,7 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
     public async Task GetCompletions_WithNoCompletions_ShouldReturnEmptyPage()
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var choreId = await SeedChoreWithHistoryAsync(0);
 
         // Act
@@ -152,7 +125,7 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task GetCompletions_WithInvalidPageSize_ShouldReturn400()
     {
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var choreId = await SeedChoreWithHistoryAsync(1);
 
         var response = await client.GetAsync($"/api/chores/{choreId}/completions?pageSize=101");
@@ -174,7 +147,7 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
     public async Task GetSummary_WhenChoreNotFoundOrArchived_ShouldReturnNotFound()
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var archivedId = await SeedArchivedChoreAsync();
 
         // Act & Assert
@@ -186,7 +159,7 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
     public async Task GetSummary_ShouldSpanAllCompletions()
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var choreId = await SeedChoreWithHistoryAsync(25);
 
         // Act
@@ -210,7 +183,7 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
     public async Task GetSummary_WithNoCompletions_ShouldReturnZeroCountsForEveryOutcome()
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var choreId = await SeedChoreWithHistoryAsync(0);
 
         // Act

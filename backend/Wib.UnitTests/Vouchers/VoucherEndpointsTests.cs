@@ -5,7 +5,6 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Wib.Api.Store;
 using Wib.Api.Vouchers;
-using Wib.Domain.Members;
 
 namespace Wib.UnitTests.Vouchers;
 
@@ -19,14 +18,6 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         _factory = factory;
     }
 
-    private HttpClient CreateAuthenticatedClient(string? sub = null, string? name = null)
-    {
-        var client = _factory.CreateClient();
-        client.DefaultRequestHeaders.Add("X-Test-Sub", sub ?? "auth0|test-voucher-user");
-        client.DefaultRequestHeaders.Add("X-Test-User-Name", name ?? "Voucher Tester");
-        return client;
-    }
-
     private async Task EnsureMemberHasBalanceAsync(string sub, string name, int balance)
     {
         await _factory.ExecuteDbContextAsync(async db =>
@@ -34,7 +25,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
             var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == sub);
             if (member == null)
             {
-                member = Member.Create(sub, name, DateTime.UtcNow);
+                member = A.Member().WithExternalSubjectId(sub).WithName(name).Build();
                 db.Members.Add(member);
             }
             // Reset to requested balance
@@ -69,8 +60,8 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task PurchaseRewardItem_WhenInsufficientBalance_ShouldReturn400()
     {
-        var sub = "auth0|poor-buyer";
-        var client = CreateAuthenticatedClient(sub, "Poor Buyer");
+        var sub = "poor-buyer";
+        var client = _factory.CreateAuthenticatedClient(sub, "Poor Buyer");
         await EnsureMemberHasBalanceAsync(sub, "Poor Buyer", 5);
 
         // Create an item costing 20 points
@@ -89,8 +80,8 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task PurchaseRewardItem_WhenInactive_ShouldReturn400()
     {
-        var sub = "auth0|inactive-buyer";
-        var client = CreateAuthenticatedClient(sub, "Inactive Buyer");
+        var sub = "inactive-buyer";
+        var client = _factory.CreateAuthenticatedClient(sub, "Inactive Buyer");
         await EnsureMemberHasBalanceAsync(sub, "Inactive Buyer", 50);
 
         var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Wycieczka", 20));
@@ -111,7 +102,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task PurchaseRewardItem_WhenNotFound_ShouldReturn404()
     {
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var buyRes = await client.PostAsync("/api/store/items/999999/purchase", null);
         buyRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -119,8 +110,8 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task PurchaseRewardItem_WithSufficientBalance_ShouldDeductBalanceAndCreateAvailableVoucher()
     {
-        var sub = "auth0|wealthy-buyer";
-        var client = CreateAuthenticatedClient(sub, "Wealthy Buyer");
+        var sub = "wealthy-buyer";
+        var client = _factory.CreateAuthenticatedClient(sub, "Wealthy Buyer");
         await EnsureMemberHasBalanceAsync(sub, "Wealthy Buyer", 100);
 
         var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Kolacja sushi", 40, "Zestaw premium"));
@@ -161,8 +152,8 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task PurchaseRewardItem_SingleClaim_ShouldExhaustQuantityAndPreventSecondPurchase()
     {
-        var sub = "auth0|single-claim-buyer";
-        var client = CreateAuthenticatedClient(sub, "Single Buyer");
+        var sub = "single-claim-buyer";
+        var client = _factory.CreateAuthenticatedClient(sub, "Single Buyer");
         await EnsureMemberHasBalanceAsync(sub, "Single Buyer", 100);
 
         var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Jedyny Masaż", 15, null, 1));
@@ -185,10 +176,10 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task GetVouchers_ShouldReturnOnlyUserVouchersOrderedByPurchasedAtDesc()
     {
-        var user1Sub = "auth0|user-one";
-        var user2Sub = "auth0|user-two";
-        var client1 = CreateAuthenticatedClient(user1Sub, "User One");
-        var client2 = CreateAuthenticatedClient(user2Sub, "User Two");
+        var user1Sub = "user-one";
+        var user2Sub = "user-two";
+        var client1 = _factory.CreateAuthenticatedClient(user1Sub, "User One");
+        var client2 = _factory.CreateAuthenticatedClient(user2Sub, "User Two");
 
         await EnsureMemberHasBalanceAsync(user1Sub, "User One", 100);
         await EnsureMemberHasBalanceAsync(user2Sub, "User Two", 100);
@@ -222,8 +213,8 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task GetVouchers_WithIsRedeemedFilter_ShouldFilterCorrectly()
     {
-        var sub = "auth0|filter-test-user";
-        var client = CreateAuthenticatedClient(sub, "Filter Tester");
+        var sub = "filter-test-user";
+        var client = _factory.CreateAuthenticatedClient(sub, "Filter Tester");
         await EnsureMemberHasBalanceAsync(sub, "Filter Tester", 100);
 
         var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Kawa latte", 5));
@@ -259,8 +250,8 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task RedeemVoucher_WhenAvailable_ShouldTransitionToRedeemedWithTimestamp()
     {
-        var sub = "auth0|redeemer-user";
-        var client = CreateAuthenticatedClient(sub, "Redeemer");
+        var sub = "redeemer-user";
+        var client = _factory.CreateAuthenticatedClient(sub, "Redeemer");
         await EnsureMemberHasBalanceAsync(sub, "Redeemer", 100);
 
         var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Masaż stóp", 15));
@@ -292,8 +283,8 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task RedeemVoucher_WhenAlreadyRedeemed_ShouldReturn400()
     {
-        var sub = "auth0|double-redeemer";
-        var client = CreateAuthenticatedClient(sub, "Double Redeemer");
+        var sub = "double-redeemer";
+        var client = _factory.CreateAuthenticatedClient(sub, "Double Redeemer");
         await EnsureMemberHasBalanceAsync(sub, "Double Redeemer", 100);
 
         var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Lody", 10));
@@ -315,10 +306,10 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task RedeemVoucher_WhenOwnedByAnotherMember_ShouldReturn403()
     {
-        var ownerSub = "auth0|voucher-owner";
-        var hackerSub = "auth0|voucher-thief";
-        var ownerClient = CreateAuthenticatedClient(ownerSub, "Owner");
-        var thiefClient = CreateAuthenticatedClient(hackerSub, "Thief");
+        var ownerSub = "voucher-owner";
+        var hackerSub = "voucher-thief";
+        var ownerClient = _factory.CreateAuthenticatedClient(ownerSub, "Owner");
+        var thiefClient = _factory.CreateAuthenticatedClient(hackerSub, "Thief");
 
         await EnsureMemberHasBalanceAsync(ownerSub, "Owner", 100);
 
@@ -338,7 +329,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     [Fact]
     public async Task RedeemVoucher_WhenNotFound_ShouldReturn404()
     {
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
         var redeemRes = await client.PostAsync("/api/vouchers/999999/redemption", null);
         redeemRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }

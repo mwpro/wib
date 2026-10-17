@@ -25,7 +25,7 @@ public class ConfigEndpointTests : IClassFixture<WibWebApplicationFactory>
             {
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["JwtAuth:Authority"] = "https://test-wib.eu.auth0.com/",
+                    ["JwtAuth:Authority"] = "https://identity.wib.example/",
                     ["JwtAuth:ClientId"] = "test-client-id-123",
                     ["JwtAuth:Audience"] = "https://wib-api.example.com",
                     ["JwtAuth:BypassAuth"] = "true"
@@ -42,8 +42,8 @@ public class ConfigEndpointTests : IClassFixture<WibWebApplicationFactory>
         
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         var jwtAuth = json.GetProperty("jwtAuth");
-        jwtAuth.GetProperty("authority").GetString().Should().Be("https://test-wib.eu.auth0.com/");
-        jwtAuth.GetProperty("domain").GetString().Should().Be("test-wib.eu.auth0.com");
+        jwtAuth.GetProperty("authority").GetString().Should().Be("https://identity.wib.example/");
+        jwtAuth.GetProperty("domain").GetString().Should().Be("identity.wib.example");
         jwtAuth.GetProperty("clientId").GetString().Should().Be("test-client-id-123");
         jwtAuth.GetProperty("audience").GetString().Should().Be("https://wib-api.example.com");
 

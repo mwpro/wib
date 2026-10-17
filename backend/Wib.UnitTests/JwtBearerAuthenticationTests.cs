@@ -20,7 +20,7 @@ public class JwtBearerAuthenticationTests : IClassFixture<WibWebApplicationFacto
 {
     private readonly WebApplicationFactory<Program> _factory;
     private readonly RsaSecurityKey _securityKey;
-    private const string Issuer = "https://test-auth0.eu.auth0.com/";
+    private const string Issuer = "https://issuer.test.example/";
     private const string Audience = "https://wib-api.example.com";
 
     public JwtBearerAuthenticationTests(WibWebApplicationFactory factory)
@@ -98,7 +98,7 @@ public class JwtBearerAuthenticationTests : IClassFixture<WibWebApplicationFacto
     {
         // Arrange
         var client = _factory.CreateClient();
-        var uniqueSub = "auth0|jwt-user-" + Guid.NewGuid();
+        var uniqueSub = "jwt-user-" + Guid.NewGuid();
         var token = GenerateJwtToken(uniqueSub, "JWT Auto Provisioned");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
@@ -126,7 +126,7 @@ public class JwtBearerAuthenticationTests : IClassFixture<WibWebApplicationFacto
         // Arrange
         var client = _factory.CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/members/me");
-        request.Headers.Add("X-Test-Sub", "auth0|test-attacker");
+        request.Headers.Add("X-Test-Sub", "test-attacker");
         request.Headers.Add("X-Test-User-Name", "Attacker");
 
         // Act
