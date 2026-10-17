@@ -1,4 +1,3 @@
-using Wib.Domain.Common;
 using Wib.Domain.Members;
 
 namespace Wib.Domain.Chores;
@@ -52,10 +51,13 @@ public class Chore
 
     public ChoreCompletion Complete(Member member, DateTime completedAtUtc)
     {
+        var outcome = FreshnessCalculator.JudgeCompletion(LastCompletedAt ?? CreatedAt, completedAtUtc, CadenceDays);
+
         LastCompletedAt = completedAtUtc;
         member.CreditWallet(Points);
 
-        var completion = ChoreCompletion.Create(Id, member.Id, Points, completedAtUtc);
+        var completion = ChoreCompletion.Create(
+            Id, member.Id, Points, completedAtUtc, outcome.DaysSincePrevious, outcome.Urgency);
         _completions.Add(completion);
         return completion;
     }
@@ -68,28 +70,12 @@ public class Chore
 
     public FreshnessResult GetFreshness(DateTime nowUtc)
     {
-        if (!CadenceDays.HasValue || CadenceDays.Value <= 0)
+        // An unscheduled chore that was never done has no meaningful "days since"; a scheduled one counts from creation.
+        if (LastCompletedAt is null && CadenceDays is not > 0)
         {
-            int? daysSinceLastDone = LastCompletedAt.HasValue
-                ? WarsawTimeZone.GetDaysElapsed(LastCompletedAt.Value, nowUtc)
-                : null;
-            return new FreshnessResult(FreshnessUrgency.Unscheduled, null, daysSinceLastDone);
+            return new FreshnessResult(FreshnessUrgency.Unscheduled, null, null);
         }
 
-        var referenceUtc = LastCompletedAt ?? CreatedAt;
-        var daysElapsed = WarsawTimeZone.GetDaysElapsed(referenceUtc, nowUtc);
-        var ratio = (double)daysElapsed / CadenceDays.Value;
-        var daysPastDue = daysElapsed - CadenceDays.Value;
-
-        var urgency = ratio switch
-        {
-            < 0.80 => FreshnessUrgency.Fresh,
-            <= 1.00 => FreshnessUrgency.DueSoon,
-            < 1.30 => FreshnessUrgency.Overdue,
-            _ when daysPastDue == 1 => FreshnessUrgency.Overdue,
-            _ => FreshnessUrgency.Neglected
-        };
-
-        return new FreshnessResult(urgency, ratio, daysElapsed);
+        return FreshnessCalculator.Evaluate(LastCompletedAt ?? CreatedAt, nowUtc, CadenceDays);
     }
 }

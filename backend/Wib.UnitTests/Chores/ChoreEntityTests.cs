@@ -12,7 +12,7 @@ public class ChoreEntityTests
         // Arrange
         var now = DateTime.UtcNow;
         var chore = Chore.Create("Mycie podłóg", null, 5, 7, now.AddDays(-3));
-        var member = Member.Create("auth0|test-member", "Test Member", now.AddDays(-10));
+        var member = Member.Create("test-member", "Test Member", now.AddDays(-10));
 
         // Act
         var completion = chore.Complete(member, now);

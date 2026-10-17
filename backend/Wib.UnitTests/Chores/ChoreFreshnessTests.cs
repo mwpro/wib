@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Wib.Domain.Chores;
-using Wib.Domain.Members;
 
 namespace Wib.UnitTests.Chores;
 
@@ -13,7 +12,7 @@ public class ChoreFreshnessTests
     {
         // Arrange
         var createdAt = _fixedNowUtc.AddDays(-10);
-        var chore = Chore.Create("Test", null, 1, null, createdAt);
+        var chore = A.Chore().Unscheduled().CreatedAt(createdAt).Build();
 
         // Act
         var result = chore.GetFreshness(_fixedNowUtc);
@@ -31,8 +30,8 @@ public class ChoreFreshnessTests
     public void GetFreshness_WhenUnscheduledAndCompleted_ShouldReturnDaysSinceLastDoneWithoutRatio(int daysAgo)
     {
         // Arrange
-        var chore = Chore.Create("Test", null, 1, null, _fixedNowUtc.AddDays(-100));
-        var member = Member.Create("auth0|tester", "Tester", _fixedNowUtc.AddDays(-100));
+        var chore = A.Chore().Unscheduled().Build();
+        var member = A.Member().Build();
         chore.Complete(member, _fixedNowUtc.AddDays(-daysAgo));
 
         // Act
@@ -51,8 +50,8 @@ public class ChoreFreshnessTests
         var completedAtUtc = new DateTime(2026, 6, 15, 21, 30, 0, DateTimeKind.Utc);
         var nowUtc = new DateTime(2026, 6, 15, 22, 30, 0, DateTimeKind.Utc);
 
-        var chore = Chore.Create("Test", null, 1, null, completedAtUtc.AddDays(-5));
-        var member = Member.Create("auth0|tester", "Tester", completedAtUtc.AddDays(-5));
+        var chore = A.Chore().Unscheduled().Build();
+        var member = A.Member().Build();
         chore.Complete(member, completedAtUtc);
 
         // Act
@@ -67,8 +66,8 @@ public class ChoreFreshnessTests
     {
         // Arrange
         var createdAt = _fixedNowUtc.AddDays(-5);
-        var choreZero = Chore.Create("Test Zero", null, 1, 0, createdAt);
-        var choreNegative = Chore.Create("Test Negative", null, 1, -2, createdAt);
+        var choreZero = A.Chore().WithCadenceDays(0).CreatedAt(createdAt).Build();
+        var choreNegative = A.Chore().WithCadenceDays(-2).CreatedAt(createdAt).Build();
 
         // Act
         var resultZero = choreZero.GetFreshness(_fixedNowUtc);
@@ -86,7 +85,7 @@ public class ChoreFreshnessTests
     {
         // Arrange: created 2 days ago in Warsaw time, cadence 10 days -> 2/10 = 0.20 (Fresh)
         var createdAt = _fixedNowUtc.AddDays(-2);
-        var chore = Chore.Create("Test", null, 1, 10, createdAt);
+        var chore = A.Chore().WithCadenceDays(10).CreatedAt(createdAt).Build();
 
         // Act
         var result = chore.GetFreshness(_fixedNowUtc);
@@ -117,8 +116,8 @@ public class ChoreFreshnessTests
         FreshnessUrgency expectedUrgency)
     {
         // Arrange
-        var chore = Chore.Create("Test", null, 1, cadenceDays, _fixedNowUtc.AddDays(-100));
-        var member = Member.Create("auth0|tester", "Tester", _fixedNowUtc.AddDays(-100));
+        var chore = A.Chore().WithCadenceDays(cadenceDays).Build();
+        var member = A.Member().Build();
         chore.Complete(member, _fixedNowUtc.AddDays(-daysAgo));
 
         // Act
@@ -141,8 +140,8 @@ public class ChoreFreshnessTests
         // Only 1 hour elapsed in physical time, but calendar date in Warsaw rolled from June 15 to June 16.
         var nowUtc = new DateTime(2026, 6, 15, 22, 30, 0, DateTimeKind.Utc);
 
-        var chore = Chore.Create("Test", null, 1, 1, completedAtUtc.AddDays(-5));
-        var member = Member.Create("auth0|tester", "Tester", completedAtUtc.AddDays(-5));
+        var chore = A.Chore().WithCadenceDays(1).Build();
+        var member = A.Member().Build();
         chore.Complete(member, completedAtUtc);
 
         // Act: 1 calendar day elapsed, cadence 1 day -> ratio 1.0 (due today -> Due Soon)
@@ -172,8 +171,8 @@ public class ChoreFreshnessTests
         FreshnessUrgency expectedUrgency)
     {
         // Arrange
-        var chore = Chore.Create("Test", null, 1, cadenceDays, _fixedNowUtc.AddDays(-100));
-        var member = Member.Create("auth0|tester", "Tester", _fixedNowUtc.AddDays(-100));
+        var chore = A.Chore().WithCadenceDays(cadenceDays).Build();
+        var member = A.Member().Build();
         chore.Complete(member, _fixedNowUtc.AddDays(-daysAgo));
 
         // Act
@@ -188,8 +187,8 @@ public class ChoreFreshnessTests
     public void GetFreshness_WhenReferenceDateIsInFuture_ShouldClampToZeroDays()
     {
         // Arrange: reference time is tomorrow (clock skew)
-        var chore = Chore.Create("Test", null, 1, 5, _fixedNowUtc);
-        var member = Member.Create("auth0|tester", "Tester", _fixedNowUtc);
+        var chore = A.Chore().WithCadenceDays(5).Build();
+        var member = A.Member().Build();
         chore.Complete(member, _fixedNowUtc.AddDays(1));
 
         // Act

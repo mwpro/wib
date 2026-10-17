@@ -5,7 +5,6 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Wib.Api.Data;
-using Wib.Domain.Members;
 
 namespace Wib.UnitTests;
 
@@ -37,7 +36,7 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WibWebApplicatio
         // Arrange
         var client = _factory.CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/members/me");
-        request.Headers.Add("X-Test-Sub", "auth0|test-alice");
+        request.Headers.Add("X-Test-Sub", "test-alice");
         request.Headers.Add("X-Test-User-Name", "Alice Test");
 
         // Act
@@ -52,7 +51,7 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WibWebApplicatio
         // Verify directly in DB
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<WibDbContext>();
-        var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == "auth0|test-alice");
+        var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == "test-alice");
         member.Should().NotBeNull();
         member.Name.Should().Be("Alice Test");
         member.WalletBalance.Should().Be(0);
@@ -64,7 +63,7 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WibWebApplicatio
         // Arrange
         var client = _factory.CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/members/me");
-        request.Headers.Add("X-Test-Sub", Uri.EscapeDataString("auth0|test-użytkownik"));
+        request.Headers.Add("X-Test-Sub", Uri.EscapeDataString("test-użytkownik"));
         request.Headers.Add("X-Test-User-Name", Uri.EscapeDataString("Test Użytkownik"));
 
         // Act
@@ -86,14 +85,14 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WibWebApplicatio
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<WibDbContext>();
-            var member = Member.Create("auth0|test-bob", "Bob Old Name", DateTime.UtcNow.AddDays(-5));
+            var member = A.Member().WithExternalSubjectId("test-bob").WithName("Bob Old Name").Build();
             member.CreditWallet(50);
             db.Members.Add(member);
             await db.SaveChangesAsync();
         }
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/members/me");
-        request.Headers.Add("X-Test-Sub", "auth0|test-bob");
+        request.Headers.Add("X-Test-Sub", "test-bob");
         request.Headers.Add("X-Test-User-Name", "Bob New Name");
 
         // Act
@@ -109,7 +108,7 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WibWebApplicatio
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<WibDbContext>();
-            var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == "auth0|test-bob");
+            var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == "test-bob");
             member.Should().NotBeNull();
             member.Name.Should().Be("Bob New Name");
             member.WalletBalance.Should().Be(50);
@@ -123,7 +122,7 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WibWebApplicatio
         // Arrange
         var client = _factory.CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/health");
-        request.Headers.Add("X-Test-Sub", "auth0|test-lazy-user");
+        request.Headers.Add("X-Test-Sub", "test-lazy-user");
         request.Headers.Add("X-Test-User-Name", "Lazy User");
 
         // Act
@@ -135,7 +134,7 @@ public class AuthenticationAndProvisioningTests : IClassFixture<WibWebApplicatio
         // Verify member was NOT provisioned because endpoint did not access current member
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<WibDbContext>();
-        var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == "auth0|test-lazy-user");
+        var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == "test-lazy-user");
         member.Should().BeNull();
     }
 }

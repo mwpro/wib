@@ -137,3 +137,47 @@ public record UpdateChoreRequest(
         }
     }
 }
+
+public record ChoreHistoryItem(
+    int Id,
+    int MemberId,
+    string MemberName,
+    int PointsAwarded,
+    DateTime CompletedAt,
+    int DaysSincePrevious,
+    string UrgencyAtCompletion
+)
+{
+    public static ChoreHistoryItem Create(ChoreCompletion completion, string memberName) =>
+        new(
+            completion.Id,
+            completion.CompletedByMemberId,
+            memberName,
+            completion.PointsAwarded,
+            completion.CompletedAt,
+            completion.DaysSincePrevious,
+            completion.UrgencyAtCompletion.ToString()
+        );
+}
+
+public record ChoreHistoryMemberShare(
+    int MemberId,
+    string MemberName,
+    int Count
+);
+
+/// <param name="OutcomeCounts">Completion count per judged outcome (Fresh, DueSoon, Overdue, Neglected), zeros included.</param>
+public record ChoreHistorySummary(
+    int TotalCount,
+    IReadOnlyDictionary<string, int> OutcomeCounts,
+    int OnTimeCount,
+    IReadOnlyList<ChoreHistoryMemberShare> Members
+);
+
+public record ChoreHistoryResponse(
+    IReadOnlyList<ChoreHistoryItem> Items,
+    int Page,
+    int PageSize,
+    int TotalCount,
+    bool HasMore
+);

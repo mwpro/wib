@@ -99,6 +99,7 @@ export function useCompleteChore() {
 
       queryClient.invalidateQueries({ queryKey: ['scoreboard'] })
       queryClient.invalidateQueries({ queryKey: ['chore-activity'] })
+      queryClient.invalidateQueries({ queryKey: ['chore-history', data.chore.id] })
     },
   })
 }

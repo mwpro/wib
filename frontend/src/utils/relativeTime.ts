@@ -2,13 +2,7 @@
  * Formats a timestamp into a Polish relative time string (e.g. "przed chwilą", "15 min temu", "wczoraj").
  */
 export function formatRelativeTimePl(dateInput: string | Date): string {
-  let date: Date
-  if (typeof dateInput === 'string') {
-    const hasTimezone = /[Zz]$|[+-]\d{2}(:\d{2})?$/.test(dateInput)
-    date = new Date(hasTimezone ? dateInput : `${dateInput}Z`)
-  } else {
-    date = dateInput
-  }
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
   const now = new Date()
   const diffInSeconds = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 1000))
 

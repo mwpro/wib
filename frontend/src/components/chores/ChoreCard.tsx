@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Check, Clock, ChevronDown, Edit2, Trash2 } from 'lucide-react'
+import { Check, Clock, ChevronDown, Edit2, History, Trash2 } from 'lucide-react'
 import { ChoreBadge } from './ChoreBadge'
 import { TagChip } from './TagChip'
 import type { ChoreResponse, FreshnessUrgency } from '../../types/chore'
@@ -10,6 +10,7 @@ interface ChoreCardProps {
   isCompleting?: boolean
   onEdit: (chore: ChoreResponse) => void
   onDelete: (chore: ChoreResponse) => void
+  onHistory: (chore: ChoreResponse) => void
 }
 
 const URGENCY_STYLES: Record<
@@ -39,6 +40,7 @@ export function ChoreCard({
   isCompleting = false,
   onEdit,
   onDelete,
+  onHistory,
 }: ChoreCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const isDone = Boolean(chore.lastCompletedAt) && chore.daysSinceLastDone === 0
@@ -151,6 +153,17 @@ export function ChoreCard({
               >
                 <Edit2 className="h-3.5 w-3.5 text-stone-400" />
                 <span>Edytuj</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false)
+                  onHistory(chore)
+                }}
+                className="w-full px-3 py-2 text-left flex items-center gap-2 text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 font-medium transition cursor-pointer"
+              >
+                <History className="h-3.5 w-3.5 text-stone-400" />
+                <span>Historia</span>
               </button>
               <button
                 type="button"

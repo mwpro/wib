@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Wib.Api.ChoreCompletions;
-using Wib.Domain.Chores;
 
 namespace Wib.UnitTests.ChoreCompletions;
 
@@ -15,14 +14,6 @@ public class ChoreCompletionEndpointTests : IClassFixture<WibWebApplicationFacto
     public ChoreCompletionEndpointTests(WibWebApplicationFactory factory)
     {
         _factory = factory;
-    }
-
-    private HttpClient CreateAuthenticatedClient(string? sub = null, string? name = null)
-    {
-        var client = _factory.CreateClient();
-        client.DefaultRequestHeaders.Add("X-Test-Sub", sub ?? "auth0|test-completions-user-1");
-        client.DefaultRequestHeaders.Add("X-Test-User-Name", name ?? "Completions Tester 1");
-        return client;
     }
 
     [Fact]
@@ -40,15 +31,15 @@ public class ChoreCompletionEndpointTests : IClassFixture<WibWebApplicationFacto
     public async Task GetChoreCompletions_ShouldReturnMonthlyCompletionsOrderedDescending()
     {
         // Arrange
-        var client = CreateAuthenticatedClient("auth0|cc-member-1", "Maciej");
+        var client = _factory.CreateAuthenticatedClient("cc-member-1", "Maciej");
         await client.GetAsync("/api/members/me");
 
         var choreId = 0;
         await _factory.ExecuteDbContextAsync(async db =>
         {
-            var m = db.Members.First(x => x.ExternalSubjectId == "auth0|cc-member-1");
+            var m = db.Members.First(x => x.ExternalSubjectId == "cc-member-1");
 
-            var chore = Chore.Create("Zmywarka", null, points: 5, cadenceDays: 1, DateTime.UtcNow);
+            var chore = A.Chore().WithTitle("Zmywarka").WithPoints(5).Build();
             db.Chores.Add(chore);
             await db.SaveChangesAsync();
             choreId = chore.Id;
@@ -103,14 +94,14 @@ public class ChoreCompletionEndpointTests : IClassFixture<WibWebApplicationFacto
     public async Task GetChoreCompletions_Pagination_ShouldWorkCorrectly()
     {
         // Arrange
-        var client = CreateAuthenticatedClient("auth0|cc-pag-user", "Pagination Tester");
+        var client = _factory.CreateAuthenticatedClient("cc-pag-user", "Pagination Tester");
         await client.GetAsync("/api/members/me");
 
         await _factory.ExecuteDbContextAsync(async db =>
         {
-            var m = db.Members.First(x => x.ExternalSubjectId == "auth0|cc-pag-user");
+            var m = db.Members.First(x => x.ExternalSubjectId == "cc-pag-user");
 
-            var chore = Chore.Create("Śmieci", null, points: 2, cadenceDays: 2, DateTime.UtcNow);
+            var chore = A.Chore().WithTitle("Śmieci").WithPoints(2).Build();
             db.Chores.Add(chore);
             await db.SaveChangesAsync();
 
@@ -177,7 +168,7 @@ public class ChoreCompletionEndpointTests : IClassFixture<WibWebApplicationFacto
     public async Task GetChoreCompletions_WithInvalidParameters_ShouldReturn400BadRequest(string uri)
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
 
         // Act
         var response = await client.GetAsync(uri);

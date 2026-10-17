@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Wib.Domain.Members;
 using Wib.Domain.Store;
 
 namespace Wib.UnitTests.Store;
@@ -101,7 +100,7 @@ public class RewardItemEntityTests
     public void Purchase_WithSufficientBalanceAndQuantity_ShouldDeductBalanceAndDecrementQuantity()
     {
         var nowUtc = new DateTime(2026, 10, 1, 12, 0, 0, DateTimeKind.Utc);
-        var member = Member.Create("auth0|alice", "Alice", nowUtc);
+        var member = A.Member().Build();
         member.CreditWallet(30);
 
         var item = RewardItem.Create("Masaż", null, 15, quantity: 2, 1, nowUtc);
@@ -123,7 +122,7 @@ public class RewardItemEntityTests
     public void Purchase_SingleClaimItem_ShouldDeactivateWhenQuantityReachesZero()
     {
         var nowUtc = new DateTime(2026, 10, 1, 12, 0, 0, DateTimeKind.Utc);
-        var member = Member.Create("auth0|alice", "Alice", nowUtc);
+        var member = A.Member().Build();
         member.CreditWallet(20);
 
         var item = RewardItem.Create("Ostatni kawałek sernika", null, 10, quantity: 1, 1, nowUtc);
@@ -145,7 +144,7 @@ public class RewardItemEntityTests
     public void Purchase_WithInsufficientBalance_ShouldThrowInvalidOperationException()
     {
         var nowUtc = new DateTime(2026, 10, 1, 12, 0, 0, DateTimeKind.Utc);
-        var member = Member.Create("auth0|alice", "Alice", nowUtc);
+        var member = A.Member().Build();
         member.CreditWallet(5);
 
         var item = RewardItem.Create("Kino", null, 15, quantity: null, 1, nowUtc);

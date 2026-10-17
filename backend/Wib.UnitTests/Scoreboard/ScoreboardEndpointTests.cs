@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
-using Wib.Domain.Chores;
 using Wib.Domain.Common;
 using Wib.Domain.Scoreboard;
 
@@ -16,14 +15,6 @@ public class ScoreboardEndpointTests : IClassFixture<WibWebApplicationFactory>
     public ScoreboardEndpointTests(WibWebApplicationFactory factory)
     {
         _factory = factory;
-    }
-
-    private HttpClient CreateAuthenticatedClient(string? sub = null, string? name = null)
-    {
-        var client = _factory.CreateClient();
-        client.DefaultRequestHeaders.Add("X-Test-Sub", sub ?? "auth0|test-scoreboard-user-1");
-        client.DefaultRequestHeaders.Add("X-Test-User-Name", name ?? "Scoreboard Tester 1");
-        return client;
     }
 
     [Fact]
@@ -41,8 +32,8 @@ public class ScoreboardEndpointTests : IClassFixture<WibWebApplicationFactory>
     public async Task GetScoreboard_ShouldAggregateTargetMonthAndIncludeLifetimeStats()
     {
         // Arrange: JIT provision 2 members
-        var client1 = CreateAuthenticatedClient("auth0|sb-member-1", "Maciej");
-        var client2 = CreateAuthenticatedClient("auth0|sb-member-2", "Kasia");
+        var client1 = _factory.CreateAuthenticatedClient("sb-member-1", "Maciej");
+        var client2 = _factory.CreateAuthenticatedClient("sb-member-2", "Kasia");
 
         // Trigger JIT provisioning via /api/members/me
         await client1.GetAsync("/api/members/me");
@@ -56,12 +47,12 @@ public class ScoreboardEndpointTests : IClassFixture<WibWebApplicationFactory>
 
         await _factory.ExecuteDbContextAsync(async db =>
         {
-            var m1 = db.Members.First(m => m.ExternalSubjectId == "auth0|sb-member-1");
-            var m2 = db.Members.First(m => m.ExternalSubjectId == "auth0|sb-member-2");
+            var m1 = db.Members.First(m => m.ExternalSubjectId == "sb-member-1");
+            var m2 = db.Members.First(m => m.ExternalSubjectId == "sb-member-2");
             member1Id = m1.Id;
             member2Id = m2.Id;
 
-            var chore = Chore.Create("Odkurzanie", null, points: 50, cadenceDays: 7, DateTime.UtcNow);
+            var chore = A.Chore().WithPoints(50).Build();
             db.Chores.Add(chore);
             await db.SaveChangesAsync();
             choreId = chore.Id;
@@ -118,16 +109,16 @@ public class ScoreboardEndpointTests : IClassFixture<WibWebApplicationFactory>
     public async Task GetScoreboard_WithHistoricalMonth_ShouldReturnHistoricalMonthStats()
     {
         // Arrange
-        var client = CreateAuthenticatedClient("auth0|sb-hist-user", "History User");
+        var client = _factory.CreateAuthenticatedClient("sb-hist-user", "History User");
         await client.GetAsync("/api/members/me");
 
         var memberId = 0;
         await _factory.ExecuteDbContextAsync(async db =>
         {
-            var m = db.Members.First(m => m.ExternalSubjectId == "auth0|sb-hist-user");
+            var m = db.Members.First(m => m.ExternalSubjectId == "sb-hist-user");
             memberId = m.Id;
 
-            var chore = Chore.Create("Mycie okien", null, points: 30, cadenceDays: 30, DateTime.UtcNow);
+            var chore = A.Chore().WithPoints(30).Build();
             db.Chores.Add(chore);
             await db.SaveChangesAsync();
 
@@ -181,7 +172,7 @@ public class ScoreboardEndpointTests : IClassFixture<WibWebApplicationFactory>
     public async Task GetScoreboard_WithInvalidParameters_ShouldReturn400BadRequest(string uri)
     {
         // Arrange
-        var client = CreateAuthenticatedClient();
+        var client = _factory.CreateAuthenticatedClient();
 
         // Act
         var response = await client.GetAsync(uri);

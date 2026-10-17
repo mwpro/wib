@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Wib.Domain.Members;
 using Wib.Domain.Store;
 using Wib.Domain.Vouchers;
 
@@ -11,7 +10,7 @@ public class VoucherEntityTests
     public void Create_FromRewardItemAndMember_ShouldSnapshotAndBeAvailable()
     {
         var nowUtc = new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc);
-        var member = Member.Create("auth0|123", "Alice", nowUtc);
+        var member = A.Member().Build();
         var rewardItem = RewardItem.Create("Masaż", "Relaksujący masaż", 25, quantity: null, member.Id, nowUtc);
 
         var voucher = Voucher.Create(rewardItem, member, nowUtc);
@@ -29,7 +28,7 @@ public class VoucherEntityTests
     public void Create_FromInactiveRewardItem_ShouldThrowInvalidOperationException()
     {
         var nowUtc = new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc);
-        var member = Member.Create("auth0|123", "Alice", nowUtc);
+        var member = A.Member().Build();
         var rewardItem = RewardItem.Create("Kino", null, 10, quantity: null, member.Id, nowUtc);
         rewardItem.Deactivate(nowUtc);
 
@@ -44,7 +43,7 @@ public class VoucherEntityTests
     {
         var purchasedAt = new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc);
         var redeemedAt = new DateTime(2026, 10, 2, 18, 0, 0, DateTimeKind.Utc);
-        var member = Member.Create("auth0|123", "Alice", purchasedAt);
+        var member = A.Member().Build();
         var rewardItem = RewardItem.Create("Masaż", null, 25, quantity: null, member.Id, purchasedAt);
 
         var voucher = Voucher.Create(rewardItem, member, purchasedAt);
@@ -60,7 +59,7 @@ public class VoucherEntityTests
     {
         var purchasedAt = new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc);
         var redeemedAt = new DateTime(2026, 10, 2, 18, 0, 0, DateTimeKind.Utc);
-        var member = Member.Create("auth0|123", "Alice", purchasedAt);
+        var member = A.Member().Build();
         var rewardItem = RewardItem.Create("Masaż", null, 25, quantity: null, member.Id, purchasedAt);
 
         var voucher = Voucher.Create(rewardItem, member, purchasedAt);

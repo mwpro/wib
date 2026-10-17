@@ -1,6 +1,8 @@
 import { fetchWithAuth } from './client'
 import type { AuthContextValue } from '../auth/context'
 import type {
+  ChoreHistoryResponse,
+  ChoreHistorySummary,
   ChoreResponse,
   CompleteChoreResponse,
   CreateChoreRequest,
@@ -79,4 +81,30 @@ export async function deleteChoreApi(
   if (!response.ok) {
     throw new Error(`Nie udało się usunąć zadania: ${response.statusText}`)
   }
+}
+
+export async function fetchChoreHistory(
+  auth: AuthContextValue,
+  choreId: number,
+  page: number = 1
+): Promise<ChoreHistoryResponse> {
+  const response = await fetchWithAuth(
+    `/api/chores/${choreId}/completions?page=${page}`,
+    auth
+  )
+  if (!response.ok) {
+    throw new Error(`Nie udało się pobrać historii zadania: ${response.statusText}`)
+  }
+  return response.json()
+}
+
+export async function fetchChoreHistorySummary(
+  auth: AuthContextValue,
+  choreId: number
+): Promise<ChoreHistorySummary> {
+  const response = await fetchWithAuth(`/api/chores/${choreId}/completions/summary`, auth)
+  if (!response.ok) {
+    throw new Error(`Nie udało się pobrać podsumowania zadania: ${response.statusText}`)
+  }
+  return response.json()
 }
