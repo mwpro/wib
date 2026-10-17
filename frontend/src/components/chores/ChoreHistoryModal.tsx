@@ -3,7 +3,6 @@ import { AlertCircle, History, Loader2, X } from 'lucide-react'
 import { SegmentedBar } from '../common/SegmentedBar'
 import { segmentColor } from '../common/segmentColors'
 import { useChoreHistory, useChoreHistorySummary } from '../../hooks/useChoreHistory'
-import { parseApiDate } from '../../utils/apiDate'
 import type {
   ChoreHistoryItem,
   ChoreHistorySummary,
@@ -88,7 +87,7 @@ function formatGap(days: number, isFirstEver: boolean): string {
 function groupByMonth(items: ChoreHistoryItem[]) {
   const groups: { label: string; items: ChoreHistoryItem[] }[] = []
   for (const item of items) {
-    const label = formatMonth(parseApiDate(item.completedAt))
+    const label = formatMonth(new Date(item.completedAt))
     const last = groups[groups.length - 1]
     if (last && last.label === label) {
       last.items.push(item)
@@ -235,7 +234,7 @@ export function ChoreHistoryModal({ chore, onClose }: ChoreHistoryModalProps) {
                           >
                             <div className="min-w-0 flex flex-col">
                               <span className="text-[13px] font-semibold text-stone-900 dark:text-stone-50">
-                                {dateTimeFormatter.format(parseApiDate(item.completedAt))}
+                                {dateTimeFormatter.format(new Date(item.completedAt))}
                                 <span className="font-normal text-stone-500 dark:text-stone-400">
                                   {' · '}
                                   {item.memberName}
