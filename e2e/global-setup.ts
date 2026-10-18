@@ -1,5 +1,5 @@
 import mysql from 'mysql2/promise'
-import { getDbConfig } from './helpers/db'
+import { getDbConfig } from './fixtures/db-config'
 
 export default async function globalSetup() {
   const config = getDbConfig()

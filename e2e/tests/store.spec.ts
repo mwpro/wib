@@ -1,290 +1,125 @@
-import { test, expect } from '@playwright/test'
-import {
-  resetTestUser,
-  cleanupTestChores,
-  cleanupTestRewards,
-  seedTestUserWithBalance,
-} from '../helpers/db'
+import { test, expect } from '../fixtures'
 
-const STORE_USER = {
-  sub: 'auth0|test-store-user',
-  name: 'Ania',
-  email: 'ania@test.com',
-}
+test.describe('Store & Voucher Wallet UI Tests', () => {
+  test('renders store tab sections and empty states', async ({ app, store, household, page }) => {
+    await (await household.member({ name: 'Ania' })).actAs(page)
+    await app.goto()
 
-test.describe.serial('Store & Voucher Wallet UI Tests', () => {
-  test.beforeEach(async ({ page }) => {
-    await resetTestUser(STORE_USER.sub)
-    await cleanupTestChores('STORE_CHORE_')
-    await cleanupTestRewards('STORE_REWARD_')
-    await page.addInitScript((user) => {
-      localStorage.setItem('wib_test_user', JSON.stringify(user))
-    }, STORE_USER)
+    await app.openTab('Sklep')
+    await expect(app.tab('Sklep')).toHaveAttribute('data-state', 'active')
+
+    await expect(store.heading).toBeVisible()
+    await expect(store.wallet(0)).toBeVisible()
+    await expect(store.addButton).toBeVisible()
+    await expect(store.section('Mój portfel')).toBeVisible()
+    await expect(store.emptyWallet).toBeVisible()
+    await expect(store.section('Dostępne nagrody')).toBeVisible()
+    await expect(store.section('Historia zrealizowanych')).toBeVisible()
   })
 
-  test.afterAll(async () => {
-    await resetTestUser(STORE_USER.sub)
-    await cleanupTestChores('STORE_CHORE_')
-    await cleanupTestRewards('STORE_REWARD_')
-  })
+  test('persists active store tab in URL and restores upon refresh or direct navigation', async ({ app, store, page }) => {
+    await app.goto('/store')
+    await expect(app.tab('Sklep')).toHaveAttribute('data-state', 'active')
+    await expect(store.heading).toBeVisible()
 
-  test('renders store tab sections and empty states', async ({ page }) => {
-    await page.goto('/')
-
-    // Navigate to Store tab
-    const storeTab = page.getByRole('tab', { name: /Sklep/i })
-    await storeTab.click()
-    await expect(storeTab).toHaveAttribute('data-state', 'active')
-
-    // Header and spendable balance
-    await expect(page.getByRole('heading', { name: 'Sklep z nagrodami' })).toBeVisible()
-    await expect(page.getByText(/Twój portfel: 0 pkt/i)).toBeVisible()
-    await expect(page.getByRole('button', { name: /Dodaj nagrodę/i })).toBeVisible()
-
-    // Section 1: Mój portfel (expanded by default, shows empty state)
-    await expect(page.getByRole('heading', { name: 'Mój portfel' })).toBeVisible()
-    await expect(page.getByText(/Twój portfel jest pusty/i)).toBeVisible()
-
-    // Section 2: Dostępne nagrody (expanded by default)
-    await expect(page.getByRole('heading', { name: 'Dostępne nagrody' })).toBeVisible()
-
-    // Section 3: Historia zrealizowanych (collapsed by default)
-    await expect(page.getByRole('heading', { name: 'Historia zrealizowanych' })).toBeVisible()
-  })
-
-  test('persists active store tab in URL and restores upon refresh or direct navigation', async ({ page }) => {
-    // 1. Direct navigation to /store
-    await page.goto('/store')
-
-    const storeTab = page.getByRole('tab', { name: /Sklep/i })
-    await expect(storeTab).toHaveAttribute('data-state', 'active')
-    await expect(page.getByRole('heading', { name: 'Sklep z nagrodami' })).toBeVisible()
-
-    // 2. Reload / refresh page
     await page.reload()
-    await expect(storeTab).toHaveAttribute('data-state', 'active')
-    await expect(page.getByRole('heading', { name: 'Sklep z nagrodami' })).toBeVisible()
+    await expect(app.tab('Sklep')).toHaveAttribute('data-state', 'active')
+    await expect(store.heading).toBeVisible()
 
-    // 3. Switch to Zadania tab
-    const choresTab = page.getByRole('tab', { name: 'Zadania' })
-    await choresTab.click()
-    await expect(choresTab).toHaveAttribute('data-state', 'active')
+    await app.openTab('Zadania')
+    await expect(app.tab('Zadania')).toHaveAttribute('data-state', 'active')
     expect(new URL(page.url()).pathname).toBe('/')
 
-    // 4. Browser back button restores /store
     await page.goBack()
-    await expect(storeTab).toHaveAttribute('data-state', 'active')
-    await expect(page.getByRole('heading', { name: 'Sklep z nagrodami' })).toBeVisible()
+    await expect(app.tab('Sklep')).toHaveAttribute('data-state', 'active')
+    await expect(store.heading).toBeVisible()
   })
 
-  test('creates a custom reward item via modal, edits it, and deletes it with confirmation dialog', async ({ page }) => {
-    await page.goto('/store')
+  test('creates a custom reward item via modal, edits it, and deletes it with confirmation dialog', async ({ app, store }) => {
+    await app.goto('/store')
 
-    // 1. Open Add Reward Modal
-    await page.getByRole('button', { name: /Dodaj nagrodę/i }).click()
-
-    // Fill form
-    const rewardTitle = `STORE_REWARD_${Date.now()}`
-    await page.getByLabel(/Nazwa nagrody/i).fill(rewardTitle)
-    await page.getByLabel(/Koszt w punktach/i).fill('25')
-    await page.getByLabel(/Liczba sztuk/i).fill('2')
-    await page.getByLabel(/Opis nagrody/i).fill('Relaksujący masaż pleców')
-
-    const createPromise = page.waitForResponse(
-      (res) => res.url().includes('/api/store/items') && res.status() === 201
-    )
-    await page.getByRole('button', { name: 'Dodaj nagrodę' }).click()
-    await createPromise
-
-    // Verify card in catalog
-    const card = page.locator('[data-testid="reward-card"]', { hasText: rewardTitle })
-    await expect(card).toBeVisible()
-    await expect(card.getByText('25 pkt')).toBeVisible()
-    await expect(card.getByText('Zostało: 2 szt.')).toBeVisible()
-    await expect(card.getByText('Relaksujący masaż pleców')).toBeVisible()
-
-    // 2. Open options menu and click Edit
-    await card.getByRole('button', { name: /Opcje nagrody/i }).click()
-    await page.getByRole('button', { name: /Edytuj/i }).click()
-
-    // Modal opens with prefilled fields
-    await expect(page.getByRole('heading', { name: /Edytuj nagrodę/i })).toBeVisible()
-    await page.getByLabel(/Koszt w punktach/i).fill('35')
-    await page.getByLabel(/Liczba sztuk/i).fill('4')
-
-    const editPromise = page.waitForResponse(
-      (res) => res.url().includes('/api/store/items') && res.status() === 200
-    )
-    await page.getByRole('button', { name: /Zapisz zmiany/i }).click()
-    await editPromise
-
-    await expect(card.getByText('35 pkt')).toBeVisible()
-    await expect(card.getByText('Zostało: 4 szt.')).toBeVisible()
-
-    // 3. Open options menu and click Delete
-    await card.getByRole('button', { name: /Opcje nagrody/i }).click()
-    await page.getByRole('button', { name: /Usuń/i }).click()
-
-    // Delete confirmation dialog
-    const deleteDialog = page.getByRole('dialog')
-    await expect(deleteDialog.getByRole('heading', { name: /Wycofać nagrodę ze sklepu\?/i })).toBeVisible()
-
-    const deletePromise = page.waitForResponse(
-      (res) => res.url().includes('/api/store/items') && res.status() === 204
-    )
-    await deleteDialog.getByRole('button', { name: /Usuń ze sklepu/i }).click()
-    await deletePromise
-
-    await expect(card).not.toBeVisible()
-  })
-
-  test('disables purchase button when wallet balance is insufficient', async ({ page }) => {
-    // Seed user with 10 pkt
-    await seedTestUserWithBalance({
-      externalSubjectId: STORE_USER.sub,
-      name: STORE_USER.name,
-      walletBalance: 10,
+    const reward = await store.addReward({
+      title: 'Masaż',
+      cost: 25,
+      quantity: 2,
+      description: 'Relaksujący masaż pleców',
     })
+    await expect(reward.text('25 pkt')).toBeVisible()
+    await expect(reward.text('Zostało: 2 szt.')).toBeVisible()
+    await expect(reward.text('Relaksujący masaż pleców')).toBeVisible()
 
-    await page.goto('/store')
-    await expect(page.getByText(/Twój portfel: 10 pkt/i)).toBeVisible()
+    await reward.edit({ cost: 35, quantity: 4 })
+    await expect(reward.text('35 pkt')).toBeVisible()
+    await expect(reward.text('Zostało: 4 szt.')).toBeVisible()
 
-    // Create item costing 25 pkt
-    const expensiveTitle = `STORE_REWARD_${Date.now()}`
-    await page.getByRole('button', { name: /Dodaj nagrodę/i }).click()
-    await page.getByLabel(/Nazwa nagrody/i).fill(expensiveTitle)
-    await page.getByLabel(/Koszt w punktach/i).fill('25')
-    await page.getByRole('button', { name: 'Dodaj nagrodę' }).click()
-
-    const card = page.locator('[data-testid="reward-card"]', { hasText: expensiveTitle })
-    await expect(card).toBeVisible()
-
-    // Purchase button should be disabled due to insufficient funds
-    const buyButton = card.getByRole('button', { name: /Kup nagrodę/i })
-    await expect(buyButton).toBeDisabled()
-    await expect(buyButton).toHaveAttribute('title', 'Niewystarczająca liczba punktów w portfelu')
+    const deleteDialog = await reward.openDelete()
+    await expect(deleteDialog.root.getByRole('heading', { name: /Wycofać nagrodę ze sklepu\?/i })).toBeVisible()
+    await deleteDialog.confirm()
+    await expect(reward.root).toBeHidden()
   })
 
-  test('depletes stock to 0 and deactivates reward item upon final purchase', async ({ page }) => {
-    // Seed user with 50 pkt
-    await seedTestUserWithBalance({
-      externalSubjectId: STORE_USER.sub,
-      name: STORE_USER.name,
-      walletBalance: 50,
-    })
+  test('disables purchase button when wallet balance is insufficient', async ({ app, store, household, page }) => {
+    await (await household.member({ name: 'Ania', wallet: 10 })).actAs(page)
 
-    await page.goto('/store')
+    await app.goto('/store')
+    await expect(store.wallet(10)).toBeVisible()
 
-    // Create reward item with quantity = 1 (single claim)
-    const singleTitle = `STORE_REWARD_${Date.now()}`
-    await page.getByRole('button', { name: /Dodaj nagrodę/i }).click()
-    await page.getByLabel(/Nazwa nagrody/i).fill(singleTitle)
-    await page.getByLabel(/Koszt w punktach/i).fill('15')
-    await page.getByLabel(/Liczba sztuk/i).fill('1')
-    await page.getByRole('button', { name: 'Dodaj nagrodę' }).click()
-
-    const card = page.locator('[data-testid="reward-card"]', { hasText: singleTitle })
-    await expect(card).toBeVisible()
-    await expect(card.getByText('Zostało: 1 szt.')).toBeVisible()
-
-    // Purchase the single item
-    await card.getByRole('button', { name: /Kup nagrodę/i }).click()
-    const purchaseDialog = page.getByRole('dialog')
-    await purchaseDialog.getByRole('button', { name: /Kupuję nagrodę/i }).click()
-
-    // The item is exhausted (Quantity reached 0, IsActive became false) -> removed from catalog
-    await expect(card).not.toBeVisible()
-
-    // The voucher is in Mój portfel
-    const voucherCard = page.locator('[data-testid="voucher-card"]', { hasText: singleTitle })
-    await expect(voucherCard).toBeVisible()
+    const reward = await store.addReward({ title: 'Wyjście solo', cost: 25 })
+    await expect(reward.buyButton).toBeDisabled()
+    await expect(reward.buyButton).toHaveAttribute('title', 'Niewystarczająca liczba punktów w portfelu')
   })
 
-  test('Golden Journey: Store Loop (direct boot with balance, purchase reward, verify wallet and voucher, redeem voucher)', async ({ page }) => {
-    // 1. Boot app with synthetic user who has wallet points (50 pkt pre-seeded in MySQL)
-    await seedTestUserWithBalance({
-      externalSubjectId: STORE_USER.sub,
-      name: STORE_USER.name,
-      walletBalance: 50,
-    })
+  test('depletes stock to 0 and deactivates reward item upon final purchase', async ({ app, store, household, page }) => {
+    await (await household.member({ name: 'Ania', wallet: 50 })).actAs(page)
+    await app.goto('/store')
 
-    await page.goto('/')
-    await expect(page.locator('header').getByText(/50 pkt/)).toBeVisible()
+    const reward = await store.addReward({ title: 'Kupno książki', cost: 15, quantity: 1 })
+    await expect(reward.text('Zostało: 1 szt.')).toBeVisible()
 
-    // 2. Navigate to "Sklep"
-    const storeTab = page.getByRole('tab', { name: /Sklep/i })
-    await storeTab.click()
-    await expect(storeTab).toHaveAttribute('data-state', 'active')
-    await expect(page.getByText(/Twój portfel: 50 pkt/i)).toBeVisible()
+    await reward.buy()
 
-    // 3. Purchase a reward item
-    const rewardTitle = `STORE_REWARD_${Date.now()}`
-    await page.getByRole('button', { name: /Dodaj nagrodę/i }).click()
-    await page.getByLabel(/Nazwa nagrody/i).fill(rewardTitle)
-    await page.getByLabel(/Koszt w punktach/i).fill('20')
-    await page.getByLabel(/Liczba sztuk/i).fill('3')
-    await page.getByRole('button', { name: 'Dodaj nagrodę' }).click()
+    await expect(reward.root).toBeHidden()
+    await expect(store.voucher('Kupno książki').root).toBeVisible()
+  })
 
-    const rewardCard = page.locator('[data-testid="reward-card"]', { hasText: rewardTitle })
-    await expect(rewardCard).toBeVisible()
+  test('Golden Journey: Store Loop (direct boot with balance, purchase reward, verify wallet and voucher, redeem voucher)', async ({ app, store, household, page }) => {
+    await (await household.member({ name: 'Ania', wallet: 50 })).actAs(page)
+    await app.goto()
+    await expect(app.points(50)).toBeVisible()
 
-    const buyButton = rewardCard.getByRole('button', { name: /Kup nagrodę/i })
-    await expect(buyButton).toBeEnabled()
-    await buyButton.click()
+    await app.openTab('Sklep')
+    await expect(app.tab('Sklep')).toHaveAttribute('data-state', 'active')
+    await expect(store.wallet(50)).toBeVisible()
 
-    // Purchase confirmation dialog
-    const purchaseDialog = page.getByRole('dialog')
-    await expect(purchaseDialog.getByRole('heading', { name: /Potwierdź zakup nagrody/i })).toBeVisible()
-    await expect(purchaseDialog.getByText(/Czy na pewno chcesz wymienić/i)).toBeVisible()
-    await expect(purchaseDialog.getByText('20 pkt')).toBeVisible()
+    const reward = await store.addReward({ title: 'Masaż', cost: 20, quantity: 3 })
+    await expect(reward.buyButton).toBeEnabled()
 
-    const purchasePromise = page.waitForResponse(
-      (res) => res.url().includes('/purchase') && res.status() === 201
-    )
-    await purchaseDialog.getByRole('button', { name: /Kupuję nagrodę/i }).click()
-    await purchasePromise
+    const purchase = await reward.openPurchase()
+    await expect(purchase.root.getByRole('heading', { name: /Potwierdź zakup nagrody/i })).toBeVisible()
+    await expect(purchase.root.getByText(/Czy na pewno chcesz wymienić/i)).toBeVisible()
+    await expect(purchase.root.getByText('20 pkt')).toBeVisible()
+    await purchase.confirm()
 
-    await expect(page.getByRole('dialog')).not.toBeVisible()
+    await expect(store.wallet(30)).toBeVisible()
+    await expect(app.points(30)).toBeVisible()
+    await expect(reward.text('Zostało: 2 szt.')).toBeVisible()
 
-    // 4. Verify wallet balance decreases (50 pkt -> 30 pkt)
-    await expect(page.getByText(/Twój portfel: 30 pkt/i)).toBeVisible()
-    await expect(page.locator('header').getByText(/30 pkt/)).toBeVisible()
-    await expect(rewardCard.getByText('Zostało: 2 szt.')).toBeVisible()
+    await expect(store.section('Mój portfel')).toBeVisible()
+    const voucher = store.voucher('Masaż')
+    await expect(voucher.text('20 pkt')).toBeVisible()
+    await expect(voucher.redeemButton).toBeEnabled()
 
-    // 5. Navigate to "Portfel" (section "Mój portfel") and verify voucher is Available
-    const walletSection = page.locator('section', { hasText: 'Mój portfel' })
-    await expect(walletSection).toBeVisible()
-    const voucherCard = page.locator('[data-testid="voucher-card"]', { hasText: rewardTitle })
-    await expect(voucherCard).toBeVisible()
-    await expect(voucherCard.getByText('20 pkt')).toBeVisible()
+    const redemption = await voucher.openRedeem()
+    await expect(redemption.root.getByRole('heading', { name: /Realizacja kuponu/i })).toBeVisible()
+    await expect(redemption.root.getByText(/Czy na pewno chcesz oznaczyć kupon/i)).toBeVisible()
+    await redemption.confirm()
 
-    // 6. Click "Zrealizuj kupon"
-    const redeemButton = voucherCard.getByRole('button', { name: /Zrealizuj kupon/i })
-    await expect(redeemButton).toBeEnabled()
-    await redeemButton.click()
+    await expect(voucher.root).toBeHidden()
+    await expect(store.emptyWallet).toBeVisible()
 
-    // Redeem confirmation dialog
-    const redeemDialog = page.getByRole('dialog')
-    await expect(redeemDialog.getByRole('heading', { name: /Realizacja kuponu/i })).toBeVisible()
-    await expect(redeemDialog.getByText(/Czy na pewno chcesz oznaczyć kupon/i)).toBeVisible()
-
-    const redeemPromise = page.waitForResponse(
-      (res) => res.url().includes('/redemption') && res.status() === 200
-    )
-    await redeemDialog.getByRole('button', { name: 'Zrealizuj kupon' }).click()
-    await redeemPromise
-
-    // 7. Verify voucher transitions to Redeemed
-    await expect(page.getByRole('dialog')).not.toBeVisible()
-    await expect(voucherCard).not.toBeVisible()
-    await expect(page.getByText(/Twój portfel jest pusty/i)).toBeVisible()
-
-    // Expand "Historia zrealizowanych" -> voucher is present with 20 pkt snapshot
-    const historyHeader = page.locator('button', { hasText: 'Historia zrealizowanych' })
-    await historyHeader.click()
-
-    const redeemedCard = page.locator('[data-testid="redeemed-voucher-card"]', { hasText: rewardTitle })
-    await expect(redeemedCard).toBeVisible()
-    await expect(redeemedCard.getByText('20 pkt')).toBeVisible()
+    await store.showRedeemedHistory()
+    const redeemed = store.redeemedVoucher('Masaż')
+    await expect(redeemed).toBeVisible()
+    await expect(redeemed.getByText('20 pkt', { exact: true })).toBeVisible()
   })
 })
