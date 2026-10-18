@@ -122,6 +122,50 @@ test.describe.serial('Chores Backlog UI Tests', () => {
     await expect(card.getByText('zrobione dzisiaj')).toBeVisible()
   })
 
+  test('same-day repeat: locked chore can be recorded again from the menu after confirmation', async ({ page }) => {
+    const title = `E2E_Odkurzanie_${Date.now()}`
+    await seedOverdueChore({ title, cadenceDays: 7, daysAgo: 3 })
+
+    await page.goto('/')
+    const card = page.locator('[data-testid="chore-card"]', { hasText: title })
+    await expect(card).toBeVisible()
+
+    // Repeat is not offered while the 1-tap button is available
+    await card.getByRole('button', { name: /Więcej opcji/i }).click()
+    await expect(page.getByRole('button', { name: /Zrobione ponownie/i })).toHaveCount(0)
+    await card.getByRole('button', { name: /Więcej opcji/i }).click()
+
+    // First completion locks the 1-tap button
+    await card.getByRole('button', { name: /Zrobione!/i }).click()
+    await expect(card.getByRole('button', { name: /Ukończono \(\+1 pkt\)/i })).toBeDisabled()
+    await expect(page.locator('header').getByText(/1 pkt/)).toBeVisible()
+
+    // Cancelling the dialog records nothing
+    await card.getByRole('button', { name: /Więcej opcji/i }).click()
+    await page.getByRole('button', { name: /Zrobione ponownie/i }).click()
+    const dialog = page.getByRole('dialog', { name: /Zrobione ponownie\?/i })
+    await expect(dialog).toBeVisible()
+    await expect(dialog).toContainText(title)
+    await expect(dialog).toContainText('+1 pkt')
+    await dialog.getByRole('button', { name: 'Anuluj' }).click()
+    await expect(dialog).toBeHidden()
+    await expect(page.locator('header').getByText(/1 pkt/)).toBeVisible()
+
+    // Confirming records a second completion
+    await card.getByRole('button', { name: /Więcej opcji/i }).click()
+    await page.getByRole('button', { name: /Zrobione ponownie/i }).click()
+    const completion = page.waitForResponse((res) => res.url().endsWith('/completion') && res.ok())
+    await dialog.getByRole('button', { name: /Zapisz ponownie/i }).click()
+    await completion
+    await expect(dialog).toBeHidden()
+    await expect(page.locator('header').getByText(/2 pkt/)).toBeVisible()
+
+    // Still locked, and the repeat is still offered
+    await expect(card.getByRole('button', { name: /Ukończono \(\+1 pkt\)/i })).toBeDisabled()
+    await card.getByRole('button', { name: /Więcej opcji/i }).click()
+    await expect(page.getByRole('button', { name: /Zrobione ponownie/i })).toBeVisible()
+  })
+
   test('creates unscheduled chore and filters by search', async ({ page }) => {
     await page.goto('/')
 

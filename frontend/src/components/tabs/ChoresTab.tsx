@@ -13,6 +13,7 @@ import { ChoreCard } from '../chores/ChoreCard'
 import { ChoreFilters } from '../chores/ChoreFilters'
 import { ChoreFormModal, type InitialChoreValues } from '../chores/ChoreFormModal'
 import { DeleteChoreDialog } from '../chores/DeleteChoreDialog'
+import { RepeatCompletionDialog } from '../chores/RepeatCompletionDialog'
 import { ChoreHistoryModal } from '../chores/ChoreHistoryModal'
 import type { ChoreResponse, CreateChoreRequest, UpdateChoreRequest } from '../../types/chore'
 
@@ -39,6 +40,9 @@ export function ChoresTab() {
   const [modalInitialValues, setModalInitialValues] = useState<InitialChoreValues | undefined>()
   const [choreToDelete, setChoreToDelete] = useState<ChoreResponse | null>(null)
   const [choreForHistory, setChoreForHistory] = useState<ChoreResponse | null>(null)
+  const [choreToRepeat, setChoreToRepeat] = useState<ChoreResponse | null>(null)
+  const [repeatError, setRepeatError] = useState<string | null>(null)
+  const [isRepeating, setIsRepeating] = useState(false)
   const [completingIds, setCompletingIds] = useState<Set<number>>(new Set())
 
   // Extract all unique tags dynamically
@@ -107,6 +111,27 @@ export function ChoresTab() {
         next.delete(choreId)
         return next
       })
+    }
+  }
+
+  const handleOpenRepeat = (chore: ChoreResponse) => {
+    setRepeatError(null)
+    setChoreToRepeat(chore)
+  }
+
+  const handleConfirmRepeat = async () => {
+    if (!choreToRepeat) return
+    setRepeatError(null)
+    // Own pending flag: completeMutation is shared with every card's 1-tap button
+    setIsRepeating(true)
+    try {
+      await completeMutation.mutateAsync({ choreId: choreToRepeat.id, points: choreToRepeat.points })
+      setChoreToRepeat(null)
+    } catch (err) {
+      console.error('Failed to repeat chore completion:', err)
+      setRepeatError('Nie udało się zapisać wykonania. Spróbuj ponownie.')
+    } finally {
+      setIsRepeating(false)
     }
   }
 
@@ -267,6 +292,7 @@ export function ChoresTab() {
                   onEdit={handleOpenEdit}
                   onDelete={setChoreToDelete}
                   onHistory={setChoreForHistory}
+                  onRepeat={handleOpenRepeat}
                 />
               ))}
             </div>
@@ -291,6 +317,15 @@ export function ChoresTab() {
         onClose={() => setChoreToDelete(null)}
         onConfirm={handleConfirmDelete}
         isDeleting={deleteMutation.isPending}
+      />
+
+      {/* Same-day Repeat Confirmation Dialog */}
+      <RepeatCompletionDialog
+        chore={choreToRepeat}
+        onClose={() => setChoreToRepeat(null)}
+        onConfirm={handleConfirmRepeat}
+        isSaving={isRepeating}
+        error={repeatError}
       />
 
       <ChoreHistoryModal chore={choreForHistory} onClose={() => setChoreForHistory(null)} />

@@ -40,6 +40,7 @@ export function useTabNavigation() {
     const targetPath = TAB_TO_PATH[tab] || '/'
     if (window.location.pathname !== targetPath) {
       window.history.pushState(null, '', targetPath)
+      window.scrollTo({ top: 0 })
     }
   }, [])
 
