@@ -4,25 +4,26 @@ namespace Wib.Api.Data;
 
 public static class DatabaseRegistrationExtensions
 {
+    private static readonly ServerVersion FallbackServerVersion = ServerVersion.Parse("12.3.0-mariadb");
+    private static ServerVersion? _detectedServerVersion;
+
     public static IServiceCollection AddWibDatabase(
-        this IServiceCollection services, 
+        this IServiceCollection services,
         IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection") 
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
 
         services.AddDbContext<WibDbContext>(options =>
         {
-            var version = ServerVersion.AutoDetect(connectionString);
-
             options.UseMySql(
                 connectionString,
-                version,
+                GetServerVersion(connectionString),
                 mysqlOptions =>
                 {
                     mysqlOptions.EnableRetryOnFailure(
-                        maxRetryCount: 5,
-                        maxRetryDelay: TimeSpan.FromSeconds(10),
+                        maxRetryCount: 3,
+                        maxRetryDelay: TimeSpan.FromSeconds(2),
                         errorNumbersToAdd: null);
                 });
         });
@@ -38,5 +39,22 @@ public static class DatabaseRegistrationExtensions
         var migrator = scope.ServiceProvider.GetRequiredService<IDatabaseMigrator>();
         migrator.Migrate();
         return host;
+    }
+
+    private static ServerVersion GetServerVersion(string connectionString)
+    {
+        if (_detectedServerVersion is not null)
+        {
+            return _detectedServerVersion;
+        }
+
+        try
+        {
+            return _detectedServerVersion = ServerVersion.AutoDetect(connectionString);
+        }
+        catch (Exception)
+        {
+            return FallbackServerVersion;
+        }
     }
 }

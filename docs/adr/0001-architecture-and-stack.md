@@ -23,6 +23,13 @@ We need a responsive, low-maintenance, resource-efficient platform for **wib** (
    - **Backend Unit Tests (`Wib.UnitTests`)**: Fast xUnit + FluentAssertions tests for algorithmic domain logic (freshness ratios, urgency thresholds, Europe/Warsaw timezone boundaries, voucher state rules).
    - **Frontend Verification**: Zero unit/component tests in Vitest. Relies on strict TypeScript compilation (`tsc --noEmit`), ESLint, and the Playwright E2E test suite.
 
+8. **Error Monitoring** (*Amended 2026-10-18*): Sentry
+   - One Sentry project for backend (`Sentry.AspNetCore`) and SPA (`@sentry/react`), separated by environment (the ASP.NET hosting environment). A single DSN lives in `Sentry:Dsn` (`appsettings.secret.json` in production); the SPA receives DSN, environment and release from `GET /api/config`. An empty DSN disables both sides, so local runs, CI and Playwright (which forces `Sentry__Dsn=''`) report nothing.
+   - Release is the git commit SHA, passed by CI as the `GIT_SHA` Docker build argument, so both sides share it.
+   - Backend: issues from `Error` level only (warnings stay breadcrumbs), no log forwarding, `SendDefaultPii` off; events carry the Auth0 `sub` as the user id and nothing else. Tracing at 100% — household traffic is far below the free tier.
+   - SPA: `Sentry.ErrorBoundary` wraps the whole app (outside auth and query providers) with a reload screen; the user is set to the Auth0 `sub`. Query errors the UI already handles are not reported; the backend reports server-side failures.
+   - Deliberately skipped: source map upload or publishing (frontend stack traces stay minified), session replay, and an ad-blocker tunnel endpoint.
+
 ## Consequences
 - Single container deployment minimizes RAM and CPU footprint on the Mikr.us VPS.
 - Mirrors the proven deployment architecture of `tiny-money`.

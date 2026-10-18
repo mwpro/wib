@@ -4,6 +4,7 @@ using Wib.Api.Common;
 using Wib.Api.Config;
 using Wib.Api.Data;
 using Wib.Api.Members;
+using Wib.Api.Observability;
 using Wib.Api.Scoreboard;
 using Wib.Api.ChoreCompletions;
 using Wib.Api.Store;
@@ -13,6 +14,7 @@ using Wib.Domain.Scoreboard;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile("/run/secrets/appsettings.secret.json", optional: true, reloadOnChange: true);
+builder.AddWibSentry();
 
 // Add services to the container.
 builder.Services.Configure<JwtAuthOptions>(builder.Configuration.GetSection(JwtAuthOptions.SectionName));
@@ -40,6 +42,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseAuthentication();
+app.UseSentryUser();
 app.UseAuthorization();
 
 app.MapConfigEndpoints();
@@ -62,7 +65,7 @@ if (!app.Environment.IsEnvironment("Testing"))
     }
     catch (Exception ex)
     {
-        app.Logger.LogWarning(ex, "Could not apply database migrations on startup. If running without MySQL, ensure DB is running.");
+        app.Logger.LogError(ex,"Could not apply database migrations on startup. If running without MySQL, ensure DB is running.");
     }
 }
 

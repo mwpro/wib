@@ -31,6 +31,7 @@ export default defineConfig({
       ASPNETCORE_URLS: 'http://localhost:8080',
       ASPNETCORE_ENVIRONMENT: 'Development',
       JwtAuth__BypassAuth: 'true',
+      Sentry__Dsn: '',
       ConnectionStrings__DefaultConnection:
         process.env.ConnectionStrings__DefaultConnection ||
         'Server=localhost;Port=3306;Database=wib_test;User=root;Password=secret;',
