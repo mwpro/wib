@@ -1,8 +1,6 @@
 import mysql, { type Connection } from 'mysql2/promise'
-import type { BrowserContext, Page } from '@playwright/test'
+import { expect, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test'
 import { getDbConfig } from './db-config'
-
-export type Urgency = 'Fresh' | 'DueSoon' | 'Overdue' | 'Neglected' | 'Unscheduled'
 
 export interface Member {
   id: number
@@ -14,7 +12,6 @@ export interface Member {
 export interface SeededCompletion {
   by: Member
   daysSincePrevious: number
-  urgencyAtCompletion: Urgency
 }
 
 export interface SeededChore {
@@ -24,7 +21,7 @@ export interface SeededChore {
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-const toSql = (d: Date) => d.toISOString().slice(0, 19).replace('T', ' ')
+const DEFAULT_IDENTITY = { sub: 'auth0|test-user-1', name: 'Test Użytkownik' }
 
 function warsawDaysAgo(days: number) {
   const [year, month, day] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Warsaw' })
@@ -34,17 +31,24 @@ function warsawDaysAgo(days: number) {
   return new Date(Date.UTC(year, month - 1, day - days, 10))
 }
 
+function identityHeaders({ sub, name }: { sub: string; name: string }) {
+  return { 'X-Test-Sub': encodeURIComponent(sub), 'X-Test-User-Name': encodeURIComponent(name) }
+}
+
 export class Household {
   private memberCount = 0
 
-  private constructor(private readonly conn: Connection) {}
+  private constructor(
+    private readonly conn: Connection,
+    private readonly api: APIRequestContext
+  ) {}
 
-  static async open() {
+  static async open(api: APIRequestContext) {
     const config = getDbConfig()
     if (!config.database.endsWith('_test')) {
       throw new Error(`Refusing to run e2e against "${config.database}": database name must end with _test`)
     }
-    return new Household(await mysql.createConnection(config))
+    return new Household(await mysql.createConnection(config), api)
   }
 
   async close() {
@@ -52,6 +56,7 @@ export class Household {
   }
 
   async reset() {
+    await this.resetClock()
     const [tables] = await this.conn.query<mysql.RowDataPacket[]>(
       `SELECT TABLE_NAME AS name FROM information_schema.TABLES
        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME <> '__EFMigrationsHistory'`
@@ -69,8 +74,8 @@ export class Household {
   async member({ name, wallet = 0 }: { name: string; wallet?: number }): Promise<Member> {
     const sub = `auth0|e2e-member-${++this.memberCount}`
     const [result] = await this.conn.query<mysql.ResultSetHeader>(
-      'INSERT INTO members (ExternalSubjectId, Name, WalletBalance, CreatedAt) VALUES (?, ?, ?, ?)',
-      [sub, name, wallet, toSql(new Date())]
+      'INSERT INTO members (ExternalSubjectId, Name, WalletBalance, CreatedAt) VALUES (?, ?, ?, UTC_TIMESTAMP())',
+      [sub, name, wallet]
     )
     return {
       id: result.insertId,
@@ -88,58 +93,47 @@ export class Household {
     title,
     cadenceDays = null,
     points = 1,
-    lastDoneDaysAgo = 0,
+    createdDaysAgo = 0,
+    completions = [],
   }: {
     title: string
     cadenceDays?: number | null
     points?: number
-    lastDoneDaysAgo?: number
+    createdDaysAgo?: number
+    completions?: SeededCompletion[]
   }): Promise<SeededChore> {
-    const doneAt = toSql(warsawDaysAgo(lastDoneDaysAgo))
-    const [result] = await this.conn.query<mysql.ResultSetHeader>(
-      `INSERT INTO chores (Title, Description, Points, CadenceDays, LastCompletedAt, IsArchived, CreatedAt)
-       VALUES (?, NULL, ?, ?, ?, 0, ?)`,
-      [title, points, cadenceDays, doneAt, doneAt]
-    )
-    return { id: result.insertId, title }
+    let at = warsawDaysAgo(createdDaysAgo)
+    try {
+      if (createdDaysAgo > 0) await this.setClock(at)
+      const created = await this.api.post('/api/chores', {
+        headers: identityHeaders(DEFAULT_IDENTITY),
+        data: { title, points, cadenceDays },
+      })
+      expect(created.status(), await created.text()).toBe(201)
+      const { id } = await created.json()
+
+      for (const completion of completions) {
+        at = new Date(at.getTime() + completion.daysSincePrevious * DAY_MS)
+        await this.setClock(at)
+        const completed = await this.api.post(`/api/chores/${id}/completion`, {
+          headers: identityHeaders(completion.by),
+        })
+        expect(completed.status(), await completed.text()).toBe(200)
+      }
+
+      return { id, title }
+    } finally {
+      await this.resetClock()
+    }
   }
 
-  async choreWithHistory({
-    title,
-    cadenceDays,
-    points = 2,
-    createdDaysAgo,
-    completions,
-  }: {
-    title: string
-    cadenceDays: number | null
-    points?: number
-    createdDaysAgo: number
-    completions: SeededCompletion[]
-  }): Promise<SeededChore> {
-    const createdAt = warsawDaysAgo(createdDaysAgo)
-    let at = createdAt
-    const rows = completions.map((c) => {
-      at = new Date(at.getTime() + c.daysSincePrevious * DAY_MS)
-      return { ...c, completedAt: toSql(at) }
-    })
+  private async setClock(utcNow: Date) {
+    const response = await this.api.put('/api/test/clock', { data: { utcNow: utcNow.toISOString() } })
+    expect(response.status(), 'test clock requires ASPNETCORE_ENVIRONMENT=Development').toBe(204)
+  }
 
-    const [result] = await this.conn.query<mysql.ResultSetHeader>(
-      `INSERT INTO chores (Title, Description, Points, CadenceDays, LastCompletedAt, IsArchived, CreatedAt)
-       VALUES (?, NULL, ?, ?, ?, 0, ?)`,
-      [title, points, cadenceDays, rows.length > 0 ? toSql(at) : null, toSql(createdAt)]
-    )
-    const choreId = result.insertId
-
-    for (const row of rows) {
-      await this.conn.query(
-        `INSERT INTO chore_completions
-           (ChoreId, CompletedByMemberId, CompletedAt, PointsAwarded, DaysSincePrevious, UrgencyAtCompletion)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [choreId, row.by.id, row.completedAt, points, row.daysSincePrevious, row.urgencyAtCompletion]
-      )
-    }
-
-    return { id: choreId, title }
+  private async resetClock() {
+    const response = await this.api.delete('/api/test/clock')
+    expect(response.status(), 'test clock requires ASPNETCORE_ENVIRONMENT=Development').toBe(204)
   }
 }

@@ -1,13 +1,8 @@
 import { test, expect, type SeededCompletion } from '../fixtures'
 
-// Gaps of a 7-day chore and the outcome each earns; repeated 5x gives 25 completions over 180 days.
-const PATTERN: Pick<SeededCompletion, 'daysSincePrevious' | 'urgencyAtCompletion'>[] = [
-  { daysSincePrevious: 5, urgencyAtCompletion: 'Fresh' },
-  { daysSincePrevious: 7, urgencyAtCompletion: 'DueSoon' },
-  { daysSincePrevious: 8, urgencyAtCompletion: 'Overdue' },
-  { daysSincePrevious: 10, urgencyAtCompletion: 'Neglected' },
-  { daysSincePrevious: 6, urgencyAtCompletion: 'DueSoon' },
-]
+// Gaps of a 7-day chore: 5 → Przed czasem, 7 → W terminie, 8 → Z opóźnieniem, 10 → Mocno spóźnione, 6 → W terminie.
+// Repeated 5x gives 25 completions over 180 days; the domain judges each one when it is recorded.
+const GAPS = [5, 7, 8, 10, 6]
 
 test.describe('Chore completion history', () => {
   test('shows summary, month groups and outcomes across pages, and records a new completion', async ({ app, backlog, household }) => {
@@ -15,11 +10,11 @@ test.describe('Chore completion history', () => {
     const tomek = await household.member({ name: 'Tomek' })
 
     const completions: SeededCompletion[] = Array.from({ length: 25 }, (_, i) => ({
-      ...PATTERN[i % PATTERN.length],
+      daysSincePrevious: GAPS[i % GAPS.length],
       by: i % 2 === 0 ? ania : tomek,
     }))
     // Created 186 days ago: the last seeded completion (day 180) is 6 days old, so completing today is "W terminie".
-    await household.choreWithHistory({ title: 'Odkurzanie', cadenceDays: 7, createdDaysAgo: 186, completions })
+    await household.chore({ title: 'Odkurzanie', cadenceDays: 7, createdDaysAgo: 186, completions })
 
     await app.goto()
     const chore = backlog.chore('Odkurzanie')
@@ -64,7 +59,7 @@ test.describe('Chore completion history', () => {
   })
 
   test('shows an empty state for a chore that was never done', async ({ app, backlog, household }) => {
-    await household.choreWithHistory({ title: 'Nigdy', cadenceDays: 30, createdDaysAgo: 3, completions: [] })
+    await household.chore({ title: 'Nigdy', cadenceDays: 30, createdDaysAgo: 3 })
 
     await app.goto()
     const history = await backlog.chore('Nigdy').openHistory()

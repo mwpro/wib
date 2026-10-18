@@ -35,7 +35,7 @@ test.describe('Chores Backlog UI Tests', () => {
     await expect(chore.menuItem('Edytuj')).toBeVisible()
     await expect(chore.menuItem('Usuń')).toBeVisible()
 
-    await household.chore({ title: 'Piekarnik', cadenceDays: 14, lastDoneDaysAgo: 21 })
+    await household.chore({ title: 'Piekarnik', cadenceDays: 14, createdDaysAgo: 21 })
     await app.goto()
 
     const overdue = backlog.chore('Piekarnik')
@@ -48,7 +48,8 @@ test.describe('Chores Backlog UI Tests', () => {
   })
 
   test('unscheduled chore shows real last-done day and stays locked after completion and reload', async ({ app, backlog, household, page }) => {
-    await household.chore({ title: 'Śmieci', cadenceDays: null, lastDoneDaysAgo: 3 })
+    const ewa = await household.member({ name: 'Ewa' })
+    await household.chore({ title: 'Śmieci', createdDaysAgo: 3, completions: [{ by: ewa, daysSincePrevious: 0 }] })
 
     await app.goto()
     const chore = backlog.chore('Śmieci')
@@ -63,7 +64,7 @@ test.describe('Chores Backlog UI Tests', () => {
   })
 
   test('same-day repeat: locked chore can be recorded again from the menu after confirmation', async ({ app, backlog, household }) => {
-    await household.chore({ title: 'Odkurzanie', cadenceDays: 7, lastDoneDaysAgo: 3 })
+    await household.chore({ title: 'Odkurzanie', cadenceDays: 7, createdDaysAgo: 3 })
 
     await app.goto()
     const chore = backlog.chore('Odkurzanie')
@@ -147,8 +148,8 @@ test.describe('Chores Backlog UI Tests', () => {
   })
 
   test('prioritizes neglected and overdue chores at the top of the backlog', async ({ app, backlog, household }) => {
-    await household.chore({ title: 'Lodówka', cadenceDays: 30, lastDoneDaysAgo: 0 })
-    await household.chore({ title: 'Fugi w łazience', cadenceDays: 14, lastDoneDaysAgo: 28 })
+    await household.chore({ title: 'Lodówka', cadenceDays: 30 })
+    await household.chore({ title: 'Fugi w łazience', cadenceDays: 14, createdDaysAgo: 28 })
 
     await app.goto()
 

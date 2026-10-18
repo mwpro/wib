@@ -16,8 +16,8 @@ export const test = base.extend<{
   scoreboard: Scoreboard
 }>({
   household: [
-    async ({}, use) => {
-      const household = await Household.open()
+    async ({ request }, use) => {
+      const household = await Household.open(request)
       try {
         await household.reset()
         await use(household)

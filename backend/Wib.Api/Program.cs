@@ -8,6 +8,7 @@ using Wib.Api.Observability;
 using Wib.Api.Scoreboard;
 using Wib.Api.ChoreCompletions;
 using Wib.Api.Store;
+using Wib.Api.Testing;
 using Wib.Api.Vouchers;
 using Wib.Domain.Scoreboard;
 
@@ -18,7 +19,7 @@ builder.AddWibSentry();
 
 // Add services to the container.
 builder.Services.Configure<JwtAuthOptions>(builder.Configuration.GetSection(JwtAuthOptions.SectionName));
-builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddWibClock(builder.Environment);
 builder.Services.AddSingleton<IScoreboardCalculator, ScoreboardCalculator>();
 builder.Services.AddWibAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
@@ -36,6 +37,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapTestClockEndpoints();
 }
 
 app.UseDefaultFiles();
