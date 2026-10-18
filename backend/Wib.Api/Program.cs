@@ -42,7 +42,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseAuthentication();
-app.UseSentryUser();
+app.UseWibSentryUser();
 app.UseAuthorization();
 
 app.MapConfigEndpoints();
@@ -65,7 +65,7 @@ if (!app.Environment.IsEnvironment("Testing"))
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex,"Could not apply database migrations on startup. If running without MySQL, ensure DB is running.");
+        app.Logger.LogError(ex, "Could not apply database migrations on startup. If running without MySQL, ensure DB is running.");
     }
 }
 

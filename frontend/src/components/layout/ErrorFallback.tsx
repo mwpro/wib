@@ -1,4 +1,3 @@
-// Shown by the top-level Sentry.ErrorBoundary so a render error gives a recoverable screen instead of a blank page.
 export function ErrorFallback() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 p-4">

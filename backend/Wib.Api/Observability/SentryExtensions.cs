@@ -1,4 +1,4 @@
-using System.Security.Claims;
+using Wib.Api.Auth;
 
 namespace Wib.Api.Observability;
 
@@ -17,12 +17,11 @@ public static class SentryExtensions
         return builder;
     }
 
-    public static IApplicationBuilder UseSentryUser(this IApplicationBuilder app)
+    public static IApplicationBuilder UseWibSentryUser(this IApplicationBuilder app)
     {
         return app.Use(async (context, next) =>
         {
-            var sub = context.User.FindFirst("sub")?.Value
-                      ?? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var sub = context.User.GetSubject();
 
             if (!string.IsNullOrWhiteSpace(sub))
             {

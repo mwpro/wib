@@ -5,7 +5,7 @@ using Wib.Api.Common;
 namespace Wib.Api.Config;
 
 public record JwtAuthConfigDto(string Authority, string Domain, string ClientId, string Audience);
-public record SentryConfigDto(string? Dsn, string? Environment, string? Release);
+public record SentryConfigDto(string? Dsn, string? Environment, string? Release, double? TracesSampleRate);
 public record ClientConfigResponse(JwtAuthConfigDto JwtAuth, bool IsTestMode, SentryConfigDto Sentry);
 
 public static class ConfigEndpoints
@@ -24,7 +24,7 @@ public static class ConfigEndpoints
             );
 
             var sentry = sentryOptions.Value;
-            var sentryDto = new SentryConfigDto(sentry.Dsn, sentry.Environment, sentry.Release);
+            var sentryDto = new SentryConfigDto(sentry.Dsn, sentry.Environment, sentry.Release, sentry.TracesSampleRate);
 
             return Results.Ok(new ClientConfigResponse(jwtDto, options.BypassAuth, sentryDto));
         })
