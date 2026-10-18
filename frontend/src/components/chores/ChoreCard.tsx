@@ -11,6 +11,7 @@ interface ChoreCardProps {
   onEdit: (chore: ChoreResponse) => void
   onDelete: (chore: ChoreResponse) => void
   onHistory: (chore: ChoreResponse) => void
+  onRepeat: (chore: ChoreResponse) => void
 }
 
 const URGENCY_STYLES: Record<
@@ -41,6 +42,7 @@ export function ChoreCard({
   onEdit,
   onDelete,
   onHistory,
+  onRepeat,
 }: ChoreCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const isDone = Boolean(chore.lastCompletedAt) && chore.daysSinceLastDone === 0
@@ -142,7 +144,21 @@ export function ChoreCard({
 
           {/* Dropdown Menu */}
           {menuOpen && (
-            <div className="absolute right-0 top-9.5 z-20 w-36 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl shadow-xl py-1 text-xs animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute right-0 top-9.5 z-20 w-44 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl shadow-xl py-1 text-xs animate-in fade-in zoom-in-95 duration-100">
+              {/* Same-day repeat: the only way past the daily lock */}
+              {isDone && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    onRepeat(chore)
+                  }}
+                  className="w-full px-3 py-2 text-left flex items-center gap-2 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-medium transition cursor-pointer"
+                >
+                  <Check className="h-3.5 w-3.5 stroke-[3]" />
+                  <span>Zrobione ponownie</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {

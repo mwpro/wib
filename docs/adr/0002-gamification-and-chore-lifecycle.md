@@ -10,7 +10,9 @@ Traditional chore systems with rigid calendar schedules induce "late guilt" and 
 1. **Floating Cadence ("Needs-Based Freshness")**:
    - Chores are scheduled by floating interval (`CadenceDays`) elapsed since their last completion, rather than static calendar days.
    - When completed, the next expected interval starts from the completion date. Missed cycles never stack or generate multiple overdue instances.
-   - Chores can also be unscheduled (`CadenceDays = null`) to support ad-hoc tasks, repeatable at most once per calendar day.
+   - Chores can also be unscheduled (`CadenceDays = null`) to support ad-hoc tasks.
+   - After a completion, the 1-tap button of any chore stays locked for the rest of the calendar day (Daily lock).
+   - *Amended 2026-10-18*: originally a chore was repeatable at most once per calendar day, with no way past the lock. Real life occasionally needs a second same-day execution, so a locked chore's card menu now offers "Zrobione ponownie" behind a confirmation dialog (Same-day repeat). The lock stays the default; the extra step keeps accidental double taps out. Repeats earn full points, and the API was already accepting them.
 2. **Freshness & Urgency Math**:
    - Status is calculated dynamically: $\text{Ratio} = \frac{\text{Days Since Last Done}}{\text{CadenceDays}}$:
      - `0% - 79%`: Fresh (Green)
