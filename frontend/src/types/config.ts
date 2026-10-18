@@ -8,4 +8,12 @@ export interface JwtAuthConfig {
 export interface ClientConfig {
   jwtAuth?: JwtAuthConfig
   isTestMode: boolean
+  sentry: SentryConfig
+}
+
+export interface SentryConfig {
+  dsn: string | null
+  environment: string | null
+  release: string | null
+  tracesSampleRate: number | null
 }

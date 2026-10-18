@@ -30,8 +30,7 @@ public class JitMemberProvisioner : IJitMemberProvisioner
             return null;
         }
 
-        var sub = principal.FindFirst("sub")?.Value 
-               ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var sub = principal.GetSubject();
 
         if (string.IsNullOrWhiteSpace(sub))
         {

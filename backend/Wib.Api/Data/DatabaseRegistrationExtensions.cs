@@ -11,18 +11,20 @@ public static class DatabaseRegistrationExtensions
         var connectionString = configuration.GetConnectionString("DefaultConnection") 
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
 
-        services.AddDbContext<WibDbContext>(options =>
-        {
-            var version = ServerVersion.AutoDetect(connectionString);
+        services.AddSingleton(serviceProvider => new DatabaseServerVersion(
+            connectionString,
+            serviceProvider.GetRequiredService<ILogger<DatabaseServerVersion>>()));
 
+        services.AddDbContext<WibDbContext>((serviceProvider, options) =>
+        {
             options.UseMySql(
                 connectionString,
-                version,
+                serviceProvider.GetRequiredService<DatabaseServerVersion>().Get(),
                 mysqlOptions =>
                 {
                     mysqlOptions.EnableRetryOnFailure(
-                        maxRetryCount: 5,
-                        maxRetryDelay: TimeSpan.FromSeconds(10),
+                        maxRetryCount: 3,
+                        maxRetryDelay: TimeSpan.FromSeconds(2),
                         errorNumbersToAdd: null);
                 });
         });

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Auth0Provider, useAuth0 } from '@auth0/auth0-react'
 import type { ClientConfig } from '../types/config'
+import { initSentry } from '../observability/sentry'
 import { AuthContext, type AuthContextValue, type AuthUser } from './context'
 
 const DEFAULT_TEST_USER: AuthUser = {
@@ -104,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return res.json()
       })
       .then((data: ClientConfig) => {
+        initSentry(data.sentry)
         setConfig(data)
         setLoadingConfig(false)
       })

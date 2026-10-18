@@ -4,10 +4,15 @@ import { useCurrentMember } from './hooks/useCurrentMember'
 import { Header } from './components/layout/Header'
 import { LoadingScreen } from './components/layout/LoadingScreen'
 import { MainTabs } from './components/tabs/MainTabs'
+import { setSentryUser } from './observability/sentry'
 
 export function App() {
-  const { isAuthenticated, isLoading, login } = useAuth()
+  const { isAuthenticated, isLoading, login, user } = useAuth()
   const { currentMember } = useCurrentMember()
+
+  useEffect(() => {
+    setSentryUser(user?.sub)
+  }, [user?.sub])
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
