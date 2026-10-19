@@ -1,4 +1,4 @@
-import { fetchWithAuth } from './client'
+import { request } from './client'
 import type { AuthContextValue } from '../auth/context'
 import type {
   RewardItemResponse,
@@ -7,82 +7,33 @@ import type {
   BuyRewardResponse,
 } from '../types/store'
 
-export async function fetchStoreItems(
-  auth: AuthContextValue
-): Promise<RewardItemResponse[]> {
-  const response = await fetchWithAuth('/api/store/items', auth)
-  if (!response.ok) {
-    throw new Error(`Nie udało się pobrać listy nagród: ${response.statusText}`)
-  }
-  return response.json()
-}
-
-export async function createStoreItemApi(
-  auth: AuthContextValue,
-  req: CreateRewardItemRequest
-): Promise<RewardItemResponse> {
-  const response = await fetchWithAuth('/api/store/items', auth, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(req),
+export const fetchStoreItems = (auth: AuthContextValue) =>
+  request<RewardItemResponse[]>(auth, '/store/items', {
+    failureMessage: 'Nie udało się pobrać listy nagród.',
   })
-  if (!response.ok) {
-    const errorBody = await response.text()
-    throw new Error(`Nie udało się utworzyć nagrody: ${errorBody || response.statusText}`)
-  }
-  return response.json()
-}
 
-export async function updateStoreItemApi(
-  auth: AuthContextValue,
-  id: number,
-  req: UpdateRewardItemRequest
-): Promise<RewardItemResponse> {
-  const response = await fetchWithAuth(`/api/store/items/${id}`, auth, {
+export const createStoreItemApi = (auth: AuthContextValue, req: CreateRewardItemRequest) =>
+  request<RewardItemResponse>(auth, '/store/items', {
+    method: 'POST',
+    body: req,
+    failureMessage: 'Nie udało się utworzyć nagrody.',
+  })
+
+export const updateStoreItemApi = (auth: AuthContextValue, id: number, req: UpdateRewardItemRequest) =>
+  request<RewardItemResponse>(auth, `/store/items/${id}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(req),
+    body: req,
+    failureMessage: 'Nie udało się zaktualizować nagrody.',
   })
-  if (!response.ok) {
-    const errorBody = await response.text()
-    throw new Error(`Nie udało się zaktualizować nagrody: ${errorBody || response.statusText}`)
-  }
-  return response.json()
-}
 
-export async function deleteStoreItemApi(
-  auth: AuthContextValue,
-  id: number
-): Promise<void> {
-  const response = await fetchWithAuth(`/api/store/items/${id}`, auth, {
+export const deleteStoreItemApi = (auth: AuthContextValue, id: number) =>
+  request<void>(auth, `/store/items/${id}`, {
     method: 'DELETE',
+    failureMessage: 'Nie udało się usunąć nagrody ze sklepu.',
   })
-  if (!response.ok) {
-    throw new Error(`Nie udało się usunąć nagrody ze sklepu: ${response.statusText}`)
-  }
-}
 
-export async function purchaseStoreItemApi(
-  auth: AuthContextValue,
-  id: number
-): Promise<BuyRewardResponse> {
-  const response = await fetchWithAuth(`/api/store/items/${id}/purchase`, auth, {
+export const purchaseStoreItemApi = (auth: AuthContextValue, id: number) =>
+  request<BuyRewardResponse>(auth, `/store/items/${id}/purchase`, {
     method: 'POST',
+    failureMessage: 'Nie udało się kupić nagrody.',
   })
-  if (!response.ok) {
-    let detail = response.statusText
-    try {
-      const errJson = await response.json()
-      if (errJson.detail) detail = errJson.detail
-      else if (errJson.title) detail = errJson.title
-    } catch {
-      // ignore
-    }
-    throw new Error(detail || 'Nie udało się kupić nagrody.')
-  }
-  return response.json()
-}

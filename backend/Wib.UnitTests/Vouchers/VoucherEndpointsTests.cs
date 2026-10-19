@@ -5,6 +5,9 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Wib.Api.Store;
 using Wib.Api.Vouchers;
+using Wib.Domain.Members;
+using Wib.Domain.Store;
+using Wib.Domain.Vouchers;
 
 namespace Wib.UnitTests.Vouchers;
 
@@ -36,7 +39,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
             }
             else if (diff < 0)
             {
-                member.TryDebitWallet(-diff);
+                member.DebitWallet(-diff);
             }
             await db.SaveChangesAsync();
         });
@@ -58,53 +61,26 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     }
 
     [Fact]
-    public async Task PurchaseRewardItem_WhenInsufficientBalance_ShouldReturn400()
+    public async Task PurchaseRewardItem_WhenDomainRejects_ShouldReturn400WithErrorCode()
     {
         var sub = "poor-buyer";
         var client = _factory.CreateAuthenticatedClient(sub, "Poor Buyer");
         await EnsureMemberHasBalanceAsync(sub, "Poor Buyer", 5);
 
-        // Create an item costing 20 points
         var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Drogi Masaż", 20));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
 
-        // Act: attempt to buy with only 5 points
         var buyRes = await client.PostAsync($"/api/store/items/{item!.Id}/purchase", null);
 
-        // Assert
-        buyRes.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var content = await buyRes.Content.ReadAsStringAsync();
-        content.Should().Contain("Niewystarczająca liczba punktów");
+        await buyRes.ShouldBeProblemAsync(WalletErrors.NotEnoughPoints);
     }
 
     [Fact]
-    public async Task PurchaseRewardItem_WhenInactive_ShouldReturn400()
-    {
-        var sub = "inactive-buyer";
-        var client = _factory.CreateAuthenticatedClient(sub, "Inactive Buyer");
-        await EnsureMemberHasBalanceAsync(sub, "Inactive Buyer", 50);
-
-        var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Wycieczka", 20));
-        var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
-
-        // Deactivate item
-        await client.DeleteAsync($"/api/store/items/{item!.Id}");
-
-        // Act
-        var buyRes = await client.PostAsync($"/api/store/items/{item.Id}/purchase", null);
-
-        // Assert
-        buyRes.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var content = await buyRes.Content.ReadAsStringAsync();
-        content.Should().Contain("nie jest już aktywna");
-    }
-
-    [Fact]
-    public async Task PurchaseRewardItem_WhenNotFound_ShouldReturn404()
+    public async Task PurchaseRewardItem_WhenNotFound_ShouldReturn404WithErrorCode()
     {
         var client = _factory.CreateAuthenticatedClient();
         var buyRes = await client.PostAsync("/api/store/items/999999/purchase", null);
-        buyRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await buyRes.ShouldBeProblemAsync(RewardItemErrors.NotFound);
     }
 
     [Fact]
@@ -281,30 +257,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     }
 
     [Fact]
-    public async Task RedeemVoucher_WhenAlreadyRedeemed_ShouldReturn400()
-    {
-        var sub = "double-redeemer";
-        var client = _factory.CreateAuthenticatedClient(sub, "Double Redeemer");
-        await EnsureMemberHasBalanceAsync(sub, "Double Redeemer", 100);
-
-        var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Lody", 10));
-        var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
-
-        var buyRes = await client.PostAsync($"/api/store/items/{item!.Id}/purchase", null);
-        var voucher = (await buyRes.Content.ReadFromJsonAsync<BuyRewardResponse>(_jsonOptions))!.Voucher;
-
-        // First redeem succeeds
-        await client.PostAsync($"/api/vouchers/{voucher.Id}/redemption", null);
-
-        // Second redeem fails
-        var secondRedeem = await client.PostAsync($"/api/vouchers/{voucher.Id}/redemption", null);
-        secondRedeem.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var content = await secondRedeem.Content.ReadAsStringAsync();
-        content.Should().Contain("został już zrealizowany");
-    }
-
-    [Fact]
-    public async Task RedeemVoucher_WhenOwnedByAnotherMember_ShouldReturn403()
+    public async Task RedeemVoucher_WhenOwnedByAnotherMember_ShouldReturn404AsIfMissing()
     {
         var ownerSub = "voucher-owner";
         var hackerSub = "voucher-thief";
@@ -323,14 +276,20 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var redeemRes = await thiefClient.PostAsync($"/api/vouchers/{voucher.Id}/redemption", null);
 
         // Assert
-        redeemRes.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        await redeemRes.ShouldBeProblemAsync(VoucherErrors.NotFound);
+
+        await _factory.ExecuteDbContextAsync(async db =>
+        {
+            var entity = await db.Vouchers.FirstAsync(v => v.Id == voucher.Id);
+            entity.IsRedeemed.Should().BeFalse();
+        });
     }
 
     [Fact]
-    public async Task RedeemVoucher_WhenNotFound_ShouldReturn404()
+    public async Task RedeemVoucher_WhenNotFound_ShouldReturn404WithErrorCode()
     {
         var client = _factory.CreateAuthenticatedClient();
         var redeemRes = await client.PostAsync("/api/vouchers/999999/redemption", null);
-        redeemRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await redeemRes.ShouldBeProblemAsync(VoucherErrors.NotFound);
     }
 }

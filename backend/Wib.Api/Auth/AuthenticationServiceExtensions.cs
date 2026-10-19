@@ -32,10 +32,6 @@ public static class AuthenticationServiceExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddHttpContextAccessor();
-        services.AddScoped<IJitMemberProvisioner, JitMemberProvisioner>();
-        services.AddScoped<ICurrentMemberAccessor, CurrentMemberAccessor>();
-
         var jwtOptions = configuration.GetSection(JwtAuthOptions.SectionName).Get<JwtAuthOptions>() ?? new JwtAuthOptions();
 
         var authority = jwtOptions.GetNormalizedAuthority();

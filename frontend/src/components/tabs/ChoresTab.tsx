@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { Plus, AlertCircle, RefreshCw, CheckSquare, Inbox } from 'lucide-react'
 import {
   useChores,
@@ -7,8 +7,8 @@ import {
   useUpdateChore,
   useDeleteChore,
 } from '../../hooks/useChores'
-import { useChoreFilters } from '../../hooks/useChoreFilters'
-import { CADENCE_PRESETS, getCadenceBucket, type CadenceFilter } from '../../utils/cadence'
+import { useBacklogView } from '../../hooks/useBacklogView'
+import { useConfirmedAction } from '../../hooks/useConfirmedAction'
 import { ChoreCard } from '../chores/ChoreCard'
 import { ChoreFilters } from '../chores/ChoreFilters'
 import { ChoreFormModal, type InitialChoreValues } from '../chores/ChoreFormModal'
@@ -24,80 +24,20 @@ export function ChoresTab() {
   const updateMutation = useUpdateChore()
   const deleteMutation = useDeleteChore()
 
-  const {
-    searchQuery,
-    setSearchQuery,
-    selectedTags: urlTags,
-    setSelectedTags,
-    cadence,
-    setCadence,
-    clearAll,
-  } = useChoreFilters()
+  const backlog = useBacklogView(chores)
+  const deleteChore = useConfirmedAction((chore: ChoreResponse) =>
+    deleteMutation.mutateAsync(chore.id)
+  )
+  const repeatCompletion = useConfirmedAction((chore: ChoreResponse) =>
+    completeMutation.mutateAsync({ choreId: chore.id, points: chore.points })
+  )
 
   // Modal states
   const [isFormModalOpen, setIsFormModalOpen] = useState(false)
   const [choreToEdit, setChoreToEdit] = useState<ChoreResponse | null>(null)
   const [modalInitialValues, setModalInitialValues] = useState<InitialChoreValues | undefined>()
-  const [choreToDelete, setChoreToDelete] = useState<ChoreResponse | null>(null)
   const [choreForHistory, setChoreForHistory] = useState<ChoreResponse | null>(null)
-  const [choreToRepeat, setChoreToRepeat] = useState<ChoreResponse | null>(null)
-  const [repeatError, setRepeatError] = useState<string | null>(null)
-  const [isRepeating, setIsRepeating] = useState(false)
   const [completingIds, setCompletingIds] = useState<Set<number>>(new Set())
-
-  // Extract all unique tags dynamically
-  const availableTags = useMemo(() => {
-    const set = new Set<string>()
-    chores.forEach((c) => {
-      c.tags?.forEach((t) => set.add(t))
-    })
-    return Array.from(set).sort()
-  }, [chores])
-
-  // Tags from the URL that no chore carries anymore are ignored
-  const selectedTags = useMemo(
-    () => urlTags.filter((t) => availableTags.includes(t)),
-    [urlTags, availableTags]
-  )
-
-  // Cadence buckets present in the backlog; the selected one stays visible even when empty
-  const availableCadences = useMemo(() => {
-    const present = new Set<CadenceFilter>(chores.map((c) => getCadenceBucket(c.cadenceDays)))
-    if (cadence != null) present.add(cadence)
-    const ordered: CadenceFilter[] = [...CADENCE_PRESETS.map((p) => p.days), 'none']
-    return ordered.filter((c) => present.has(c))
-  }, [chores, cadence])
-
-  // Filter chores: text AND any selected tag AND cadence bucket; backlog order comes from the API
-  const filteredChores = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    return chores.filter((chore) => {
-      const matchesText =
-        !q ||
-        chore.title.toLowerCase().includes(q) ||
-        chore.description?.toLowerCase().includes(q)
-      if (!matchesText) return false
-
-      if (selectedTags.length > 0) {
-        const choreTags = chore.tags || []
-        if (!selectedTags.some((t) => choreTags.includes(t))) return false
-      }
-
-      if (cadence != null && getCadenceBucket(chore.cadenceDays) !== cadence) return false
-
-      return true
-    })
-  }, [chores, searchQuery, selectedTags, cadence])
-
-  const handleToggleTag = (tag: string) => {
-    setSelectedTags(
-      selectedTags.includes(tag) ? selectedTags.filter((t) => t !== tag) : [...selectedTags, tag]
-    )
-  }
-
-  const handleClearTags = () => {
-    setSelectedTags([])
-  }
 
   const handleCompleteChore = async (choreId: number, points: number) => {
     setCompletingIds((prev) => new Set(prev).add(choreId))
@@ -111,27 +51,6 @@ export function ChoresTab() {
         next.delete(choreId)
         return next
       })
-    }
-  }
-
-  const handleOpenRepeat = (chore: ChoreResponse) => {
-    setRepeatError(null)
-    setChoreToRepeat(chore)
-  }
-
-  const handleConfirmRepeat = async () => {
-    if (!choreToRepeat) return
-    setRepeatError(null)
-    // Own pending flag: completeMutation is shared with every card's 1-tap button
-    setIsRepeating(true)
-    try {
-      await completeMutation.mutateAsync({ choreId: choreToRepeat.id, points: choreToRepeat.points })
-      setChoreToRepeat(null)
-    } catch (err) {
-      console.error('Failed to repeat chore completion:', err)
-      setRepeatError('Nie udało się zapisać wykonania. Spróbuj ponownie.')
-    } finally {
-      setIsRepeating(false)
     }
   }
 
@@ -153,19 +72,6 @@ export function ChoresTab() {
       await createMutation.mutateAsync(data)
     }
   }
-
-  const handleConfirmDelete = async () => {
-    if (!choreToDelete) return
-    try {
-      await deleteMutation.mutateAsync(choreToDelete.id)
-      setChoreToDelete(null)
-    } catch (err) {
-      console.error('Failed to delete chore:', err)
-    }
-  }
-
-  const activeFiltersCount =
-    (searchQuery ? 1 : 0) + selectedTags.length + (cadence != null ? 1 : 0)
 
   return (
     <div className="flex flex-col gap-5">
@@ -223,15 +129,15 @@ export function ChoresTab() {
           {/* Search & Tag Filter Bar */}
           {chores.length > 0 && (
             <ChoreFilters
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              availableCadences={availableCadences}
-              selectedCadence={cadence}
-              onSelectCadence={setCadence}
-              availableTags={availableTags}
-              selectedTags={selectedTags}
-              onToggleTag={handleToggleTag}
-              onClearTags={handleClearTags}
+              searchQuery={backlog.searchQuery}
+              onSearchChange={backlog.setSearchQuery}
+              availableCadences={backlog.availableCadences}
+              selectedCadence={backlog.cadence}
+              onSelectCadence={backlog.setCadence}
+              availableTags={backlog.availableTags}
+              selectedTags={backlog.selectedTags}
+              onToggleTag={backlog.toggleTag}
+              onClearTags={backlog.clearTags}
             />
           )}
 
@@ -259,7 +165,7 @@ export function ChoresTab() {
           )}
 
           {/* Empty state: Filters applied but 0 matches */}
-          {chores.length > 0 && filteredChores.length === 0 && (
+          {chores.length > 0 && backlog.visibleChores.length === 0 && (
             <div className="p-8 bg-white dark:bg-[#14161d] rounded-2xl border border-stone-200/90 dark:border-stone-800/80 text-center flex flex-col items-center gap-2 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
               <Inbox className="h-7 w-7 text-stone-400" />
               <p className="text-sm font-semibold text-stone-800 dark:text-stone-200 tracking-tight">
@@ -268,31 +174,31 @@ export function ChoresTab() {
               <p className="text-xs text-stone-500 dark:text-stone-400">
                 Spróbuj zmienić zapytanie lub odznaczyć wybrane filtry.
               </p>
-              {activeFiltersCount > 0 && (
+              {backlog.activeFiltersCount > 0 && (
                 <button
                   type="button"
-                  onClick={clearAll}
+                  onClick={backlog.clearAll}
                   className="mt-2 px-3 py-1.5 text-xs font-semibold text-amber-800 dark:text-amber-400 hover:underline cursor-pointer"
                 >
-                  Wyczyść filtry ({activeFiltersCount})
+                  Wyczyść filtry ({backlog.activeFiltersCount})
                 </button>
               )}
             </div>
           )}
 
           {/* Backlog */}
-          {filteredChores.length > 0 && (
+          {backlog.visibleChores.length > 0 && (
             <div className="flex flex-col gap-2">
-              {filteredChores.map((chore) => (
+              {backlog.visibleChores.map((chore) => (
                 <ChoreCard
                   key={chore.id}
                   chore={chore}
                   onComplete={handleCompleteChore}
                   isCompleting={completingIds.has(chore.id)}
                   onEdit={handleOpenEdit}
-                  onDelete={setChoreToDelete}
+                  onDelete={deleteChore.open}
                   onHistory={setChoreForHistory}
-                  onRepeat={handleOpenRepeat}
+                  onRepeat={repeatCompletion.open}
                 />
               ))}
             </div>
@@ -306,27 +212,15 @@ export function ChoresTab() {
         onClose={() => setIsFormModalOpen(false)}
         onSubmit={handleFormSubmit}
         choreToEdit={choreToEdit}
-        existingTags={availableTags}
+        existingTags={backlog.availableTags}
         initialValues={modalInitialValues}
       />
 
       {/* Delete Chore Confirmation Dialog */}
-      <DeleteChoreDialog
-        isOpen={choreToDelete != null}
-        chore={choreToDelete}
-        onClose={() => setChoreToDelete(null)}
-        onConfirm={handleConfirmDelete}
-        isDeleting={deleteMutation.isPending}
-      />
+      <DeleteChoreDialog {...deleteChore.dialog} chore={deleteChore.target} />
 
       {/* Same-day Repeat Confirmation Dialog */}
-      <RepeatCompletionDialog
-        chore={choreToRepeat}
-        onClose={() => setChoreToRepeat(null)}
-        onConfirm={handleConfirmRepeat}
-        isSaving={isRepeating}
-        error={repeatError}
-      />
+      <RepeatCompletionDialog {...repeatCompletion.dialog} chore={repeatCompletion.target} />
 
       <ChoreHistoryModal chore={choreForHistory} onClose={() => setChoreForHistory(null)} />
     </div>

@@ -15,9 +15,13 @@ Single-context layout (`CONTEXT.md` + `docs/adr/` at repo root). See `docs/agent
 ## How to Run & Test the Project
 
 ### Architecture Summary
-- **Backend**: ASP.NET Core (.NET 10) REST API (`backend/Wib.Api/`) with Entity Framework Core (MySQL/MariaDB) and domain unit tests (`backend/Wib.UnitTests/`).
-- **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS + TanStack Query (`frontend/`).
+This is the current stack. The reasons behind it are in `docs/adr/`.
+- **Domain**: `backend/Wib.Domain/`, a .NET 10 class library with no package dependencies.
+- **Backend**: ASP.NET Core (.NET 10) minimal API (`backend/Wib.Api/`), EF Core 9 with Pomelo MySQL on MariaDB 12.3, Auth0 JWT Bearer, Sentry.
+- **Backend tests**: `backend/Wib.UnitTests/`, xUnit + FluentAssertions. It holds both domain tests (on `Wib.Domain` directly) and endpoint tests (`WebApplicationFactory` with the EF in-memory provider).
+- **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS 4 + Radix UI + TanStack Query, Auth0 SPA SDK, Sentry (`frontend/`). Lint is oxlint, and type checking is `tsc -b`. There are no frontend unit tests.
 - **E2E**: Playwright tests (`e2e/`).
+- **Deployment**: one Docker image (SPA in `wwwroot`) built by `.github/workflows/ci.yml`, run via Docker Compose on a Mikr.us VPS.
 
 ### Backend Guidelines
 - **No `InternalsVisibleTo`**: Never use `[InternalsVisibleTo]` or `<InternalsVisibleTo>` to expose internal API symbols to test projects. Tests must interact strictly with public contracts and domain methods, preserving proper encapsulation.

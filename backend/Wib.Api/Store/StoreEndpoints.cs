@@ -14,8 +14,7 @@ public static class StoreEndpoints
     {
         var group = app.MapGroup("/api/store")
             .RequireAuthorization()
-            .WithTags("Store")
-            .WithValidation();
+            .WithTags("Store");
 
         group.MapGet("/items", async (
             [FromServices] WibDbContext db,
@@ -39,26 +38,26 @@ public static class StoreEndpoints
         group.MapPost("/items", async (
             [FromBody] CreateRewardItemRequest request,
             [FromServices] WibDbContext db,
-            [FromServices] ICurrentMemberAccessor currentMemberAccessor,
+            CurrentMember currentMember,
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
-            var member = await currentMemberAccessor.GetCurrentMemberAsync(cancellationToken);
-            if (member == null)
-            {
-                return Results.Unauthorized();
-            }
+            var member = currentMember.Member;
 
-            var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-            var item = RewardItem.Create(
+            var created = RewardItem.Create(
                 request.Title,
                 request.Description,
                 request.PointCost,
                 request.Quantity,
                 member.Id,
-                nowUtc
+                timeProvider.GetUtcNow().UtcDateTime
             );
+            if (created.IsFailure)
+            {
+                return created.Error.ToProblem();
+            }
 
+            var item = created.Value;
             db.RewardItems.Add(item);
             await db.SaveChangesAsync(cancellationToken);
 
@@ -74,14 +73,18 @@ public static class StoreEndpoints
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
-            var item = await db.RewardItems.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
-            if (item == null || !item.IsActive)
+            var item = await db.RewardItems.FirstOrDefaultAsync(r => r.Id == id && r.IsActive, cancellationToken);
+            if (item == null)
             {
-                return Results.NotFound();
+                return RewardItemErrors.NotFound.ToProblem();
             }
 
-            var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-            item.Update(request.Title, request.Description, request.PointCost, request.Quantity, nowUtc);
+            var update = item.Update(
+                request.Title, request.Description, request.PointCost, request.Quantity, timeProvider.GetUtcNow().UtcDateTime);
+            if (update.IsFailure)
+            {
+                return update.Error.ToProblem();
+            }
 
             await db.SaveChangesAsync(cancellationToken);
 
@@ -96,10 +99,10 @@ public static class StoreEndpoints
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
-            var item = await db.RewardItems.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
-            if (item == null || !item.IsActive)
+            var item = await db.RewardItems.FirstOrDefaultAsync(r => r.Id == id && r.IsActive, cancellationToken);
+            if (item == null)
             {
-                return Results.NotFound();
+                return RewardItemErrors.NotFound.ToProblem();
             }
 
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
@@ -114,45 +117,27 @@ public static class StoreEndpoints
         group.MapPost("/items/{id:int}/purchase", async (
             [FromRoute] int id,
             [FromServices] WibDbContext db,
-            [FromServices] ICurrentMemberAccessor currentMemberAccessor,
+            CurrentMember currentMember,
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
-            var member = await currentMemberAccessor.GetCurrentMemberAsync(cancellationToken);
-            if (member == null)
-            {
-                return Results.Unauthorized();
-            }
+            var member = currentMember.Member;
 
             var item = await db.RewardItems.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
             if (item == null)
             {
-                return Results.NotFound();
+                return RewardItemErrors.NotFound.ToProblem();
             }
 
-            if (!item.IsActive)
+            var purchase = item.Purchase(member, timeProvider.GetUtcNow().UtcDateTime);
+            if (purchase.IsFailure)
             {
-                return Results.BadRequest(new ProblemDetails
-                {
-                    Title = "Nagroda niedostępna",
-                    Detail = "Wybrana nagroda nie jest już aktywna."
-                });
+                return purchase.Error.ToProblem();
             }
-
-            if (member.WalletBalance < item.PointCost)
-            {
-                return Results.BadRequest(new ProblemDetails
-                {
-                    Title = "Niewystarczające środki",
-                    Detail = "Niewystarczająca liczba punktów w portfelu."
-                });
-            }
-
-            var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-            var voucher = item.Purchase(member, nowUtc);
 
             await db.SaveChangesAsync(cancellationToken);
 
+            var voucher = purchase.Value;
             var response = new BuyRewardResponse(VoucherResponse.Create(voucher), member.WalletBalance);
             return Results.Created($"/api/vouchers/{voucher.Id}", response);
         })

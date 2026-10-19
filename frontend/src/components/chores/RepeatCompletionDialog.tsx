@@ -1,26 +1,24 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { Check, AlertCircle } from 'lucide-react'
+import type { ConfirmedActionDialogProps } from '../../hooks/useConfirmedAction'
 import type { ChoreResponse } from '../../types/chore'
 
-interface RepeatCompletionDialogProps {
+interface RepeatCompletionDialogProps extends ConfirmedActionDialogProps {
   chore: ChoreResponse | null
-  onClose: () => void
-  onConfirm: () => Promise<void> | void
-  isSaving?: boolean
-  error?: string | null
 }
 
 export function RepeatCompletionDialog({
+  isOpen,
   chore,
   onClose,
   onConfirm,
-  isSaving = false,
-  error = null,
+  isPending,
+  error,
 }: RepeatCompletionDialogProps) {
-  if (!chore) return null
+  if (!isOpen || !chore) return null
 
   return (
-    <Dialog.Root open onOpenChange={(open) => !open && !isSaving && onClose()}>
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/60 z-40 backdrop-blur-xs animate-in fade-in" />
         <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-sm bg-white dark:bg-[#14161d] rounded-2xl p-6 shadow-2xl border border-stone-200/90 dark:border-stone-800/90">
@@ -52,7 +50,7 @@ export function RepeatCompletionDialog({
             <button
               type="button"
               onClick={onClose}
-              disabled={isSaving}
+              disabled={isPending}
               className="flex-1 py-2 px-4 text-xs font-semibold text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition cursor-pointer"
             >
               Anuluj
@@ -60,10 +58,10 @@ export function RepeatCompletionDialog({
             <button
               type="button"
               onClick={onConfirm}
-              disabled={isSaving}
+              disabled={isPending}
               className="flex-1 py-2 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50"
             >
-              {isSaving ? 'Zapisywanie...' : 'Zapisz ponownie'}
+              {isPending ? 'Zapisywanie...' : 'Zapisz ponownie'}
             </button>
           </div>
         </Dialog.Content>

@@ -4,6 +4,7 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Wib.Api.Store;
+using Wib.Domain.Store;
 
 namespace Wib.UnitTests.Store;
 
@@ -60,21 +61,27 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         });
     }
 
-    [Theory]
-    [InlineData("", 10, null)]
-    [InlineData("   ", 10, null)]
-    [InlineData("Valid Title", 0, null)]
-    [InlineData("Valid Title", -5, null)]
-    [InlineData("Valid Title", 10, 0)]
-    [InlineData("Valid Title", 10, -1)]
-    public async Task PostRewardItem_WithInvalidData_ShouldReturn400(string title, int pointCost, int? quantity)
+    [Fact]
+    public async Task PostRewardItem_WithInvalidFields_ShouldReturn400WithErrorCode()
     {
         var client = _factory.CreateAuthenticatedClient();
-        var request = new CreateRewardItemRequest(title, pointCost, null, quantity);
+        var request = new CreateRewardItemRequest("Valid Title", 10, null, Quantity: 0);
 
         var response = await client.PostAsJsonAsync("/api/store/items", request);
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        await response.ShouldBeProblemAsync(RewardItemErrors.QuantityTooLow);
+    }
+
+    [Fact]
+    public async Task PutRewardItem_WithInvalidFields_ShouldReturn400WithErrorCode()
+    {
+        var client = _factory.CreateAuthenticatedClient();
+        var createRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Kino", 20));
+        var created = await createRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
+
+        var response = await client.PutAsJsonAsync($"/api/store/items/{created!.Id}", new UpdateRewardItemRequest("   ", 20));
+
+        await response.ShouldBeProblemAsync(RewardItemErrors.TitleRequired);
     }
 
     [Fact]
@@ -154,7 +161,22 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         var client = _factory.CreateAuthenticatedClient();
         var putRes = await client.PutAsJsonAsync("/api/store/items/99999", new UpdateRewardItemRequest("Test", 10));
-        putRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await putRes.ShouldBeProblemAsync(RewardItemErrors.NotFound);
+    }
+
+    [Fact]
+    public async Task PutAndDeleteRewardItem_WhenDeactivated_ShouldReturn404()
+    {
+        var client = _factory.CreateAuthenticatedClient();
+        var createRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Wycieczka", 20));
+        var created = await createRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
+        await client.DeleteAsync($"/api/store/items/{created!.Id}");
+
+        var putRes = await client.PutAsJsonAsync($"/api/store/items/{created.Id}", new UpdateRewardItemRequest("Wycieczka", 30));
+        var delRes = await client.DeleteAsync($"/api/store/items/{created.Id}");
+
+        await putRes.ShouldBeProblemAsync(RewardItemErrors.NotFound);
+        await delRes.ShouldBeProblemAsync(RewardItemErrors.NotFound);
     }
 
     [Fact]
@@ -162,6 +184,6 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         var client = _factory.CreateAuthenticatedClient();
         var delRes = await client.DeleteAsync("/api/store/items/99999");
-        delRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await delRes.ShouldBeProblemAsync(RewardItemErrors.NotFound);
     }
 }

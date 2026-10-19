@@ -49,10 +49,8 @@ export function StoreTab() {
             activeVouchers={store.activeVouchers}
             isOpen={store.isWalletOpen}
             onToggle={() => store.setIsWalletOpen(!store.isWalletOpen)}
-            onRedeem={store.handleOpenRedeem}
-            redeemingVoucherId={
-              store.isRedeeming ? (store.voucherToRedeem?.id ?? null) : null
-            }
+            onRedeem={store.redeem.open}
+            redeemingVoucherId={store.redeem.pendingTarget?.id ?? null}
           />
 
           <CatalogSection
@@ -60,13 +58,11 @@ export function StoreTab() {
             isOpen={store.isStoreOpen}
             onToggle={() => store.setIsStoreOpen(!store.isStoreOpen)}
             walletBalance={store.walletBalance}
-            onPurchase={store.handleOpenPurchase}
+            onPurchase={store.purchase.open}
             onEdit={store.handleOpenEditReward}
-            onDelete={store.handleOpenDeleteReward}
+            onDelete={store.deleteReward.open}
             onAddReward={store.handleOpenCreateReward}
-            purchasingRewardId={
-              store.isPurchasing ? (store.rewardToPurchase?.id ?? null) : null
-            }
+            purchasingRewardId={store.purchase.pendingTarget?.id ?? null}
           />
 
           <RedeemedHistorySection
@@ -85,32 +81,11 @@ export function StoreTab() {
         rewardToEdit={store.rewardToEdit}
       />
 
-      <PurchaseConfirmDialog
-        isOpen={store.rewardToPurchase != null}
-        reward={store.rewardToPurchase}
-        onClose={store.closePurchaseDialog}
-        onConfirm={store.handleConfirmPurchase}
-        isPurchasing={store.isPurchasing}
-        error={store.purchaseError?.message ?? null}
-      />
+      <PurchaseConfirmDialog {...store.purchase.dialog} reward={store.purchase.target} />
 
-      <RedeemConfirmDialog
-        isOpen={store.voucherToRedeem != null}
-        voucher={store.voucherToRedeem}
-        onClose={store.closeRedeemDialog}
-        onConfirm={store.handleConfirmRedeem}
-        isRedeeming={store.isRedeeming}
-        error={store.redeemError?.message ?? null}
-      />
+      <RedeemConfirmDialog {...store.redeem.dialog} voucher={store.redeem.target} />
 
-      <DeleteRewardDialog
-        isOpen={store.rewardToDelete != null}
-        reward={store.rewardToDelete}
-        onClose={store.closeDeleteDialog}
-        onConfirm={store.handleConfirmDeleteReward}
-        isDeleting={store.isDeleting}
-        error={store.deleteError?.message ?? null}
-      />
+      <DeleteRewardDialog {...store.deleteReward.dialog} reward={store.deleteReward.target} />
     </div>
   )
 }

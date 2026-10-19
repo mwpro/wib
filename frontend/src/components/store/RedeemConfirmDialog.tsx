@@ -1,14 +1,10 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { Sparkles, AlertCircle } from 'lucide-react'
+import type { ConfirmedActionDialogProps } from '../../hooks/useConfirmedAction'
 import type { VoucherResponse } from '../../types/voucher'
 
-interface RedeemConfirmDialogProps {
-  isOpen: boolean
+interface RedeemConfirmDialogProps extends ConfirmedActionDialogProps {
   voucher: VoucherResponse | null
-  onClose: () => void
-  onConfirm: () => Promise<void> | void
-  isRedeeming?: boolean
-  error?: string | null
 }
 
 export function RedeemConfirmDialog({
@@ -16,8 +12,8 @@ export function RedeemConfirmDialog({
   voucher,
   onClose,
   onConfirm,
-  isRedeeming = false,
-  error = null,
+  isPending,
+  error,
 }: RedeemConfirmDialogProps) {
   if (!isOpen || !voucher) return null
 
@@ -53,7 +49,7 @@ export function RedeemConfirmDialog({
             <button
               type="button"
               onClick={onClose}
-              disabled={isRedeeming}
+              disabled={isPending}
               className="flex-1 py-2 px-4 text-xs font-semibold text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition cursor-pointer"
             >
               Anuluj
@@ -61,10 +57,10 @@ export function RedeemConfirmDialog({
             <button
               type="button"
               onClick={onConfirm}
-              disabled={isRedeeming}
+              disabled={isPending}
               className="flex-1 py-2 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50"
             >
-              {isRedeeming ? 'Realizowanie...' : 'Zrealizuj kupon'}
+              {isPending ? 'Realizowanie...' : 'Zrealizuj kupon'}
             </button>
           </div>
         </Dialog.Content>

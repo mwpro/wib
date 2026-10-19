@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useCurrentMember } from './useCurrentMember'
+import { useConfirmedAction } from './useConfirmedAction'
 import {
   useStoreItems,
   usePurchaseReward,
@@ -57,12 +58,19 @@ export function useStoreTab() {
   const [isStoreOpen, setIsStoreOpen] = useState(true)
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
 
-  // Dialog & Modal states
+  // Reward form state
   const [isRewardFormOpen, setIsRewardFormOpen] = useState(false)
   const [rewardToEdit, setRewardToEdit] = useState<RewardItemResponse | null>(null)
-  const [rewardToPurchase, setRewardToPurchase] = useState<RewardItemResponse | null>(null)
-  const [rewardToDelete, setRewardToDelete] = useState<RewardItemResponse | null>(null)
-  const [voucherToRedeem, setVoucherToRedeem] = useState<VoucherResponse | null>(null)
+
+  const purchase = useConfirmedAction((reward: RewardItemResponse) =>
+    purchaseMutation.mutateAsync({ rewardItemId: reward.id, pointCost: reward.pointCost })
+  )
+  const redeem = useConfirmedAction((voucher: VoucherResponse) =>
+    redeemMutation.mutateAsync(voucher.id)
+  )
+  const deleteReward = useConfirmedAction((reward: RewardItemResponse) =>
+    deleteRewardMutation.mutateAsync(reward.id)
+  )
 
   const isLoading = isLoadingRewards || isLoadingActive || isLoadingRedeemed
   const isError = isErrorRewards || isErrorActive || isErrorRedeemed
@@ -76,8 +84,6 @@ export function useStoreTab() {
     refetchActive()
     refetchRedeemed()
   }
-
-  // --- Reward form handlers ---
 
   const handleOpenCreateReward = () => {
     setRewardToEdit(null)
@@ -98,72 +104,6 @@ export function useStoreTab() {
   }
 
   const closeRewardForm = () => setIsRewardFormOpen(false)
-
-  // --- Purchase handlers ---
-
-  const handleOpenPurchase = (reward: RewardItemResponse) => {
-    setRewardToPurchase(reward)
-  }
-
-  const handleConfirmPurchase = async () => {
-    if (!rewardToPurchase) return
-    try {
-      await purchaseMutation.mutateAsync({
-        rewardItemId: rewardToPurchase.id,
-        pointCost: rewardToPurchase.pointCost,
-      })
-      setRewardToPurchase(null)
-    } catch {
-      // Error is captured in purchaseMutation.error and shown in the dialog
-    }
-  }
-
-  const closePurchaseDialog = () => {
-    setRewardToPurchase(null)
-    purchaseMutation.reset()
-  }
-
-  // --- Redeem handlers ---
-
-  const handleOpenRedeem = (voucher: VoucherResponse) => {
-    setVoucherToRedeem(voucher)
-  }
-
-  const handleConfirmRedeem = async () => {
-    if (!voucherToRedeem) return
-    try {
-      await redeemMutation.mutateAsync(voucherToRedeem.id)
-      setVoucherToRedeem(null)
-    } catch {
-      // Error is captured in redeemMutation.error and shown in the dialog
-    }
-  }
-
-  const closeRedeemDialog = () => {
-    setVoucherToRedeem(null)
-    redeemMutation.reset()
-  }
-
-  // --- Delete handlers ---
-
-  const handleOpenDeleteReward = (reward: RewardItemResponse) => {
-    setRewardToDelete(reward)
-  }
-
-  const handleConfirmDeleteReward = async () => {
-    if (!rewardToDelete) return
-    try {
-      await deleteRewardMutation.mutateAsync(rewardToDelete.id)
-      setRewardToDelete(null)
-    } catch {
-      // Error is captured in deleteRewardMutation.error and shown in the dialog
-    }
-  }
-
-  const closeDeleteDialog = () => {
-    setRewardToDelete(null)
-    deleteRewardMutation.reset()
-  }
 
   return {
     // Data
@@ -194,28 +134,9 @@ export function useStoreTab() {
     handleSaveReward,
     closeRewardForm,
 
-    // Purchase dialog
-    rewardToPurchase,
-    handleOpenPurchase,
-    handleConfirmPurchase,
-    closePurchaseDialog,
-    purchaseError: purchaseMutation.error,
-    isPurchasing: purchaseMutation.isPending,
-
-    // Redeem dialog
-    voucherToRedeem,
-    handleOpenRedeem,
-    handleConfirmRedeem,
-    closeRedeemDialog,
-    redeemError: redeemMutation.error,
-    isRedeeming: redeemMutation.isPending,
-
-    // Delete dialog
-    rewardToDelete,
-    handleOpenDeleteReward,
-    handleConfirmDeleteReward,
-    closeDeleteDialog,
-    deleteError: deleteRewardMutation.error,
-    isDeleting: deleteRewardMutation.isPending,
+    // Confirmed actions
+    purchase,
+    redeem,
+    deleteReward,
   }
 }

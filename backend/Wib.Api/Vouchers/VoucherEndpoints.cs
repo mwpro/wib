@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Wib.Api.Auth;
 using Wib.Api.Common;
 using Wib.Api.Data;
+using Wib.Domain.Vouchers;
 
 namespace Wib.Api.Vouchers;
 
@@ -12,20 +13,15 @@ public static class VoucherEndpoints
     {
         var group = app.MapGroup("/api/vouchers")
             .RequireAuthorization()
-            .WithTags("Vouchers")
-            .WithValidation();
+            .WithTags("Vouchers");
 
         group.MapGet("/", async (
             [FromQuery] bool? isRedeemed,
             [FromServices] WibDbContext db,
-            [FromServices] ICurrentMemberAccessor currentMemberAccessor,
+            CurrentMember currentMember,
             CancellationToken cancellationToken) =>
         {
-            var member = await currentMemberAccessor.GetCurrentMemberAsync(cancellationToken);
-            if (member == null)
-            {
-                return Results.Unauthorized();
-            }
+            var member = currentMember.Member;
 
             var query = db.Vouchers
                 .AsNoTracking()
@@ -53,38 +49,23 @@ public static class VoucherEndpoints
         group.MapPost("/{id:int}/redemption", async (
             [FromRoute] int id,
             [FromServices] WibDbContext db,
-            [FromServices] ICurrentMemberAccessor currentMemberAccessor,
+            CurrentMember currentMember,
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
-            var member = await currentMemberAccessor.GetCurrentMemberAsync(cancellationToken);
-            if (member == null)
-            {
-                return Results.Unauthorized();
-            }
+            var member = currentMember.Member;
 
             var voucher = await db.Vouchers.FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
             if (voucher == null)
             {
-                return Results.NotFound();
+                return VoucherErrors.NotFound.ToProblem();
             }
 
-            if (voucher.OwnedByMemberId != member.Id)
+            var redemption = voucher.Redeem(member, timeProvider.GetUtcNow().UtcDateTime);
+            if (redemption.IsFailure)
             {
-                return Results.Forbid();
+                return redemption.Error.ToProblem();
             }
-
-            if (voucher.IsRedeemed)
-            {
-                return Results.BadRequest(new ProblemDetails
-                {
-                    Title = "Kupon już zrealizowany",
-                    Detail = "Kupon został już zrealizowany."
-                });
-            }
-
-            var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-            voucher.Redeem(nowUtc);
 
             await db.SaveChangesAsync(cancellationToken);
 

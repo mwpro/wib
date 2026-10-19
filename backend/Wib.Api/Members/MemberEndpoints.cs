@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
 using Wib.Api.Auth;
 
 namespace Wib.Api.Members;
@@ -18,13 +17,9 @@ public static class MemberEndpoints
             .RequireAuthorization()
             .WithTags("Members");
 
-        group.MapGet("/me", async ([FromServices] ICurrentMemberAccessor currentMemberAccessor, CancellationToken cancellationToken) =>
+        group.MapGet("/me", (CurrentMember currentMember) =>
         {
-            var member = await currentMemberAccessor.GetCurrentMemberAsync(cancellationToken);
-            if (member == null)
-            {
-                throw new InvalidOperationException("Authenticated user has no provisioned member. JIT provisioning may have failed.");
-            }
+            var member = currentMember.Member;
 
             return Results.Ok(new MemberDto(
                 member.Id,

@@ -1,6 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAuth } from '../auth/useAuth'
 import { fetchVouchers, redeemVoucherApi } from '../api/vouchers'
+import { queryKeys, useQueryCache } from './queryCache'
 import type { VoucherResponse } from '../types/voucher'
 
 export function useActiveVouchers() {
@@ -8,7 +9,7 @@ export function useActiveVouchers() {
   const { isAuthenticated } = auth
 
   return useQuery<VoucherResponse[]>({
-    queryKey: ['vouchers', { isRedeemed: false }],
+    queryKey: queryKeys.vouchers(false),
     queryFn: () => fetchVouchers(auth, false),
     enabled: isAuthenticated,
   })
@@ -19,7 +20,7 @@ export function useRedeemedVouchers() {
   const { isAuthenticated } = auth
 
   return useQuery<VoucherResponse[]>({
-    queryKey: ['vouchers', { isRedeemed: true }],
+    queryKey: queryKeys.vouchers(true),
     queryFn: () => fetchVouchers(auth, true),
     enabled: isAuthenticated,
   })
@@ -27,12 +28,10 @@ export function useRedeemedVouchers() {
 
 export function useRedeemVoucher() {
   const auth = useAuth()
-  const queryClient = useQueryClient()
+  const cache = useQueryCache()
 
   return useMutation<VoucherResponse, Error, number>({
     mutationFn: (voucherId) => redeemVoucherApi(auth, voucherId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vouchers'] })
-    },
+    onSuccess: () => cache.voucherRedeemed(),
   })
 }

@@ -4,6 +4,8 @@ public class Tag
 {
     private readonly List<Chore> _chores = [];
 
+    public const int NameMaxLength = 50;
+
     private Tag() { }
 
     public int Id { get; private set; }

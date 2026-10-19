@@ -17,6 +17,7 @@
 * **Chore**: A domestic task or maintenance activity.
   * *Recurring Chore*: Has a defined `CadenceDays` interval.
   * *Unscheduled Chore*: Has no schedule (`CadenceDays = null`); lives in the backlog for ad-hoc execution.
+* **Backlog**: The household's list of active (non-archived) chores on the Chores tab, in *Backlog order* (below). Members narrow it with a text search, tag chips and the *Cadence Filter*; these combine (text AND any selected tag AND cadence bucket) and persist in the URL. Filters never change the order.
 * **Cadence**: A floating interval (in days) representing how often a chore should be performed relative to its last completion date ("days since last done"), rather than fixed calendar slots.
   * *Cadence Presets*: Standard floating intervals supported in the UI: Daily (1 day), Weekly (7 days), Monthly (30 days), Quarterly (90 days / "Co 3 mies."), Semi-annually (180 days), and Annually (365 days). Custom day values are also supported.
   * *Cadence Filter*: A backlog filter with one chip per preset, plus "Bez terminu" for unscheduled chores; only one can be active at a time. Each preset covers a range of days, from above the previous preset up to and including its own value: 1, 2–7, 8–30, 31–90, 91–180, 181+. So a 14-day chore matches "Co miesiąc".

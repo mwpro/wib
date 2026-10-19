@@ -31,54 +31,54 @@ public class MemberWalletTests
     }
 
     [Fact]
-    public void TryDebitWallet_WithSufficientBalance_ShouldDeductAndReturnTrue()
+    public void DebitWallet_WithSufficientBalance_ShouldDeductAndSucceed()
     {
         var member = Member.Create("123", "Test User", DateTime.UtcNow);
         member.CreditWallet(20);
 
-        var result = member.TryDebitWallet(15);
+        var result = member.DebitWallet(15);
 
-        result.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
         member.WalletBalance.Should().Be(5);
     }
 
     [Fact]
-    public void TryDebitWallet_WithExactBalance_ShouldDeductToZeroAndReturnTrue()
+    public void DebitWallet_WithExactBalance_ShouldDeductToZeroAndSucceed()
     {
         var member = Member.Create("123", "Test User", DateTime.UtcNow);
         member.CreditWallet(10);
 
-        var result = member.TryDebitWallet(10);
+        var result = member.DebitWallet(10);
 
-        result.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
         member.WalletBalance.Should().Be(0);
     }
 
     [Theory]
     [InlineData(11)]
     [InlineData(50)]
-    public void TryDebitWallet_WithInsufficientBalance_ShouldNotDeductAndReturnFalse(int debitAmount)
+    public void DebitWallet_WithInsufficientBalance_ShouldNotDeductAndReturnNotEnoughPoints(int debitAmount)
     {
         var member = Member.Create("123", "Test User", DateTime.UtcNow);
         member.CreditWallet(10);
 
-        var result = member.TryDebitWallet(debitAmount);
+        var result = member.DebitWallet(debitAmount);
 
-        result.Should().BeFalse();
+        result.Error.Should().Be(WalletErrors.NotEnoughPoints);
         member.WalletBalance.Should().Be(10);
     }
 
     [Theory]
     [InlineData(0)]
     [InlineData(-5)]
-    public void TryDebitWallet_WithZeroOrNegativeAmount_ShouldReturnFalse(int debitAmount)
+    public void DebitWallet_WithZeroOrNegativeAmount_ShouldThrowArgumentOutOfRangeException(int debitAmount)
     {
         var member = Member.Create("123", "Test User", DateTime.UtcNow);
         member.CreditWallet(10);
 
-        var result = member.TryDebitWallet(debitAmount);
+        var act = () => member.DebitWallet(debitAmount);
 
-        result.Should().BeFalse();
+        act.Should().Throw<ArgumentOutOfRangeException>();
         member.WalletBalance.Should().Be(10);
     }
 }

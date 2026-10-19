@@ -1,214 +1,100 @@
-import { test, expect } from '@playwright/test'
-import { resetTestUser, cleanupTestChores } from '../helpers/db'
+import { test, expect } from '../fixtures'
+import { App } from '../drivers/app'
+import { Backlog } from '../drivers/backlog'
+import { Scoreboard } from '../drivers/scoreboard'
 
-const SB_USER_A = {
-  sub: 'auth0|test-sb-user-a',
-  name: 'Kasia',
-  email: 'kasia@test.com',
-}
-
-const SB_USER_B = {
-  sub: 'auth0|test-sb-user-b',
-  name: 'Tomek',
-  email: 'tomek@test.com',
-}
-
-test.describe.serial('Scoreboard & Activity Stream UI Tests', () => {
-  test.beforeEach(async ({ page }) => {
-    await resetTestUser(SB_USER_A.sub)
-    await resetTestUser(SB_USER_B.sub)
-    await cleanupTestChores('SB_CHORE_')
-    await page.addInitScript((user) => {
-      localStorage.setItem('wib_test_user', JSON.stringify(user))
-    }, SB_USER_A)
+test.describe('Scoreboard & Activity Stream UI Tests', () => {
+  test.beforeEach(async ({ household, page }) => {
+    const kasia = await household.member({ name: 'Kasia' })
+    await kasia.actAs(page)
   })
 
-  test.afterAll(async () => {
-    await resetTestUser(SB_USER_A.sub)
-    await resetTestUser(SB_USER_B.sub)
-    await cleanupTestChores('SB_CHORE_')
+  test('renders scoreboard tab elements and month navigator', async ({ app, scoreboard }) => {
+    await app.goto()
+    await app.openTab('Kto jest lepszy?')
+    await expect(app.tab('Kto jest lepszy?')).toHaveAttribute('data-state', 'active')
+
+    await expect(scoreboard.monthNavigator).toBeVisible()
+    await expect(scoreboard.nextMonthButton).toBeDisabled()
+    await expect(scoreboard.workShare).toBeVisible()
+    await expect(scoreboard.podium).toBeVisible()
+    await expect(scoreboard.activityStream).toBeVisible()
+    await expect(scoreboard.lifetimeStats).toBeVisible()
   })
 
-  test('renders scoreboard tab elements and month navigator', async ({ page }) => {
-    await page.goto('/')
+  test('Golden Journey: multi-user chore competition and proportional work share update', async ({ app, backlog, household, browser }) => {
+    await app.goto()
+    const vacuuming = await backlog.addChore({ title: 'Odkurzanie' })
+    await vacuuming.complete()
+    await expect(vacuuming.doneButton).toBeVisible()
 
-    // Switch to Scoreboard tab ("Kto jest lepszy?")
-    const scoreboardTab = page.getByRole('tab', { name: /Kto jest lepszy\?/i })
-    await scoreboardTab.click()
-    await expect(scoreboardTab).toHaveAttribute('data-state', 'active')
-
-    // Month navigator is visible and next button is disabled for current month
-    const navigator = page.locator('[data-testid="month-navigator"]')
-    await expect(navigator).toBeVisible()
-    const nextBtn = navigator.getByRole('button', { name: /Następny miesiąc/i })
-    await expect(nextBtn).toBeDisabled()
-
-    // Core scoreboard sections are rendered
-    await expect(page.locator('[data-testid="work-share-card"]')).toBeVisible()
-    await expect(page.locator('[data-testid="monthly-podium"]')).toBeVisible()
-    await expect(page.locator('[data-testid="activity-stream"]')).toBeVisible()
-    await expect(page.locator('[data-testid="lifetime-stats"]')).toBeVisible()
-  })
-
-  test('Golden Journey: multi-user chore competition and proportional work share update', async ({ page, browser }) => {
-    // 1. Boot app with synthetic User A (Kasia) and complete a chore
-    await page.goto('/')
-
-    const choreTitleA = `SB_CHORE_A_${Date.now()}`
-    await page.getByRole('button', { name: /Dodaj zadanie/i }).first().click()
-    await page.locator('#chore-title').fill(choreTitleA)
-    await page.getByRole('button', { name: /Utwórz zadanie/i }).click()
-
-    const choreCardA = page.locator('[data-testid="chore-card"]', { hasText: choreTitleA })
-    await expect(choreCardA).toBeVisible()
-
-    const completionPromiseA = page.waitForResponse(
-      (res) => res.url().includes('/completion') && res.status() === 200
-    )
-    await choreCardA.getByRole('button', { name: /Zrobione!/i }).click()
-    await completionPromiseA
-    await expect(choreCardA.getByRole('button', { name: /Ukończono/i })).toBeVisible()
-
-    // 2. Switch / authenticate as synthetic User B (Tomek) in a separate browser context and complete chores
+    const tomek = await household.member({ name: 'Tomek' })
     const contextB = await browser.newContext()
-    await contextB.addInitScript((user) => {
-      localStorage.setItem('wib_test_user', JSON.stringify(user))
-    }, SB_USER_B)
+    await tomek.actAs(contextB)
     const pageB = await contextB.newPage()
 
     try {
-      await pageB.goto('/')
+      const appB = new App(pageB)
+      const backlogB = new Backlog(pageB)
+      await appB.goto()
 
-      // Tomek completes 2 chores to test asymmetric split (1 pkt vs 2 pkt => 33.3% vs 66.7%)
-      const choreTitleB1 = `SB_CHORE_B1_${Date.now()}`
-      await pageB.getByRole('button', { name: /Dodaj zadanie/i }).first().click()
-      await pageB.locator('#chore-title').fill(choreTitleB1)
-      await pageB.getByRole('button', { name: /Utwórz zadanie/i }).click()
+      for (const title of ['Zmywanie', 'Pranie']) {
+        const chore = await backlogB.addChore({ title })
+        await chore.complete()
+        await expect(chore.doneButton).toBeVisible()
+      }
 
-      const choreCardB1 = pageB.locator('[data-testid="chore-card"]', { hasText: choreTitleB1 })
-      await expect(choreCardB1).toBeVisible()
+      await appB.openTab('Kto jest lepszy?')
+      await expect(appB.tab('Kto jest lepszy?')).toHaveAttribute('data-state', 'active')
 
-      const completionPromiseB1 = pageB.waitForResponse(
-        (res) => res.url().includes('/completion') && res.status() === 200
-      )
-      await choreCardB1.getByRole('button', { name: /Zrobione!/i }).click()
-      await completionPromiseB1
-      await expect(choreCardB1.getByRole('button', { name: /Ukończono/i })).toBeVisible()
+      const scoreboardB = new Scoreboard(pageB)
+      await expect(scoreboardB.workShare).toContainText('Łącznie: 3 pkt')
+      await expect(scoreboardB.workShareSegment('Kasia')).toHaveAttribute('title', 'Kasia: 33.3%')
+      await expect(scoreboardB.workShareSegment('Tomek')).toHaveAttribute('title', 'Tomek: 66.7%')
+      for (const text of ['Kasia', '33.3%', '(1 pkt)', 'Tomek', '66.7%', '(2 pkt)']) {
+        await expect(scoreboardB.workShare).toContainText(text)
+      }
 
-      const choreTitleB2 = `SB_CHORE_B2_${Date.now()}`
-      await pageB.getByRole('button', { name: /Dodaj zadanie/i }).first().click()
-      await pageB.locator('#chore-title').fill(choreTitleB2)
-      await pageB.getByRole('button', { name: /Utwórz zadanie/i }).click()
+      for (const text of ['Tomek', '🥇', 'Kasia', '🥈']) {
+        await expect(scoreboardB.podium).toContainText(text)
+      }
+      await expect(scoreboardB.podium).toContainText(/2 zadań/i)
+      await expect(scoreboardB.podium).toContainText(/1 zadanie/i)
 
-      const choreCardB2 = pageB.locator('[data-testid="chore-card"]', { hasText: choreTitleB2 })
-      await expect(choreCardB2).toBeVisible()
-
-      const completionPromiseB2 = pageB.waitForResponse(
-        (res) => res.url().includes('/completion') && res.status() === 200
-      )
-      await choreCardB2.getByRole('button', { name: /Zrobione!/i }).click()
-      await completionPromiseB2
-      await expect(choreCardB2.getByRole('button', { name: /Ukończono/i })).toBeVisible()
-
-      // 3. Navigate to "Kto jest lepszy?" view in User B context
-      const scoreboardTabB = pageB.getByRole('tab', { name: /Kto jest lepszy\?/i })
-      await scoreboardTabB.click()
-      await expect(scoreboardTabB).toHaveAttribute('data-state', 'active')
-
-      // 4. Verify segmented progress bar updates to reflect proportional split (Kasia 33.3%, Tomek 66.7%)
-      const workShareCardB = pageB.locator('[data-testid="work-share-card"]')
-      await expect(workShareCardB).toBeVisible()
-      await expect(workShareCardB).toContainText('Łącznie: 3 pkt')
-
-      // Segment widths in progress bar
-      const kasiaSegment = workShareCardB.locator('div[title*="Kasia"]')
-      await expect(kasiaSegment).toBeVisible()
-      await expect(kasiaSegment).toHaveAttribute('title', 'Kasia: 33.3%')
-
-      const tomekSegment = workShareCardB.locator('div[title*="Tomek"]')
-      await expect(tomekSegment).toBeVisible()
-      await expect(tomekSegment).toHaveAttribute('title', 'Tomek: 66.7%')
-
-      // Legend entries with percentage and points
-      await expect(workShareCardB).toContainText('Kasia')
-      await expect(workShareCardB).toContainText('33.3%')
-      await expect(workShareCardB).toContainText('(1 pkt)')
-
-      await expect(workShareCardB).toContainText('Tomek')
-      await expect(workShareCardB).toContainText('66.7%')
-      await expect(workShareCardB).toContainText('(2 pkt)')
-
-      // 5. Verify Monthly Podium reflects ranking (Tomek #1, Kasia #2)
-      const podiumB = pageB.locator('[data-testid="monthly-podium"]')
-      await expect(podiumB).toBeVisible()
-      await expect(podiumB).toContainText('Tomek')
-      await expect(podiumB).toContainText('🥇')
-      await expect(podiumB).toContainText(/2 zadań/i)
-      await expect(podiumB).toContainText('Kasia')
-      await expect(podiumB).toContainText('🥈')
-      await expect(podiumB).toContainText(/1 zadanie/i)
-
-      // 6. Verify Chronological Activity Stream has entries for both users
-      const activityStreamB = pageB.locator('[data-testid="activity-stream"]')
-      await expect(activityStreamB).toBeVisible()
-      await expect(activityStreamB).toContainText(choreTitleB2)
-      await expect(activityStreamB).toContainText(choreTitleB1)
-      await expect(activityStreamB).toContainText(choreTitleA)
-      await expect(activityStreamB).toContainText('Tomek')
-      await expect(activityStreamB).toContainText('Kasia')
+      for (const text of ['Pranie', 'Zmywanie', 'Odkurzanie', 'Tomek', 'Kasia']) {
+        await expect(scoreboardB.activityStream).toContainText(text)
+      }
     } finally {
       await contextB.close()
     }
   })
 
-  test('supports navigating to previous month and back', async ({ page }) => {
-    await page.goto('/')
+  test('supports navigating to previous month and back', async ({ app, scoreboard }) => {
+    await app.goto()
+    await app.openTab('Kto jest lepszy?')
 
-    // Switch to scoreboard tab
-    await page.getByRole('tab', { name: /Kto jest lepszy\?/i }).click()
-
-    const navigator = page.locator('[data-testid="month-navigator"]')
-    const prevBtn = navigator.getByRole('button', { name: /Poprzedni miesiąc/i })
-    const nextBtn = navigator.getByRole('button', { name: /Następny miesiąc/i })
-
-    // Initially next is disabled
-    await expect(nextBtn).toBeDisabled()
-
-    // Navigate to previous month
-    await prevBtn.click()
-
-    // Next button should now be enabled
-    await expect(nextBtn).toBeEnabled()
-
-    // Navigate back to current month
-    await nextBtn.click()
-
-    // Next button is disabled again
-    await expect(nextBtn).toBeDisabled()
+    await expect(scoreboard.nextMonthButton).toBeDisabled()
+    await scoreboard.previousMonthButton.click()
+    await expect(scoreboard.nextMonthButton).toBeEnabled()
+    await scoreboard.nextMonthButton.click()
+    await expect(scoreboard.nextMonthButton).toBeDisabled()
   })
 
-  test('persists active tab in URL and restores upon refresh or direct navigation', async ({ page }) => {
-    // 1. Direct navigation to /scoreboard
-    await page.goto('/scoreboard')
+  test('persists active tab in URL and restores upon refresh or direct navigation', async ({ app, scoreboard, page }) => {
+    await app.goto('/scoreboard')
+    await expect(app.tab('Kto jest lepszy?')).toHaveAttribute('data-state', 'active')
+    await expect(scoreboard.workShare).toBeVisible()
 
-    const scoreboardTab = page.getByRole('tab', { name: /Kto jest lepszy\?/i })
-    await expect(scoreboardTab).toHaveAttribute('data-state', 'active')
-    await expect(page.locator('[data-testid="work-share-card"]')).toBeVisible()
-
-    // 2. Reload / refresh page
     await page.reload()
-    await expect(scoreboardTab).toHaveAttribute('data-state', 'active')
-    await expect(page.locator('[data-testid="work-share-card"]')).toBeVisible()
+    await expect(app.tab('Kto jest lepszy?')).toHaveAttribute('data-state', 'active')
+    await expect(scoreboard.workShare).toBeVisible()
 
-    // 3. Switch to Zadania tab
-    const choresTab = page.getByRole('tab', { name: 'Zadania' })
-    await choresTab.click()
-    await expect(choresTab).toHaveAttribute('data-state', 'active')
+    await app.openTab('Zadania')
+    await expect(app.tab('Zadania')).toHaveAttribute('data-state', 'active')
     expect(new URL(page.url()).pathname).toBe('/')
 
-    // 4. Browser back button
     await page.goBack()
-    await expect(scoreboardTab).toHaveAttribute('data-state', 'active')
-    await expect(page.locator('[data-testid="work-share-card"]')).toBeVisible()
+    await expect(app.tab('Kto jest lepszy?')).toHaveAttribute('data-state', 'active')
+    await expect(scoreboard.workShare).toBeVisible()
   })
 })

@@ -1,14 +1,10 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { Trash2, AlertCircle } from 'lucide-react'
+import type { ConfirmedActionDialogProps } from '../../hooks/useConfirmedAction'
 import type { RewardItemResponse } from '../../types/store'
 
-interface DeleteRewardDialogProps {
-  isOpen: boolean
+interface DeleteRewardDialogProps extends ConfirmedActionDialogProps {
   reward: RewardItemResponse | null
-  onClose: () => void
-  onConfirm: () => Promise<void> | void
-  isDeleting?: boolean
-  error?: string | null
 }
 
 export function DeleteRewardDialog({
@@ -16,8 +12,8 @@ export function DeleteRewardDialog({
   reward,
   onClose,
   onConfirm,
-  isDeleting = false,
-  error = null,
+  isPending,
+  error,
 }: DeleteRewardDialogProps) {
   if (!isOpen || !reward) return null
 
@@ -53,7 +49,7 @@ export function DeleteRewardDialog({
             <button
               type="button"
               onClick={onClose}
-              disabled={isDeleting}
+              disabled={isPending}
               className="flex-1 py-2 px-4 text-xs font-semibold text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition cursor-pointer"
             >
               Anuluj
@@ -61,10 +57,10 @@ export function DeleteRewardDialog({
             <button
               type="button"
               onClick={onConfirm}
-              disabled={isDeleting}
+              disabled={isPending}
               className="flex-1 py-2 px-4 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50"
             >
-              {isDeleting ? 'Usuwanie...' : 'Usuń ze sklepu'}
+              {isPending ? 'Usuwanie...' : 'Usuń ze sklepu'}
             </button>
           </div>
         </Dialog.Content>

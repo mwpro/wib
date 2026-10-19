@@ -1,3 +1,4 @@
+using Wib.Domain.Common;
 using Wib.Domain.Members;
 using Wib.Domain.Vouchers;
 
@@ -18,7 +19,10 @@ public class RewardItem
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
 
-    public static RewardItem Create(
+    public const int TitleMaxLength = 255;
+    public const int DescriptionMaxLength = 2000;
+
+    public static Result<RewardItem> Create(
         string title,
         string? description,
         int pointCost,
@@ -26,12 +30,10 @@ public class RewardItem
         int createdByMemberId,
         DateTime nowUtc)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(title);
-        ArgumentOutOfRangeException.ThrowIfLessThan(pointCost, 1);
-
-        if (quantity.HasValue && quantity.Value < 1)
+        var validation = Validate(title, description, pointCost, quantity);
+        if (validation.IsFailure)
         {
-            throw new ArgumentOutOfRangeException(nameof(quantity), "Quantity must be at least 1 if specified.");
+            return validation.Error;
         }
 
         return new RewardItem
@@ -46,14 +48,12 @@ public class RewardItem
         };
     }
 
-    public void Update(string title, string? description, int pointCost, int? quantity, DateTime nowUtc)
+    public Result Update(string title, string? description, int pointCost, int? quantity, DateTime nowUtc)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(title);
-        ArgumentOutOfRangeException.ThrowIfLessThan(pointCost, 1);
-
-        if (quantity.HasValue && quantity.Value < 1)
+        var validation = Validate(title, description, pointCost, quantity);
+        if (validation.IsFailure)
         {
-            throw new ArgumentOutOfRangeException(nameof(quantity), "Quantity must be at least 1 if specified.");
+            return validation;
         }
 
         Title = title.Trim();
@@ -61,6 +61,23 @@ public class RewardItem
         PointCost = pointCost;
         Quantity = quantity;
         UpdatedAt = nowUtc;
+        return Result.Success;
+    }
+
+    private static Result Validate(string title, string? description, int pointCost, int? quantity)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            return RewardItemErrors.TitleRequired;
+        if (title.Trim().Length > TitleMaxLength)
+            return RewardItemErrors.TitleTooLong;
+        if (description is not null && description.Trim().Length > DescriptionMaxLength)
+            return RewardItemErrors.DescriptionTooLong;
+        if (pointCost < 1)
+            return RewardItemErrors.PointCostTooLow;
+        if (quantity < 1)
+            return RewardItemErrors.QuantityTooLow;
+
+        return Result.Success;
     }
 
     public void Deactivate(DateTime nowUtc)
@@ -69,18 +86,19 @@ public class RewardItem
         UpdatedAt = nowUtc;
     }
 
-    public Voucher Purchase(Member member, DateTime nowUtc)
+    public Result<Voucher> Purchase(Member member, DateTime nowUtc)
     {
         ArgumentNullException.ThrowIfNull(member);
 
-        if (!IsActive || (Quantity.HasValue && Quantity.Value <= 0))
+        if (!IsActive || Quantity <= 0)
         {
-            throw new InvalidOperationException("Wybrana nagroda nie jest już aktywna.");
+            return RewardItemErrors.Unavailable;
         }
 
-        if (!member.TryDebitWallet(PointCost))
+        var debit = member.DebitWallet(PointCost);
+        if (debit.IsFailure)
         {
-            throw new InvalidOperationException("Niewystarczająca liczba punktów w portfelu.");
+            return debit.Error;
         }
 
         var voucher = Voucher.Create(this, member, nowUtc);

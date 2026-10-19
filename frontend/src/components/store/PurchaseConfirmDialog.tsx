@@ -1,14 +1,10 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { Coins, AlertCircle } from 'lucide-react'
+import type { ConfirmedActionDialogProps } from '../../hooks/useConfirmedAction'
 import type { RewardItemResponse } from '../../types/store'
 
-interface PurchaseConfirmDialogProps {
-  isOpen: boolean
+interface PurchaseConfirmDialogProps extends ConfirmedActionDialogProps {
   reward: RewardItemResponse | null
-  onClose: () => void
-  onConfirm: () => Promise<void> | void
-  isPurchasing?: boolean
-  error?: string | null
 }
 
 export function PurchaseConfirmDialog({
@@ -16,8 +12,8 @@ export function PurchaseConfirmDialog({
   reward,
   onClose,
   onConfirm,
-  isPurchasing = false,
-  error = null,
+  isPending,
+  error,
 }: PurchaseConfirmDialogProps) {
   if (!isOpen || !reward) return null
 
@@ -57,7 +53,7 @@ export function PurchaseConfirmDialog({
             <button
               type="button"
               onClick={onClose}
-              disabled={isPurchasing}
+              disabled={isPending}
               className="flex-1 py-2 px-4 text-xs font-semibold text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition cursor-pointer"
             >
               Anuluj
@@ -65,10 +61,10 @@ export function PurchaseConfirmDialog({
             <button
               type="button"
               onClick={onConfirm}
-              disabled={isPurchasing}
+              disabled={isPending}
               className="flex-1 py-2 px-4 bg-amber-400 hover:bg-amber-500 active:scale-95 text-amber-950 text-xs font-bold rounded-xl border border-amber-500/40 shadow-xs transition cursor-pointer disabled:opacity-50"
             >
-              {isPurchasing ? 'Kupowanie...' : 'Kupuję nagrodę'}
+              {isPending ? 'Kupowanie...' : 'Kupuję nagrodę'}
             </button>
           </div>
         </Dialog.Content>

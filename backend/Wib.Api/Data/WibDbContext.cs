@@ -43,8 +43,8 @@ public class WibDbContext : DbContext
         {
             entity.ToTable("chores");
             entity.HasKey(c => c.Id);
-            entity.Property(c => c.Title).IsRequired().HasMaxLength(255);
-            entity.Property(c => c.Description).HasMaxLength(2000);
+            entity.Property(c => c.Title).IsRequired().HasMaxLength(Chore.TitleMaxLength);
+            entity.Property(c => c.Description).HasMaxLength(Chore.DescriptionMaxLength);
             entity.Property(c => c.Points);
             entity.Property(c => c.CadenceDays);
             entity.Property(c => c.LastCompletedAt);
@@ -68,7 +68,7 @@ public class WibDbContext : DbContext
         {
             entity.ToTable("tags");
             entity.HasKey(t => t.Id);
-            entity.Property(t => t.Name).IsRequired().HasMaxLength(50);
+            entity.Property(t => t.Name).IsRequired().HasMaxLength(Tag.NameMaxLength);
             entity.HasIndex(t => t.Name).IsUnique();
             entity.Property(t => t.CreatedAt).IsRequired();
         });
@@ -96,8 +96,8 @@ public class WibDbContext : DbContext
         {
             entity.ToTable("reward_items");
             entity.HasKey(r => r.Id);
-            entity.Property(r => r.Title).IsRequired().HasMaxLength(255);
-            entity.Property(r => r.Description).HasMaxLength(2000);
+            entity.Property(r => r.Title).IsRequired().HasMaxLength(RewardItem.TitleMaxLength);
+            entity.Property(r => r.Description).HasMaxLength(RewardItem.DescriptionMaxLength);
             entity.Property(r => r.PointCost).IsRequired();
             entity.Property(r => r.Quantity);
             entity.Property(r => r.IsActive).HasDefaultValue(true);

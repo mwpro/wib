@@ -16,6 +16,7 @@ An outcome depends on the previous completion, the chore's cadence, and the band
 2. **Verdicts are judged by the rules of the day.** Later cadence edits or threshold amendments do not rewrite stored outcomes.
 3. **The cadence itself is not stored.** Re-judging history under new rules is therefore not supported; if ever wanted, it needs its own decision.
 4. Completions recorded before this change were backfilled once using each chore's cadence at migration time — the best available guess. The backfill runs at startup between the `AddCompletionOutcome` and `MakeCompletionOutcomeRequired` migrations. It is **temporary** (`CompletionOutcomeBackfill` and its call in `DatabaseMigrator`), to be removed once every environment has migrated past `MakeCompletionOutcomeRequired`; it is a no-op on fresh databases.
+   - *Amended 2026-10-20*: removed. Every environment is past `MakeCompletionOutcomeRequired`. A database still before `AddCompletionOutcome` can no longer migrate straight to the current schema, because the `NOT NULL` step would meet unfilled rows. It has to be upgraded through a build that still contains the backfill (any commit before its removal).
 
 ## Consequences
 - History paging and summaries are cheap and scale with an index on `(ChoreId, CompletedAt)`.

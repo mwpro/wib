@@ -13,8 +13,7 @@ public static class ChoreEndpoints
     {
         var group = app.MapGroup("/api/chores")
             .RequireAuthorization()
-            .WithTags("Chores")
-            .WithValidation();
+            .WithTags("Chores");
 
         group.MapGet("/", async (
             [FromQuery] string? tag,
@@ -52,10 +51,20 @@ public static class ChoreEndpoints
         {
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
 
-            var chore = Chore.Create(request.Title, request.Description, request.Points, request.CadenceDays, nowUtc);
+            var tagNames = Chore.NormalizeTagNames(request.Tags);
+            if (tagNames.IsFailure)
+            {
+                return tagNames.Error.ToProblem();
+            }
 
-            var tags = await ResolveTagsAsync(request.Tags, db, nowUtc, cancellationToken);
-            chore.SetTags(tags);
+            var created = Chore.Create(request.Title, request.Description, request.Points, request.CadenceDays, nowUtc);
+            if (created.IsFailure)
+            {
+                return created.Error.ToProblem();
+            }
+
+            var chore = created.Value;
+            chore.SetTags(await ResolveTagsAsync(tagNames.Value, db, nowUtc, cancellationToken));
 
             db.Chores.Add(chore);
             await db.SaveChangesAsync(cancellationToken);
@@ -75,19 +84,28 @@ public static class ChoreEndpoints
         {
             var chore = await db.Chores
                 .Include(c => c.Tags)
-                .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(c => c.Id == id && !c.IsArchived, cancellationToken);
 
-            if (chore == null || chore.IsArchived)
+            if (chore == null)
             {
-                return Results.NotFound();
+                return ChoreErrors.NotFound.ToProblem();
             }
 
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
 
-            chore.Update(request.Title, request.Description, request.Points, request.CadenceDays, nowUtc);
+            var tagNames = Chore.NormalizeTagNames(request.Tags);
+            if (tagNames.IsFailure)
+            {
+                return tagNames.Error.ToProblem();
+            }
 
-            var tags = await ResolveTagsAsync(request.Tags, db, nowUtc, cancellationToken);
-            chore.SetTags(tags);
+            var update = chore.Update(request.Title, request.Description, request.Points, request.CadenceDays, nowUtc);
+            if (update.IsFailure)
+            {
+                return update.Error.ToProblem();
+            }
+
+            chore.SetTags(await ResolveTagsAsync(tagNames.Value, db, nowUtc, cancellationToken));
 
             await db.SaveChangesAsync(cancellationToken);
 
@@ -103,10 +121,10 @@ public static class ChoreEndpoints
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
-            var chore = await db.Chores.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
-            if (chore == null || chore.IsArchived)
+            var chore = await db.Chores.FirstOrDefaultAsync(c => c.Id == id && !c.IsArchived, cancellationToken);
+            if (chore == null)
             {
-                return Results.NotFound();
+                return ChoreErrors.NotFound.ToProblem();
             }
 
             chore.Archive(timeProvider.GetUtcNow().UtcDateTime);
@@ -119,23 +137,19 @@ public static class ChoreEndpoints
         group.MapPost("/{id:int}/completion", async (
             [FromRoute] int id,
             [FromServices] WibDbContext db,
-            [FromServices] ICurrentMemberAccessor currentMemberAccessor,
+            CurrentMember currentMember,
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
-            var member = await currentMemberAccessor.GetCurrentMemberAsync(cancellationToken);
-            if (member == null)
-            {
-                return Results.Unauthorized();
-            }
+            var member = currentMember.Member;
 
             var chore = await db.Chores
                 .Include(c => c.Tags)
-                .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(c => c.Id == id && !c.IsArchived, cancellationToken);
 
-            if (chore == null || chore.IsArchived)
+            if (chore == null)
             {
-                return Results.NotFound();
+                return ChoreErrors.NotFound.ToProblem();
             }
 
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
@@ -167,7 +181,7 @@ public static class ChoreEndpoints
             var choreExists = await db.Chores.AnyAsync(c => c.Id == id && !c.IsArchived, cancellationToken);
             if (!choreExists)
             {
-                return Results.NotFound();
+                return ChoreErrors.NotFound.ToProblem();
             }
 
             var completions = db.ChoreCompletions
@@ -201,7 +215,7 @@ public static class ChoreEndpoints
             var choreExists = await db.Chores.AnyAsync(c => c.Id == id && !c.IsArchived, cancellationToken);
             if (!choreExists)
             {
-                return Results.NotFound();
+                return ChoreErrors.NotFound.ToProblem();
             }
 
             var completions = db.ChoreCompletions
@@ -232,14 +246,8 @@ public static class ChoreEndpoints
     }
 
     private static async Task<List<Tag>> ResolveTagsAsync(
-        IReadOnlyList<string>? rawTags, WibDbContext db, DateTime nowUtc, CancellationToken cancellationToken)
+        IReadOnlyList<string> normalizedNames, WibDbContext db, DateTime nowUtc, CancellationToken cancellationToken)
     {
-        var normalizedNames = (rawTags ?? Array.Empty<string>())
-            .Where(t => !string.IsNullOrWhiteSpace(t))
-            .Select(Tag.NormalizeName)
-            .Distinct()
-            .ToList();
-
         if (normalizedNames.Count == 0)
             return [];
 

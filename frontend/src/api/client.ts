@@ -1,36 +1,66 @@
-import type { Member } from '../types/member'
 import type { AuthContextValue } from '../auth/context'
+import { domainErrorMessage } from './errors'
 
-export async function fetchWithAuth(
-  url: string,
-  auth: AuthContextValue,
-  init?: RequestInit
-): Promise<Response> {
-  const headers = new Headers(init?.headers)
+type QueryValue = string | number | boolean | undefined
 
-  if (auth.isTestMode && auth.user) {
-    headers.set('X-Test-Sub', encodeURIComponent(auth.user.sub))
-    headers.set('X-Test-User-Name', encodeURIComponent(auth.user.name))
-  } else {
-    const token = await auth.getAccessToken()
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`)
-    }
-  }
-
-  return fetch(url, {
-    ...init,
-    headers,
-  })
+interface RequestOptions {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  query?: Record<string, QueryValue>
+  body?: unknown
+  failureMessage: string
 }
 
-export async function getCurrentMember(auth: AuthContextValue): Promise<Member | null> {
-  const response = await fetchWithAuth('/api/members/me', auth)
-  if (!response.ok) {
-    if (response.status === 401) {
-      return null
-    }
-    throw new Error(`Failed to fetch current member: ${response.statusText}`)
+export class ApiError extends Error {
+  readonly status: number
+  readonly code?: string
+
+  constructor(message: string, status: number, code?: string) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.code = code
   }
-  return response.json()
+}
+
+function buildUrl(path: string, query?: Record<string, QueryValue>): string {
+  const params = new URLSearchParams()
+  Object.entries(query ?? {}).forEach(([key, value]) => {
+    if (value !== undefined) params.set(key, String(value))
+  })
+  const search = params.toString()
+  return `/api${path}${search ? `?${search}` : ''}`
+}
+
+async function readErrorCode(response: Response): Promise<string | undefined> {
+  try {
+    const body: unknown = await response.json()
+    const code = typeof body === 'object' && body !== null && 'code' in body ? body.code : undefined
+    return typeof code === 'string' ? code : undefined
+  } catch {
+    return undefined
+  }
+}
+
+export async function request<T>(
+  auth: AuthContextValue,
+  path: string,
+  { method = 'GET', query, body, failureMessage }: RequestOptions
+): Promise<T> {
+  const headers = new Headers()
+  await auth.authorizeRequest(headers)
+  if (body !== undefined) headers.set('Content-Type', 'application/json')
+
+  const response = await fetch(buildUrl(path, query), {
+    method,
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    const code = await readErrorCode(response)
+    throw new ApiError(domainErrorMessage(code) ?? failureMessage, response.status, code)
+  }
+
+  const text = await response.text()
+  return (text ? JSON.parse(text) : undefined) as T
 }
