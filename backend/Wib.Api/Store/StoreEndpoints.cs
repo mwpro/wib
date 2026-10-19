@@ -38,15 +38,11 @@ public static class StoreEndpoints
         group.MapPost("/items", async (
             [FromBody] CreateRewardItemRequest request,
             [FromServices] WibDbContext db,
-            [FromServices] ICurrentMemberAccessor currentMemberAccessor,
+            CurrentMember currentMember,
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
-            var member = await currentMemberAccessor.GetCurrentMemberAsync(cancellationToken);
-            if (member == null)
-            {
-                return Results.Unauthorized();
-            }
+            var member = currentMember.Member;
 
             var created = RewardItem.Create(
                 request.Title,
@@ -121,15 +117,11 @@ public static class StoreEndpoints
         group.MapPost("/items/{id:int}/purchase", async (
             [FromRoute] int id,
             [FromServices] WibDbContext db,
-            [FromServices] ICurrentMemberAccessor currentMemberAccessor,
+            CurrentMember currentMember,
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
-            var member = await currentMemberAccessor.GetCurrentMemberAsync(cancellationToken);
-            if (member == null)
-            {
-                return Results.Unauthorized();
-            }
+            var member = currentMember.Member;
 
             var item = await db.RewardItems.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
             if (item == null)

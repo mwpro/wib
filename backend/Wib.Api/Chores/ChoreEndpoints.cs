@@ -137,15 +137,11 @@ public static class ChoreEndpoints
         group.MapPost("/{id:int}/completion", async (
             [FromRoute] int id,
             [FromServices] WibDbContext db,
-            [FromServices] ICurrentMemberAccessor currentMemberAccessor,
+            CurrentMember currentMember,
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
-            var member = await currentMemberAccessor.GetCurrentMemberAsync(cancellationToken);
-            if (member == null)
-            {
-                return Results.Unauthorized();
-            }
+            var member = currentMember.Member;
 
             var chore = await db.Chores
                 .Include(c => c.Tags)
