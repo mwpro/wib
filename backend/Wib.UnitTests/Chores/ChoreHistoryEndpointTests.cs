@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Wib.Api.Chores;
+using Wib.Domain.Chores;
 
 namespace Wib.UnitTests.Chores;
 
@@ -68,8 +69,8 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
         var archivedId = await SeedArchivedChoreAsync();
 
         // Act & Assert
-        (await client.GetAsync("/api/chores/999999/completions")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await client.GetAsync($"/api/chores/{archivedId}/completions")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await (await client.GetAsync("/api/chores/999999/completions")).ShouldBeProblemAsync(ChoreErrors.NotFound);
+        await (await client.GetAsync($"/api/chores/{archivedId}/completions")).ShouldBeProblemAsync(ChoreErrors.NotFound);
     }
 
     [Fact]
@@ -151,8 +152,8 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
         var archivedId = await SeedArchivedChoreAsync();
 
         // Act & Assert
-        (await client.GetAsync("/api/chores/999999/completions/summary")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await client.GetAsync($"/api/chores/{archivedId}/completions/summary")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await (await client.GetAsync("/api/chores/999999/completions/summary")).ShouldBeProblemAsync(ChoreErrors.NotFound);
+        await (await client.GetAsync($"/api/chores/{archivedId}/completions/summary")).ShouldBeProblemAsync(ChoreErrors.NotFound);
     }
 
     [Fact]

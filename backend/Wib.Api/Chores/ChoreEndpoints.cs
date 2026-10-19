@@ -75,11 +75,11 @@ public static class ChoreEndpoints
         {
             var chore = await db.Chores
                 .Include(c => c.Tags)
-                .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(c => c.Id == id && !c.IsArchived, cancellationToken);
 
-            if (chore == null || chore.IsArchived)
+            if (chore == null)
             {
-                return Results.NotFound();
+                return ChoreErrors.NotFound.ToProblem();
             }
 
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
@@ -103,10 +103,10 @@ public static class ChoreEndpoints
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
-            var chore = await db.Chores.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
-            if (chore == null || chore.IsArchived)
+            var chore = await db.Chores.FirstOrDefaultAsync(c => c.Id == id && !c.IsArchived, cancellationToken);
+            if (chore == null)
             {
-                return Results.NotFound();
+                return ChoreErrors.NotFound.ToProblem();
             }
 
             chore.Archive(timeProvider.GetUtcNow().UtcDateTime);
@@ -131,11 +131,11 @@ public static class ChoreEndpoints
 
             var chore = await db.Chores
                 .Include(c => c.Tags)
-                .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(c => c.Id == id && !c.IsArchived, cancellationToken);
 
-            if (chore == null || chore.IsArchived)
+            if (chore == null)
             {
-                return Results.NotFound();
+                return ChoreErrors.NotFound.ToProblem();
             }
 
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
@@ -167,7 +167,7 @@ public static class ChoreEndpoints
             var choreExists = await db.Chores.AnyAsync(c => c.Id == id && !c.IsArchived, cancellationToken);
             if (!choreExists)
             {
-                return Results.NotFound();
+                return ChoreErrors.NotFound.ToProblem();
             }
 
             var completions = db.ChoreCompletions
@@ -201,7 +201,7 @@ public static class ChoreEndpoints
             var choreExists = await db.Chores.AnyAsync(c => c.Id == id && !c.IsArchived, cancellationToken);
             if (!choreExists)
             {
-                return Results.NotFound();
+                return ChoreErrors.NotFound.ToProblem();
             }
 
             var completions = db.ChoreCompletions

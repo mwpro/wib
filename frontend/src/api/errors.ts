@@ -1,5 +1,6 @@
 const messages: Record<string, string> = {
   'Wallet.NotEnoughPoints': 'Niewystarczająca liczba punktów w portfelu.',
+  'Chore.NotFound': 'To zadanie już nie istnieje.',
   'RewardItem.NotFound': 'Ta nagroda już nie istnieje.',
   'RewardItem.Unavailable': 'Wybrana nagroda nie jest już dostępna.',
   'Voucher.NotFound': 'Ten kupon już nie istnieje.',

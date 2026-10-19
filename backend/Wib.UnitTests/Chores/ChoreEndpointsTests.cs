@@ -326,10 +326,10 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
 
         // Act & Assert
         var resArchived = await client.PutAsJsonAsync($"/api/chores/{archivedId}", request);
-        resArchived.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await resArchived.ShouldBeProblemAsync(ChoreErrors.NotFound);
 
         var resNonExistent = await client.PutAsJsonAsync("/api/chores/999999", request);
-        resNonExistent.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await resNonExistent.ShouldBeProblemAsync(ChoreErrors.NotFound);
     }
 
     [Fact]
@@ -362,7 +362,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
 
         // Second DELETE should return 404
         var reDeleteResponse = await client.DeleteAsync($"/api/chores/{choreId}");
-        reDeleteResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await reDeleteResponse.ShouldBeProblemAsync(ChoreErrors.NotFound);
     }
 
     [Fact]
@@ -387,11 +387,11 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
 
         // Act & Assert - non-existent
         var notFoundRes = await client.PostAsync("/api/chores/999999/completion", null);
-        notFoundRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await notFoundRes.ShouldBeProblemAsync(ChoreErrors.NotFound);
 
         // Act & Assert - archived
         var archivedRes = await client.PostAsync($"/api/chores/{archivedId}/completion", null);
-        archivedRes.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await archivedRes.ShouldBeProblemAsync(ChoreErrors.NotFound);
     }
 
     [Fact]

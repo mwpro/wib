@@ -74,10 +74,10 @@ public static class StoreEndpoints
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
-            var item = await db.RewardItems.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
-            if (item == null || !item.IsActive)
+            var item = await db.RewardItems.FirstOrDefaultAsync(r => r.Id == id && r.IsActive, cancellationToken);
+            if (item == null)
             {
-                return Results.NotFound();
+                return RewardItemErrors.NotFound.ToProblem();
             }
 
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
@@ -96,10 +96,10 @@ public static class StoreEndpoints
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
-            var item = await db.RewardItems.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
-            if (item == null || !item.IsActive)
+            var item = await db.RewardItems.FirstOrDefaultAsync(r => r.Id == id && r.IsActive, cancellationToken);
+            if (item == null)
             {
-                return Results.NotFound();
+                return RewardItemErrors.NotFound.ToProblem();
             }
 
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;

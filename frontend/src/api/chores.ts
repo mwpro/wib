@@ -1,4 +1,5 @@
 import { fetchWithAuth } from './client'
+import { apiErrorMessage } from './errors'
 import type { AuthContextValue } from '../auth/context'
 import type {
   ChoreHistoryResponse,
@@ -29,7 +30,7 @@ export async function completeChoreApi(
     method: 'POST',
   })
   if (!response.ok) {
-    throw new Error(`Nie udało się ukończyć zadania: ${response.statusText}`)
+    throw new Error(await apiErrorMessage(response, 'Nie udało się ukończyć zadania.'))
   }
   return response.json()
 }
@@ -79,7 +80,7 @@ export async function deleteChoreApi(
     method: 'DELETE',
   })
   if (!response.ok) {
-    throw new Error(`Nie udało się usunąć zadania: ${response.statusText}`)
+    throw new Error(await apiErrorMessage(response, 'Nie udało się usunąć zadania.'))
   }
 }
 
@@ -93,7 +94,7 @@ export async function fetchChoreHistory(
     auth
   )
   if (!response.ok) {
-    throw new Error(`Nie udało się pobrać historii zadania: ${response.statusText}`)
+    throw new Error(await apiErrorMessage(response, 'Nie udało się pobrać historii zadania.'))
   }
   return response.json()
 }
@@ -104,7 +105,7 @@ export async function fetchChoreHistorySummary(
 ): Promise<ChoreHistorySummary> {
   const response = await fetchWithAuth(`/api/chores/${choreId}/completions/summary`, auth)
   if (!response.ok) {
-    throw new Error(`Nie udało się pobrać podsumowania zadania: ${response.statusText}`)
+    throw new Error(await apiErrorMessage(response, 'Nie udało się pobrać podsumowania zadania.'))
   }
   return response.json()
 }

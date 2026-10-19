@@ -63,7 +63,7 @@ export async function deleteStoreItemApi(
     method: 'DELETE',
   })
   if (!response.ok) {
-    throw new Error(`Nie udało się usunąć nagrody ze sklepu: ${response.statusText}`)
+    throw new Error(await apiErrorMessage(response, 'Nie udało się usunąć nagrody ze sklepu.'))
   }
 }
 
