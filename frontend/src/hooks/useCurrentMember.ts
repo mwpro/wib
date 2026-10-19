@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../auth/useAuth'
 import { getCurrentMember } from '../api/client'
+import { queryKeys } from './queryCache'
 import type { Member } from '../types/member'
 
 export function useCurrentMember() {
@@ -8,7 +9,7 @@ export function useCurrentMember() {
   const { isAuthenticated, user } = auth
 
   const query = useQuery<Member | null>({
-    queryKey: ['currentMember', user?.sub],
+    queryKey: queryKeys.currentMember(user?.sub),
     queryFn: () => getCurrentMember(auth),
     enabled: isAuthenticated && Boolean(user?.sub),
     staleTime: 1000 * 60, // 1 minute
