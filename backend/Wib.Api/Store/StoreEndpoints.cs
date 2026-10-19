@@ -127,32 +127,18 @@ public static class StoreEndpoints
             var item = await db.RewardItems.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
             if (item == null)
             {
-                return Results.NotFound();
+                return RewardItemErrors.NotFound.ToProblem();
             }
 
-            if (!item.IsActive)
+            var purchase = item.Purchase(member, timeProvider.GetUtcNow().UtcDateTime);
+            if (purchase.IsFailure)
             {
-                return Results.BadRequest(new ProblemDetails
-                {
-                    Title = "Nagroda niedostępna",
-                    Detail = "Wybrana nagroda nie jest już aktywna."
-                });
+                return purchase.Error.ToProblem();
             }
-
-            if (member.WalletBalance < item.PointCost)
-            {
-                return Results.BadRequest(new ProblemDetails
-                {
-                    Title = "Niewystarczające środki",
-                    Detail = "Niewystarczająca liczba punktów w portfelu."
-                });
-            }
-
-            var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-            var voucher = item.Purchase(member, nowUtc);
 
             await db.SaveChangesAsync(cancellationToken);
 
+            var voucher = purchase.Value;
             var response = new BuyRewardResponse(VoucherResponse.Create(voucher), member.WalletBalance);
             return Results.Created($"/api/vouchers/{voucher.Id}", response);
         })

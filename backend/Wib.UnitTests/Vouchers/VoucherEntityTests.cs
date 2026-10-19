@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Wib.Domain.Members;
 using Wib.Domain.Store;
 using Wib.Domain.Vouchers;
 
@@ -6,68 +7,39 @@ namespace Wib.UnitTests.Vouchers;
 
 public class VoucherEntityTests
 {
-    [Fact]
-    public void Create_FromRewardItemAndMember_ShouldSnapshotAndBeAvailable()
-    {
-        var nowUtc = new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc);
-        var member = A.Member().Build();
-        var rewardItem = RewardItem.Create("Masaż", "Relaksujący masaż", 25, quantity: null, member.Id, nowUtc);
-
-        var voucher = Voucher.Create(rewardItem, member, nowUtc);
-
-        voucher.RewardItemId.Should().Be(rewardItem.Id);
-        voucher.TitleSnapshot.Should().Be("Masaż");
-        voucher.PointCostSnapshot.Should().Be(25);
-        voucher.OwnedByMemberId.Should().Be(member.Id);
-        voucher.IsRedeemed.Should().BeFalse();
-        voucher.PurchasedAt.Should().Be(nowUtc);
-        voucher.RedeemedAt.Should().BeNull();
-    }
-
-    [Fact]
-    public void Create_FromInactiveRewardItem_ShouldThrowInvalidOperationException()
-    {
-        var nowUtc = new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc);
-        var member = A.Member().Build();
-        var rewardItem = RewardItem.Create("Kino", null, 10, quantity: null, member.Id, nowUtc);
-        rewardItem.Deactivate(nowUtc);
-
-        var act = () => Voucher.Create(rewardItem, member, nowUtc);
-
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*nieaktywnej*");
-    }
+    private static readonly DateTime PurchasedAt = new(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime RedeemedAt = new(2026, 10, 2, 18, 0, 0, DateTimeKind.Utc);
 
     [Fact]
     public void Redeem_WhenAvailable_ShouldTransitionToRedeemedAndSetRedeemedAt()
     {
-        var purchasedAt = new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc);
-        var redeemedAt = new DateTime(2026, 10, 2, 18, 0, 0, DateTimeKind.Utc);
-        var member = A.Member().Build();
-        var rewardItem = RewardItem.Create("Masaż", null, 25, quantity: null, member.Id, purchasedAt);
+        var (owner, voucher) = PurchaseVoucher();
 
-        var voucher = Voucher.Create(rewardItem, member, purchasedAt);
+        var result = voucher.Redeem(owner, RedeemedAt);
 
-        voucher.Redeem(redeemedAt);
-
+        result.IsSuccess.Should().BeTrue();
         voucher.IsRedeemed.Should().BeTrue();
-        voucher.RedeemedAt.Should().Be(redeemedAt);
+        voucher.RedeemedAt.Should().Be(RedeemedAt);
     }
 
     [Fact]
-    public void Redeem_WhenAlreadyRedeemed_ShouldThrowInvalidOperationException()
+    public void Redeem_WhenAlreadyRedeemed_ShouldReturnAlreadyRedeemedAndKeepFirstRedemption()
     {
-        var purchasedAt = new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc);
-        var redeemedAt = new DateTime(2026, 10, 2, 18, 0, 0, DateTimeKind.Utc);
-        var member = A.Member().Build();
-        var rewardItem = RewardItem.Create("Masaż", null, 25, quantity: null, member.Id, purchasedAt);
+        var (owner, voucher) = PurchaseVoucher();
+        voucher.Redeem(owner, RedeemedAt);
 
-        var voucher = Voucher.Create(rewardItem, member, purchasedAt);
-        voucher.Redeem(redeemedAt);
+        var result = voucher.Redeem(owner, RedeemedAt.AddHours(1));
 
-        var act = () => voucher.Redeem(redeemedAt.AddHours(1));
+        result.Error.Should().Be(VoucherErrors.AlreadyRedeemed);
+        voucher.RedeemedAt.Should().Be(RedeemedAt);
+    }
 
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*zrealizowany*");
+    private static (Member Owner, Voucher Voucher) PurchaseVoucher()
+    {
+        var owner = A.Member().Build();
+        owner.CreditWallet(25);
+        var rewardItem = RewardItem.Create("Masaż", null, 25, quantity: null, owner.Id, PurchasedAt);
+
+        return (owner, rewardItem.Purchase(owner, PurchasedAt).Value);
     }
 }

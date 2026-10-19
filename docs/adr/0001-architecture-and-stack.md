@@ -1,7 +1,7 @@
 # ADR 0001: Architecture, Stack, and Deployment Model
 
 ## Status
-Accepted (Amended by [ADR 0003](0003-domain-project-extraction.md))
+Accepted (Amended by [ADR 0003](0003-domain-project-extraction.md) and [ADR 0007](0007-domain-rule-outcomes-as-results.md))
 
 ## Context
 We need a responsive, low-maintenance, resource-efficient platform for **wib** ("Who is Better"), hosted on a lightweight Mikr.us VPS (Linux) behind an existing Nginx reverse proxy. The primary daily interaction is via mobile phones (iOS Safari).
@@ -11,6 +11,7 @@ We need a responsive, low-maintenance, resource-efficient platform for **wib** (
 2. **Database & ORM**: Entity Framework Core with `Pomelo.EntityFrameworkCore.MySql` connecting to the MariaDB 12.3 database hosted on Mikr.us. Automatic schema migrations will run at application startup.
 3. **Frontend**: React 19 SPA with TypeScript, built with Vite, styled with Tailwind CSS and Radix UI primitives. Uses React Query for server-state caching and React Hook Form for validations.
 4. **Localization**: UI displayed in Polish; code, domain entities, and API contracts in English.
+   - *Amended 2026-10-19*: the API no longer produces Polish error text. Rule violations reach the SPA as English error codes, and the SPA translates them (see [ADR 0007](0007-domain-rule-outcomes-as-results.md)).
 5. **Authentication**: Auth0 JWT Bearer authentication. Just-In-Time (JIT) provisioning registers new `Member` records on first authenticated request. The API serves client configuration via `GET /api/config`.
 6. **Deployment**: Single multi-stage Dockerfile:
    - Stage 1: Build React SPA via `node:24-alpine`.

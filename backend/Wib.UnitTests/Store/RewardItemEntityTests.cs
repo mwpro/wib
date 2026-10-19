@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Wib.Domain.Members;
 using Wib.Domain.Store;
 
 namespace Wib.UnitTests.Store;
@@ -105,12 +106,14 @@ public class RewardItemEntityTests
 
         var item = RewardItem.Create("Masaż", null, 15, quantity: 2, 1, nowUtc);
 
-        var voucher = item.Purchase(member, nowUtc);
+        var voucher = item.Purchase(member, nowUtc).Value;
 
-        voucher.Should().NotBeNull();
         voucher.TitleSnapshot.Should().Be("Masaż");
         voucher.PointCostSnapshot.Should().Be(15);
+        voucher.OwnedByMemberId.Should().Be(member.Id);
+        voucher.PurchasedAt.Should().Be(nowUtc);
         voucher.IsRedeemed.Should().BeFalse();
+        voucher.RedeemedAt.Should().BeNull();
 
         member.WalletBalance.Should().Be(15);
         member.Vouchers.Should().Contain(voucher);
@@ -127,33 +130,51 @@ public class RewardItemEntityTests
 
         var item = RewardItem.Create("Ostatni kawałek sernika", null, 10, quantity: 1, 1, nowUtc);
 
-        var voucher = item.Purchase(member, nowUtc);
+        var voucher = item.Purchase(member, nowUtc).Value;
 
         item.Quantity.Should().Be(0);
         item.IsActive.Should().BeFalse();
         member.WalletBalance.Should().Be(10);
         member.Vouchers.Should().Contain(voucher);
 
-        // Attempting to purchase again should throw
-        var act = () => item.Purchase(member, nowUtc);
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*nie jest już aktywna*");
+        var secondPurchase = item.Purchase(member, nowUtc);
+
+        secondPurchase.Error.Should().Be(RewardItemErrors.Unavailable);
+        member.WalletBalance.Should().Be(10);
     }
 
     [Fact]
-    public void Purchase_WithInsufficientBalance_ShouldThrowInvalidOperationException()
+    public void Purchase_WhenDeactivated_ShouldReturnUnavailableWithoutCharging()
+    {
+        var nowUtc = new DateTime(2026, 10, 1, 12, 0, 0, DateTimeKind.Utc);
+        var member = A.Member().Build();
+        member.CreditWallet(50);
+
+        var item = RewardItem.Create("Kino", null, 10, quantity: null, 1, nowUtc);
+        item.Deactivate(nowUtc);
+
+        var result = item.Purchase(member, nowUtc);
+
+        result.Error.Should().Be(RewardItemErrors.Unavailable);
+        member.WalletBalance.Should().Be(50);
+        member.Vouchers.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Purchase_WithInsufficientBalance_ShouldReturnNotEnoughPointsWithoutConsumingQuantity()
     {
         var nowUtc = new DateTime(2026, 10, 1, 12, 0, 0, DateTimeKind.Utc);
         var member = A.Member().Build();
         member.CreditWallet(5);
 
-        var item = RewardItem.Create("Kino", null, 15, quantity: null, 1, nowUtc);
+        var item = RewardItem.Create("Kino", null, 15, quantity: 1, 1, nowUtc);
 
-        var act = () => item.Purchase(member, nowUtc);
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*Niewystarczająca liczba punktów*");
+        var result = item.Purchase(member, nowUtc);
 
+        result.Error.Should().Be(WalletErrors.NotEnoughPoints);
         member.WalletBalance.Should().Be(5);
         member.Vouchers.Should().BeEmpty();
+        item.Quantity.Should().Be(1);
+        item.IsActive.Should().BeTrue();
     }
 }

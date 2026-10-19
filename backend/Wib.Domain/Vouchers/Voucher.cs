@@ -1,3 +1,4 @@
+using Wib.Domain.Common;
 using Wib.Domain.Members;
 using Wib.Domain.Store;
 
@@ -19,14 +20,8 @@ public class Voucher
 
     public bool IsRedeemed => RedeemedAt.HasValue;
 
-    public static Voucher Create(RewardItem rewardItem, Member member, DateTime nowUtc)
+    internal static Voucher Create(RewardItem rewardItem, Member member, DateTime nowUtc)
     {
-        ArgumentNullException.ThrowIfNull(rewardItem);
-        ArgumentNullException.ThrowIfNull(member);
-
-        if (!rewardItem.IsActive)
-            throw new InvalidOperationException("Nie można utworzyć kuponu dla nieaktywnej nagrody.");
-
         return new Voucher
         {
             RewardItemId = rewardItem.Id,
@@ -38,11 +33,17 @@ public class Voucher
         };
     }
 
-    public void Redeem(DateTime nowUtc)
+    public Result Redeem(Member member, DateTime nowUtc)
     {
+        ArgumentNullException.ThrowIfNull(member);
+
+        if (OwnedByMemberId != member.Id)
+            return VoucherErrors.NotFound;
+
         if (IsRedeemed)
-            throw new InvalidOperationException("Kupon został już zrealizowany.");
+            return VoucherErrors.AlreadyRedeemed;
 
         RedeemedAt = nowUtc;
+        return Result.Success();
     }
 }

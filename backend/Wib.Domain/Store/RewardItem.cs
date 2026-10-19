@@ -1,3 +1,4 @@
+using Wib.Domain.Common;
 using Wib.Domain.Members;
 using Wib.Domain.Vouchers;
 
@@ -69,18 +70,19 @@ public class RewardItem
         UpdatedAt = nowUtc;
     }
 
-    public Voucher Purchase(Member member, DateTime nowUtc)
+    public Result<Voucher> Purchase(Member member, DateTime nowUtc)
     {
         ArgumentNullException.ThrowIfNull(member);
 
-        if (!IsActive || (Quantity.HasValue && Quantity.Value <= 0))
+        if (!IsActive)
         {
-            throw new InvalidOperationException("Wybrana nagroda nie jest już aktywna.");
+            return RewardItemErrors.Unavailable;
         }
 
-        if (!member.TryDebitWallet(PointCost))
+        var debit = member.DebitWallet(PointCost);
+        if (debit.IsFailure)
         {
-            throw new InvalidOperationException("Niewystarczająca liczba punktów w portfelu.");
+            return debit.Error;
         }
 
         var voucher = Voucher.Create(this, member, nowUtc);

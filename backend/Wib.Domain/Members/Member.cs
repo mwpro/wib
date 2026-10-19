@@ -1,3 +1,4 @@
+using Wib.Domain.Common;
 using Wib.Domain.Vouchers;
 
 namespace Wib.Domain.Members;
@@ -45,13 +46,15 @@ public class Member
         WalletBalance += amount;
     }
 
-    public bool TryDebitWallet(int amount)
+    public Result DebitWallet(int amount)
     {
-        if (amount <= 0 || WalletBalance < amount)
-            return false;
+        ArgumentOutOfRangeException.ThrowIfLessThan(amount, 1);
+
+        if (WalletBalance < amount)
+            return WalletErrors.NotEnoughPoints;
 
         WalletBalance -= amount;
-        return true;
+        return Result.Success();
     }
 
     public void AddVoucher(Voucher voucher)

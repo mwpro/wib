@@ -1,4 +1,5 @@
 import { fetchWithAuth } from './client'
+import { apiErrorMessage } from './errors'
 import type { AuthContextValue } from '../auth/context'
 import type {
   RewardItemResponse,
@@ -74,15 +75,7 @@ export async function purchaseStoreItemApi(
     method: 'POST',
   })
   if (!response.ok) {
-    let detail = response.statusText
-    try {
-      const errJson = await response.json()
-      if (errJson.detail) detail = errJson.detail
-      else if (errJson.title) detail = errJson.title
-    } catch {
-      // ignore
-    }
-    throw new Error(detail || 'Nie udało się kupić nagrody.')
+    throw new Error(await apiErrorMessage(response, 'Nie udało się kupić nagrody.'))
   }
   return response.json()
 }
