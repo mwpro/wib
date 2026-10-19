@@ -1,6 +1,6 @@
 # wib TRMNL Display
 
-Private TRMNL polling plugin (quadrant layout only) that shows the Monthly Race and up to 10 scheduled chores in backlog order (Neglected, Overdue and Due Soon first, then Fresh). TRMNL authenticates to the wib API as an **Auth0 OAuth client**. See [ADR 0004](../docs/adr/0004-trmnl-display-via-oauth.md) for the reasoning.
+Private TRMNL polling plugin (quadrant layout only) for the **TRMNL Display**. What it shows is defined in [CONTEXT.md](../CONTEXT.md). TRMNL authenticates to the wib API as an **Auth0 OAuth client**. See [ADR 0004](../docs/adr/0004-trmnl-display-via-oauth.md) for the reasoning.
 
 ```
 trmnl/

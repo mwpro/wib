@@ -1,7 +1,7 @@
 # ADR 0004: TRMNL Display via OAuth (TRMNL as Auth0 Client)
 
 ## Status
-Accepted (experimental: relies on TRMNL's beta "Enable OAuth" support for private plugins)
+Accepted
 
 ## Context
 We want a **TRMNL Display**: a read-only, household-wide view of wib on the home's TRMNL X e-ink device (TRMNL cloud, Developer Edition). It shows the top of the backlog and the Monthly Race.
@@ -16,7 +16,7 @@ TRMNL offers three relevant mechanisms:
 ## Decision
 1. **Private polling plugin** with source in [`trmnl/`](../../trmnl/), managed with `trmnlp`. **Quadrant layout only.** Refreshes every 15 minutes.
 2. **Regular API endpoints only**. No TRMNL-specific endpoint and no backend changes:
-   - `GET /api/chores`: backlog order is already applied server-side. The template shows up to 10 **scheduled** chores in backlog order: Neglected, Overdue and Due Soon first, then Fresh ones fill the remaining rows. Unscheduled chores are never shown.
+   - `GET /api/chores`: Backlog order is already applied server-side, so the template only picks and trims rows. What it shows is defined under **TRMNL Display** in [CONTEXT.md](../../CONTEXT.md).
    - `GET /api/scoreboard/{year}/{month}`: year and month come from Liquid's `now` in the polling URL. **Accepted defect**: around the start of a month the date may resolve in UTC and show the previous month's race for an hour or two.
 3. **Auth: TRMNL as an Auth0 client** of the existing tenant (shared with `tiny-money`):
    - Dedicated Auth0 **Regular Web Application** "TRMNL" with `authorization_code` + `refresh_token` grants and the `offline_access` scope.
@@ -30,6 +30,6 @@ TRMNL offers three relevant mechanisms:
 
 ## Consequences
 - No API key storage, hashing, rotation UI or custom auth handler in wib. Standard JWT Bearer validation covers TRMNL.
-- Depends on a beta TRMNL feature. **Fallback plan**: if hosted OAuth refresh proves flaky or the audience can't be set, supersede this ADR with an API-key scheme modelled on `tiny-money`.
+- Depends on TRMNL's hosted OAuth for private plugins. **Fallback plan**: if hosted OAuth refresh proves flaky or the audience can't be set, supersede this ADR with an API-key scheme modelled on `tiny-money`.
 - Polling unfiltered `/api/chores` transfers the full backlog (descriptions included) every 15 minutes. That's acceptable at household size, but TRMNL rejects merge data around 100 KB.
 - The Display is not exercised by Playwright. It is verified with `trmnlp` local preview against sample data. Setup steps live in [`trmnl/README.md`](../../trmnl/README.md).
