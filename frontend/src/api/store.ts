@@ -30,8 +30,7 @@ export async function createStoreItemApi(
     body: JSON.stringify(req),
   })
   if (!response.ok) {
-    const errorBody = await response.text()
-    throw new Error(`Nie udało się utworzyć nagrody: ${errorBody || response.statusText}`)
+    throw new Error(await apiErrorMessage(response, 'Nie udało się utworzyć nagrody.'))
   }
   return response.json()
 }
@@ -49,8 +48,7 @@ export async function updateStoreItemApi(
     body: JSON.stringify(req),
   })
   if (!response.ok) {
-    const errorBody = await response.text()
-    throw new Error(`Nie udało się zaktualizować nagrody: ${errorBody || response.statusText}`)
+    throw new Error(await apiErrorMessage(response, 'Nie udało się zaktualizować nagrody.'))
   }
   return response.json()
 }

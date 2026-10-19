@@ -17,9 +17,13 @@ We considered:
 3. The domain carries no user-facing text. `Wib.Api` maps a `DomainError` once (`ToProblem`) to ProblemDetails: `Invalid` → `400`, `NotFound` → `404`, `title` and a `code` extension both set to the code. The SPA translates codes to Polish in `frontend/src/api/errors.ts` and falls back to a generic message for unknown codes.
 4. Exceptions remain for programmer errors and infrastructure failures: null arguments, impossible states such as a non-positive wallet amount, and database errors. These are bugs and belong in Sentry as `500`s.
 5. A failed `Result` leaves the domain unchanged. Rules are checked before any state changes.
+6. Input rules (title, description and tag lengths, points, cadence, cost, quantity) live in the factories and `Update` methods of `Chore` and `RewardItem`, and `Chore.NormalizeTagNames` handles tag names. Request DTOs are plain records, and the `IValidatableObject` validators and the `WithValidation` endpoint filter are gone. Length limits are domain constants that the EF mapping reuses.
+7. Archived chores and deactivated reward items are excluded in the lookup query and answer `Chore.NotFound` / `RewardItem.NotFound`. Purchase is the exception: it looks the item up unfiltered so the domain can answer `RewardItem.Unavailable`.
 
 ## Consequences
 - Each rule is written once, in the domain, and tested there by asserting the returned error. Endpoint tests cover the mapping once per error kind, plus rules that need persisted ids (voucher ownership).
 - Endpoints branch with `if (result.IsFailure) return result.Error.ToProblem();` before saving.
 - A new rule needs a code in the domain and, for a friendly message, an entry in the SPA's code map. Without the entry, members see the generic fallback.
 - Adding another HTTP status means adding an `ErrorKind`, which is deliberately not done until a client needs it.
+- Input errors report only the first broken rule, not every field. The SPA validates its forms itself and never showed errors per field.
+- Query-string parameters (paging, year/month) are not domain rules. Those endpoints still answer `ValidationProblem`.

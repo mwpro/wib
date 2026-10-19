@@ -62,25 +62,6 @@ public class ChoreFreshnessTests
     }
 
     [Fact]
-    public void GetFreshness_WhenCadenceDaysIsZeroOrNegative_ShouldReturnUnscheduled()
-    {
-        // Arrange
-        var createdAt = _fixedNowUtc.AddDays(-5);
-        var choreZero = A.Chore().WithCadenceDays(0).CreatedAt(createdAt).Build();
-        var choreNegative = A.Chore().WithCadenceDays(-2).CreatedAt(createdAt).Build();
-
-        // Act
-        var resultZero = choreZero.GetFreshness(_fixedNowUtc);
-        var resultNegative = choreNegative.GetFreshness(_fixedNowUtc);
-
-        // Assert
-        resultZero.Urgency.Should().Be(FreshnessUrgency.Unscheduled);
-        resultZero.UrgencyRatio.Should().BeNull();
-        resultNegative.Urgency.Should().Be(FreshnessUrgency.Unscheduled);
-        resultNegative.UrgencyRatio.Should().BeNull();
-    }
-
-    [Fact]
     public void GetFreshness_WhenLastCompletedAtIsNull_ShouldUseCreatedAtAsReference()
     {
         // Arrange: created 2 days ago in Warsaw time, cadence 10 days -> 2/10 = 0.20 (Fresh)

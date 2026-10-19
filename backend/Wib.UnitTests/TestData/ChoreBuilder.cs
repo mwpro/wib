@@ -22,7 +22,7 @@ public class ChoreBuilder
 
     public Chore Build()
     {
-        var chore = Chore.Create(_title, null, _points, _cadenceDays, _createdAt);
+        var chore = Chore.Create(_title, null, _points, _cadenceDays, _createdAt).Value;
         if (_archived)
         {
             chore.Archive(_createdAt);

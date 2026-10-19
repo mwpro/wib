@@ -38,7 +38,7 @@ public class VoucherEntityTests
     {
         var owner = A.Member().Build();
         owner.CreditWallet(25);
-        var rewardItem = RewardItem.Create("Masaż", null, 25, quantity: null, owner.Id, PurchasedAt);
+        var rewardItem = RewardItem.Create("Masaż", null, 25, quantity: null, owner.Id, PurchasedAt).Value;
 
         return (owner, rewardItem.Purchase(owner, PurchasedAt).Value);
     }

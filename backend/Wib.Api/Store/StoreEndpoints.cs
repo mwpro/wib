@@ -14,8 +14,7 @@ public static class StoreEndpoints
     {
         var group = app.MapGroup("/api/store")
             .RequireAuthorization()
-            .WithTags("Store")
-            .WithValidation();
+            .WithTags("Store");
 
         group.MapGet("/items", async (
             [FromServices] WibDbContext db,
@@ -49,16 +48,20 @@ public static class StoreEndpoints
                 return Results.Unauthorized();
             }
 
-            var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-            var item = RewardItem.Create(
+            var created = RewardItem.Create(
                 request.Title,
                 request.Description,
                 request.PointCost,
                 request.Quantity,
                 member.Id,
-                nowUtc
+                timeProvider.GetUtcNow().UtcDateTime
             );
+            if (created.IsFailure)
+            {
+                return created.Error.ToProblem();
+            }
 
+            var item = created.Value;
             db.RewardItems.Add(item);
             await db.SaveChangesAsync(cancellationToken);
 
@@ -80,8 +83,12 @@ public static class StoreEndpoints
                 return RewardItemErrors.NotFound.ToProblem();
             }
 
-            var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-            item.Update(request.Title, request.Description, request.PointCost, request.Quantity, nowUtc);
+            var update = item.Update(
+                request.Title, request.Description, request.PointCost, request.Quantity, timeProvider.GetUtcNow().UtcDateTime);
+            if (update.IsFailure)
+            {
+                return update.Error.ToProblem();
+            }
 
             await db.SaveChangesAsync(cancellationToken);
 

@@ -1,3 +1,4 @@
+using Wib.Domain.Common;
 using Wib.Domain.Members;
 
 namespace Wib.Domain.Chores;
@@ -22,8 +23,15 @@ public class Chore
     public IReadOnlyCollection<Tag> Tags => _tags.AsReadOnly();
     public IReadOnlyCollection<ChoreCompletion> Completions => _completions.AsReadOnly();
 
-    public static Chore Create(string title, string? description, int points, int? cadenceDays, DateTime nowUtc)
+    public const int TitleMaxLength = 255;
+    public const int DescriptionMaxLength = 2000;
+
+    public static Result<Chore> Create(string title, string? description, int points, int? cadenceDays, DateTime nowUtc)
     {
+        var validation = Validate(title, description, points, cadenceDays);
+        if (validation.IsFailure)
+            return validation.Error;
+
         return new Chore
         {
             Title = title.Trim(),
@@ -34,13 +42,48 @@ public class Chore
         };
     }
 
-    public void Update(string title, string? description, int points, int? cadenceDays, DateTime nowUtc)
+    public Result Update(string title, string? description, int points, int? cadenceDays, DateTime nowUtc)
     {
+        var validation = Validate(title, description, points, cadenceDays);
+        if (validation.IsFailure)
+            return validation;
+
         Title = title.Trim();
         Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
         Points = points;
         CadenceDays = cadenceDays;
         UpdatedAt = nowUtc;
+        return Result.Success();
+    }
+
+    public static Result<IReadOnlyList<string>> NormalizeTagNames(IEnumerable<string>? rawNames)
+    {
+        var names = (rawNames ?? [])
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(Tag.NormalizeName)
+            .Distinct()
+            .ToList();
+
+        if (names.Any(name => name.Length > Tag.NameMaxLength))
+            return ChoreErrors.TagTooLong;
+
+        return names;
+    }
+
+    private static Result Validate(string title, string? description, int points, int? cadenceDays)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            return ChoreErrors.TitleRequired;
+        if (title.Trim().Length > TitleMaxLength)
+            return ChoreErrors.TitleTooLong;
+        if (description is not null && description.Trim().Length > DescriptionMaxLength)
+            return ChoreErrors.DescriptionTooLong;
+        if (points < 1)
+            return ChoreErrors.PointsTooLow;
+        if (cadenceDays < 1)
+            return ChoreErrors.CadenceTooShort;
+
+        return Result.Success();
     }
 
     public void Archive(DateTime nowUtc)

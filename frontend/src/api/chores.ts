@@ -47,8 +47,7 @@ export async function createChoreApi(
     body: JSON.stringify(req),
   })
   if (!response.ok) {
-    const errorBody = await response.text()
-    throw new Error(`Nie udało się utworzyć zadania: ${errorBody || response.statusText}`)
+    throw new Error(await apiErrorMessage(response, 'Nie udało się utworzyć zadania.'))
   }
   return response.json()
 }
@@ -66,8 +65,7 @@ export async function updateChoreApi(
     body: JSON.stringify(req),
   })
   if (!response.ok) {
-    const errorBody = await response.text()
-    throw new Error(`Nie udało się zaktualizować zadania: ${errorBody || response.statusText}`)
+    throw new Error(await apiErrorMessage(response, 'Nie udało się zaktualizować zadania.'))
   }
   return response.json()
 }

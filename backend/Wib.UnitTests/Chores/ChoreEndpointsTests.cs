@@ -76,30 +76,35 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         });
     }
 
-    [Theory]
-    [InlineData("", 1, 1)]        // Empty title
-    [InlineData("   ", 1, 1)]     // Whitespace title
-    [InlineData("Valid", 0, 1)]   // Points < 1
-    [InlineData("Valid", -5, 1)]  // Points negative
-    [InlineData("Valid", 1, 0)]   // Cadence < 1
-    [InlineData("Valid", 1, -3)]  // Cadence negative
-    public async Task PostChore_WithInvalidData_ShouldReturn400(string title, int points, int cadenceDays)
+    [Fact]
+    public async Task PostChore_WithInvalidFields_ShouldReturn400WithErrorCode()
     {
         // Arrange
         var client = _factory.CreateAuthenticatedClient();
-        var request = new CreateChoreRequest(
-            Title: title,
-            Description: null,
-            Points: points,
-            CadenceDays: cadenceDays,
-            Tags: null
-        );
+        var request = new CreateChoreRequest(Title: "Valid", Points: 0);
 
         // Act
         var response = await client.PostAsJsonAsync("/api/chores", request);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        await response.ShouldBeProblemAsync(ChoreErrors.PointsTooLow);
+    }
+
+    [Fact]
+    public async Task PostChore_WithTooLongTagName_ShouldReturn400WithoutCreatingTag()
+    {
+        // Arrange
+        var client = _factory.CreateAuthenticatedClient();
+        var tooLongTag = new string('x', 51);
+        var request = new CreateChoreRequest(Title: "Valid", Tags: [tooLongTag]);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/chores", request);
+
+        // Assert
+        await response.ShouldBeProblemAsync(ChoreErrors.TagTooLong);
+        await _factory.ExecuteDbContextAsync(async db =>
+            (await db.Tags.AnyAsync(t => t.Name == tooLongTag)).Should().BeFalse());
     }
 
     [Fact]
@@ -120,28 +125,6 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         chore.Urgency.Should().Be("Unscheduled");
         chore.UrgencyRatio.Should().BeNull();
         chore.DaysSinceLastDone.Should().BeNull();
-    }
-
-    [Theory]
-    [InlineData(256, null, null)]     // Title too long
-    [InlineData(10, 2001, null)]      // Description too long
-    [InlineData(10, null, 51)]        // Tag name too long
-    public async Task PostChore_WithFieldsExceedingMaxLength_ShouldReturn400(
-        int titleLength, int? descriptionLength, int? tagNameLength)
-    {
-        // Arrange
-        var client = _factory.CreateAuthenticatedClient();
-        var request = new CreateChoreRequest(
-            Title: new string('x', titleLength),
-            Description: descriptionLength.HasValue ? new string('x', descriptionLength.Value) : null,
-            Tags: tagNameLength.HasValue ? [new string('x', tagNameLength.Value)] : null
-        );
-
-        // Act
-        var response = await client.PostAsJsonAsync("/api/chores", request);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -298,21 +281,21 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         updated.UpdatedAt.Should().NotBeNull();
     }
 
-    [Theory]
-    [InlineData("", 1, 1)]
-    [InlineData("Valid", 0, 1)]
-    [InlineData("Valid", 1, 0)]
-    public async Task PutChore_WithInvalidData_ShouldReturn400(string title, int points, int cadenceDays)
+    [Fact]
+    public async Task PutChore_WithInvalidFields_ShouldReturn400AndKeepChoreUnchanged()
     {
         // Arrange
         var client = _factory.CreateAuthenticatedClient();
-        var request = new UpdateChoreRequest(title, null, points, cadenceDays, null);
+        var choreId = (await _factory.SeedAsync(A.Chore().WithTitle("Stary tytuł").Build())).Id;
+        var request = new UpdateChoreRequest("Nowy tytuł", null, 1, CadenceDays: 0, null);
 
         // Act
-        var response = await client.PutAsJsonAsync("/api/chores/1", request);
+        var response = await client.PutAsJsonAsync($"/api/chores/{choreId}", request);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        await response.ShouldBeProblemAsync(ChoreErrors.CadenceTooShort);
+        await _factory.ExecuteDbContextAsync(async db =>
+            (await db.Chores.SingleAsync(c => c.Id == choreId)).Title.Should().Be("Stary tytuł"));
     }
 
     [Fact]

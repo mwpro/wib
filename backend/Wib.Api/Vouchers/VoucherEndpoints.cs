@@ -13,8 +13,7 @@ public static class VoucherEndpoints
     {
         var group = app.MapGroup("/api/vouchers")
             .RequireAuthorization()
-            .WithTags("Vouchers")
-            .WithValidation();
+            .WithTags("Vouchers");
 
         group.MapGet("/", async (
             [FromQuery] bool? isRedeemed,
