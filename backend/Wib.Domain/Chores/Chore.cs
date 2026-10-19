@@ -53,7 +53,7 @@ public class Chore
         Points = points;
         CadenceDays = cadenceDays;
         UpdatedAt = nowUtc;
-        return Result.Success();
+        return Result.Success;
     }
 
     public static Result<IReadOnlyList<string>> NormalizeTagNames(IEnumerable<string>? rawNames)
@@ -83,7 +83,7 @@ public class Chore
         if (cadenceDays < 1)
             return ChoreErrors.CadenceTooShort;
 
-        return Result.Success();
+        return Result.Success;
     }
 
     public void Archive(DateTime nowUtc)

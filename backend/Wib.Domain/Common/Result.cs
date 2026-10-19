@@ -1,22 +1,20 @@
 namespace Wib.Domain.Common;
 
-public sealed class Result
+public class Result
 {
-    private static readonly Result SuccessResult = new(null);
-
     private readonly DomainError? _error;
 
-    private Result(DomainError? error)
+    private protected Result(DomainError? error)
     {
         _error = error;
     }
+
+    public static Result Success { get; } = new(null);
 
     public bool IsSuccess => _error is null;
     public bool IsFailure => !IsSuccess;
 
     public DomainError Error => _error ?? throw new InvalidOperationException("A successful result has no error.");
-
-    public static Result Success() => SuccessResult;
 
     public TOut Match<TOut>(Func<TOut> onSuccess, Func<DomainError, TOut> onError) =>
         _error is null ? onSuccess() : onError(_error);
@@ -24,32 +22,25 @@ public sealed class Result
     public static implicit operator Result(DomainError error) => new(error);
 }
 
-public sealed class Result<T>
+public sealed class Result<T> : Result
 {
     private readonly T? _value;
-    private readonly DomainError? _error;
 
-    private Result(T value)
+    private Result(T value) : base(null)
     {
         _value = value;
     }
 
-    private Result(DomainError error)
+    private Result(DomainError error) : base(error)
     {
-        _error = error;
     }
 
-    public bool IsSuccess => _error is null;
-    public bool IsFailure => !IsSuccess;
-
-    public T Value => _error is null
+    public T Value => IsSuccess
         ? _value!
-        : throw new InvalidOperationException($"A failed result has no value: {_error.Code}.");
-
-    public DomainError Error => _error ?? throw new InvalidOperationException("A successful result has no error.");
+        : throw new InvalidOperationException($"A failed result has no value: {Error.Code}.");
 
     public TOut Match<TOut>(Func<T, TOut> onValue, Func<DomainError, TOut> onError) =>
-        _error is null ? onValue(_value!) : onError(_error);
+        IsSuccess ? onValue(_value!) : onError(Error);
 
     public static implicit operator Result<T>(T value) => new(value);
 

@@ -44,6 +44,6 @@ public class Voucher
             return VoucherErrors.AlreadyRedeemed;
 
         RedeemedAt = nowUtc;
-        return Result.Success();
+        return Result.Success;
     }
 }

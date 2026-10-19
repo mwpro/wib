@@ -54,7 +54,7 @@ public class Member
             return WalletErrors.NotEnoughPoints;
 
         WalletBalance -= amount;
-        return Result.Success();
+        return Result.Success;
     }
 
     public void AddVoucher(Voucher voucher)

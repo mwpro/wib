@@ -61,7 +61,7 @@ public class RewardItem
         PointCost = pointCost;
         Quantity = quantity;
         UpdatedAt = nowUtc;
-        return Result.Success();
+        return Result.Success;
     }
 
     private static Result Validate(string title, string? description, int pointCost, int? quantity)
@@ -77,7 +77,7 @@ public class RewardItem
         if (quantity < 1)
             return RewardItemErrors.QuantityTooLow;
 
-        return Result.Success();
+        return Result.Success;
     }
 
     public void Deactivate(DateTime nowUtc)
