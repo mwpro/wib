@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../auth/useAuth'
-import { getCurrentMember } from '../api/client'
+import { getCurrentMember } from '../api/members'
 import { queryKeys } from './queryCache'
 import type { Member } from '../types/member'
 

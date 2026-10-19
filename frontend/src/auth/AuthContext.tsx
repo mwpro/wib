@@ -34,7 +34,10 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     isTestMode: true,
     login: () => {},
     logout: () => {},
-    getAccessToken: async () => 'test-bearer-token',
+    authorizeRequest: async (headers: Headers) => {
+      headers.set('X-Test-Sub', encodeURIComponent(testUser.sub))
+      headers.set('X-Test-User-Name', encodeURIComponent(testUser.name))
+    },
     setTestUser: handleSetTestUser,
   }), [testUser, handleSetTestUser])
 
@@ -76,15 +79,11 @@ function Auth0Bridge({
           returnTo: window.location.origin,
         },
       }),
-    getAccessToken: async () => {
-      try {
-        const token = await getAccessTokenSilently({
-          authorizationParams: audience ? { audience } : undefined,
-        })
-        return token ?? null
-      } catch {
-        return null
-      }
+    authorizeRequest: async (headers: Headers) => {
+      const token = await getAccessTokenSilently({
+        authorizationParams: audience ? { audience } : undefined,
+      }).catch(() => null)
+      if (token) headers.set('Authorization', `Bearer ${token}`)
     },
   }), [isAuthenticated, isLoading, authUser?.sub, authUser?.name, audience, loginWithRedirect, logout, getAccessTokenSilently])
 

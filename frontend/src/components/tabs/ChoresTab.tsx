@@ -8,6 +8,7 @@ import {
   useDeleteChore,
 } from '../../hooks/useChores'
 import { useBacklogView } from '../../hooks/useBacklogView'
+import { useConfirmedAction } from '../../hooks/useConfirmedAction'
 import { ChoreCard } from '../chores/ChoreCard'
 import { ChoreFilters } from '../chores/ChoreFilters'
 import { ChoreFormModal, type InitialChoreValues } from '../chores/ChoreFormModal'
@@ -24,16 +25,18 @@ export function ChoresTab() {
   const deleteMutation = useDeleteChore()
 
   const backlog = useBacklogView(chores)
+  const deleteChore = useConfirmedAction((chore: ChoreResponse) =>
+    deleteMutation.mutateAsync(chore.id)
+  )
+  const repeatCompletion = useConfirmedAction((chore: ChoreResponse) =>
+    completeMutation.mutateAsync({ choreId: chore.id, points: chore.points })
+  )
 
   // Modal states
   const [isFormModalOpen, setIsFormModalOpen] = useState(false)
   const [choreToEdit, setChoreToEdit] = useState<ChoreResponse | null>(null)
   const [modalInitialValues, setModalInitialValues] = useState<InitialChoreValues | undefined>()
-  const [choreToDelete, setChoreToDelete] = useState<ChoreResponse | null>(null)
   const [choreForHistory, setChoreForHistory] = useState<ChoreResponse | null>(null)
-  const [choreToRepeat, setChoreToRepeat] = useState<ChoreResponse | null>(null)
-  const [repeatError, setRepeatError] = useState<string | null>(null)
-  const [isRepeating, setIsRepeating] = useState(false)
   const [completingIds, setCompletingIds] = useState<Set<number>>(new Set())
 
   const handleCompleteChore = async (choreId: number, points: number) => {
@@ -48,27 +51,6 @@ export function ChoresTab() {
         next.delete(choreId)
         return next
       })
-    }
-  }
-
-  const handleOpenRepeat = (chore: ChoreResponse) => {
-    setRepeatError(null)
-    setChoreToRepeat(chore)
-  }
-
-  const handleConfirmRepeat = async () => {
-    if (!choreToRepeat) return
-    setRepeatError(null)
-    // Own pending flag: completeMutation is shared with every card's 1-tap button
-    setIsRepeating(true)
-    try {
-      await completeMutation.mutateAsync({ choreId: choreToRepeat.id, points: choreToRepeat.points })
-      setChoreToRepeat(null)
-    } catch (err) {
-      console.error('Failed to repeat chore completion:', err)
-      setRepeatError('Nie udało się zapisać wykonania. Spróbuj ponownie.')
-    } finally {
-      setIsRepeating(false)
     }
   }
 
@@ -88,16 +70,6 @@ export function ChoresTab() {
       await updateMutation.mutateAsync({ choreId: choreToEdit.id, req: data })
     } else {
       await createMutation.mutateAsync(data)
-    }
-  }
-
-  const handleConfirmDelete = async () => {
-    if (!choreToDelete) return
-    try {
-      await deleteMutation.mutateAsync(choreToDelete.id)
-      setChoreToDelete(null)
-    } catch (err) {
-      console.error('Failed to delete chore:', err)
     }
   }
 
@@ -224,9 +196,9 @@ export function ChoresTab() {
                   onComplete={handleCompleteChore}
                   isCompleting={completingIds.has(chore.id)}
                   onEdit={handleOpenEdit}
-                  onDelete={setChoreToDelete}
+                  onDelete={deleteChore.open}
                   onHistory={setChoreForHistory}
-                  onRepeat={handleOpenRepeat}
+                  onRepeat={repeatCompletion.open}
                 />
               ))}
             </div>
@@ -245,22 +217,10 @@ export function ChoresTab() {
       />
 
       {/* Delete Chore Confirmation Dialog */}
-      <DeleteChoreDialog
-        isOpen={choreToDelete != null}
-        chore={choreToDelete}
-        onClose={() => setChoreToDelete(null)}
-        onConfirm={handleConfirmDelete}
-        isDeleting={deleteMutation.isPending}
-      />
+      <DeleteChoreDialog {...deleteChore.dialog} chore={deleteChore.target} />
 
       {/* Same-day Repeat Confirmation Dialog */}
-      <RepeatCompletionDialog
-        chore={choreToRepeat}
-        onClose={() => setChoreToRepeat(null)}
-        onConfirm={handleConfirmRepeat}
-        isSaving={isRepeating}
-        error={repeatError}
-      />
+      <RepeatCompletionDialog {...repeatCompletion.dialog} chore={repeatCompletion.target} />
 
       <ChoreHistoryModal chore={choreForHistory} onClose={() => setChoreForHistory(null)} />
     </div>

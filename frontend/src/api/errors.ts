@@ -18,15 +18,6 @@ const messages: Record<string, string> = {
   'Voucher.AlreadyRedeemed': 'Kupon został już zrealizowany.',
 }
 
-export async function apiErrorMessage(response: Response, fallback: string): Promise<string> {
-  try {
-    const body: unknown = await response.json()
-    const code = typeof body === 'object' && body !== null && 'code' in body ? body.code : undefined
-    if (typeof code === 'string' && code in messages) {
-      return messages[code]
-    }
-  } catch {
-    return fallback
-  }
-  return fallback
+export function domainErrorMessage(code: string | undefined): string | undefined {
+  return code !== undefined && code in messages ? messages[code] : undefined
 }

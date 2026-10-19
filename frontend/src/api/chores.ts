@@ -1,5 +1,4 @@
-import { fetchWithAuth } from './client'
-import { apiErrorMessage } from './errors'
+import { request } from './client'
 import type { AuthContextValue } from '../auth/context'
 import type {
   ChoreHistoryResponse,
@@ -10,100 +9,45 @@ import type {
   UpdateChoreRequest,
 } from '../types/chore'
 
-export async function fetchChores(
-  auth: AuthContextValue,
-  tag?: string
-): Promise<ChoreResponse[]> {
-  const url = tag ? `/api/chores?tag=${encodeURIComponent(tag)}` : '/api/chores'
-  const response = await fetchWithAuth(url, auth)
-  if (!response.ok) {
-    throw new Error(`Nie udało się pobrać zadań: ${response.statusText}`)
-  }
-  return response.json()
-}
-
-export async function completeChoreApi(
-  auth: AuthContextValue,
-  choreId: number
-): Promise<CompleteChoreResponse> {
-  const response = await fetchWithAuth(`/api/chores/${choreId}/completion`, auth, {
-    method: 'POST',
+export const fetchChores = (auth: AuthContextValue, tag?: string) =>
+  request<ChoreResponse[]>(auth, '/chores', {
+    query: { tag },
+    failureMessage: 'Nie udało się pobrać zadań.',
   })
-  if (!response.ok) {
-    throw new Error(await apiErrorMessage(response, 'Nie udało się ukończyć zadania.'))
-  }
-  return response.json()
-}
 
-export async function createChoreApi(
-  auth: AuthContextValue,
-  req: CreateChoreRequest
-): Promise<ChoreResponse> {
-  const response = await fetchWithAuth('/api/chores', auth, {
+export const completeChoreApi = (auth: AuthContextValue, choreId: number) =>
+  request<CompleteChoreResponse>(auth, `/chores/${choreId}/completion`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(req),
+    failureMessage: 'Nie udało się ukończyć zadania.',
   })
-  if (!response.ok) {
-    throw new Error(await apiErrorMessage(response, 'Nie udało się utworzyć zadania.'))
-  }
-  return response.json()
-}
 
-export async function updateChoreApi(
-  auth: AuthContextValue,
-  choreId: number,
-  req: UpdateChoreRequest
-): Promise<ChoreResponse> {
-  const response = await fetchWithAuth(`/api/chores/${choreId}`, auth, {
+export const createChoreApi = (auth: AuthContextValue, req: CreateChoreRequest) =>
+  request<ChoreResponse>(auth, '/chores', {
+    method: 'POST',
+    body: req,
+    failureMessage: 'Nie udało się utworzyć zadania.',
+  })
+
+export const updateChoreApi = (auth: AuthContextValue, choreId: number, req: UpdateChoreRequest) =>
+  request<ChoreResponse>(auth, `/chores/${choreId}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(req),
+    body: req,
+    failureMessage: 'Nie udało się zaktualizować zadania.',
   })
-  if (!response.ok) {
-    throw new Error(await apiErrorMessage(response, 'Nie udało się zaktualizować zadania.'))
-  }
-  return response.json()
-}
 
-export async function deleteChoreApi(
-  auth: AuthContextValue,
-  choreId: number
-): Promise<void> {
-  const response = await fetchWithAuth(`/api/chores/${choreId}`, auth, {
+export const deleteChoreApi = (auth: AuthContextValue, choreId: number) =>
+  request<void>(auth, `/chores/${choreId}`, {
     method: 'DELETE',
+    failureMessage: 'Nie udało się usunąć zadania.',
   })
-  if (!response.ok) {
-    throw new Error(await apiErrorMessage(response, 'Nie udało się usunąć zadania.'))
-  }
-}
 
-export async function fetchChoreHistory(
-  auth: AuthContextValue,
-  choreId: number,
-  page: number = 1
-): Promise<ChoreHistoryResponse> {
-  const response = await fetchWithAuth(
-    `/api/chores/${choreId}/completions?page=${page}`,
-    auth
-  )
-  if (!response.ok) {
-    throw new Error(await apiErrorMessage(response, 'Nie udało się pobrać historii zadania.'))
-  }
-  return response.json()
-}
+export const fetchChoreHistory = (auth: AuthContextValue, choreId: number, page: number = 1) =>
+  request<ChoreHistoryResponse>(auth, `/chores/${choreId}/completions`, {
+    query: { page },
+    failureMessage: 'Nie udało się pobrać historii zadania.',
+  })
 
-export async function fetchChoreHistorySummary(
-  auth: AuthContextValue,
-  choreId: number
-): Promise<ChoreHistorySummary> {
-  const response = await fetchWithAuth(`/api/chores/${choreId}/completions/summary`, auth)
-  if (!response.ok) {
-    throw new Error(await apiErrorMessage(response, 'Nie udało się pobrać podsumowania zadania.'))
-  }
-  return response.json()
-}
+export const fetchChoreHistorySummary = (auth: AuthContextValue, choreId: number) =>
+  request<ChoreHistorySummary>(auth, `/chores/${choreId}/completions/summary`, {
+    failureMessage: 'Nie udało się pobrać podsumowania zadania.',
+  })

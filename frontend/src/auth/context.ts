@@ -12,7 +12,7 @@ export interface AuthContextValue {
   isTestMode: boolean
   login: () => Promise<void> | void
   logout: () => Promise<void> | void
-  getAccessToken: () => Promise<string | null>
+  authorizeRequest: (headers: Headers) => Promise<void>
   setTestUser?: (user: AuthUser) => void
 }
 

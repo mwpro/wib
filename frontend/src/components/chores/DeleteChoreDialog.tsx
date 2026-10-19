@@ -1,13 +1,10 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, AlertCircle } from 'lucide-react'
+import type { ConfirmedActionDialogProps } from '../../hooks/useConfirmedAction'
 import type { ChoreResponse } from '../../types/chore'
 
-interface DeleteChoreDialogProps {
-  isOpen: boolean
+interface DeleteChoreDialogProps extends ConfirmedActionDialogProps {
   chore: ChoreResponse | null
-  onClose: () => void
-  onConfirm: () => Promise<void> | void
-  isDeleting?: boolean
 }
 
 export function DeleteChoreDialog({
@@ -15,7 +12,8 @@ export function DeleteChoreDialog({
   chore,
   onClose,
   onConfirm,
-  isDeleting = false,
+  isPending,
+  error,
 }: DeleteChoreDialogProps) {
   if (!isOpen || !chore) return null
 
@@ -40,11 +38,18 @@ export function DeleteChoreDialog({
             </Dialog.Description>
           </div>
 
+          {error && (
+            <div className="mt-4 p-3 text-xs rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-900 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 mt-px" />
+              <span>{error}</span>
+            </div>
+          )}
+
           <div className="flex items-center justify-end gap-2.5 mt-6">
             <button
               type="button"
               onClick={onClose}
-              disabled={isDeleting}
+              disabled={isPending}
               className="flex-1 py-2 px-4 text-xs font-semibold text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition cursor-pointer"
             >
               Anuluj
@@ -52,10 +57,10 @@ export function DeleteChoreDialog({
             <button
               type="button"
               onClick={onConfirm}
-              disabled={isDeleting}
+              disabled={isPending}
               className="flex-1 py-2 px-4 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50"
             >
-              {isDeleting ? 'Usuwanie...' : 'Usuń'}
+              {isPending ? 'Usuwanie...' : 'Usuń'}
             </button>
           </div>
         </Dialog.Content>
