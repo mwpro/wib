@@ -90,7 +90,7 @@ public class RewardItem
     {
         ArgumentNullException.ThrowIfNull(member);
 
-        if (!IsActive)
+        if (!IsActive || Quantity <= 0)
         {
             return RewardItemErrors.Unavailable;
         }

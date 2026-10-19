@@ -16,9 +16,6 @@ public class Result
 
     public DomainError Error => _error ?? throw new InvalidOperationException("A successful result has no error.");
 
-    public TOut Match<TOut>(Func<TOut> onSuccess, Func<DomainError, TOut> onError) =>
-        _error is null ? onSuccess() : onError(_error);
-
     public static implicit operator Result(DomainError error) => new(error);
 }
 
@@ -38,9 +35,6 @@ public sealed class Result<T> : Result
     public T Value => IsSuccess
         ? _value!
         : throw new InvalidOperationException($"A failed result has no value: {Error.Code}.");
-
-    public TOut Match<TOut>(Func<T, TOut> onValue, Func<DomainError, TOut> onError) =>
-        IsSuccess ? onValue(_value!) : onError(Error);
 
     public static implicit operator Result<T>(T value) => new(value);
 
