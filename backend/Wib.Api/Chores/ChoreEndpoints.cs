@@ -64,7 +64,7 @@ public static class ChoreEndpoints
             }
 
             var chore = created.Value;
-            chore.SetTags(await ResolveTagsAsync(tagNames.Value, db, nowUtc, cancellationToken));
+            chore.SetTags(await ResolveTags(tagNames.Value, db, nowUtc, cancellationToken));
 
             db.Chores.Add(chore);
             await db.SaveChangesAsync(cancellationToken);
@@ -105,7 +105,7 @@ public static class ChoreEndpoints
                 return update.Error.ToProblem();
             }
 
-            chore.SetTags(await ResolveTagsAsync(tagNames.Value, db, nowUtc, cancellationToken));
+            chore.SetTags(await ResolveTags(tagNames.Value, db, nowUtc, cancellationToken));
 
             await db.SaveChangesAsync(cancellationToken);
 
@@ -245,7 +245,7 @@ public static class ChoreEndpoints
         return app;
     }
 
-    private static async Task<List<Tag>> ResolveTagsAsync(
+    private static async Task<List<Tag>> ResolveTags(
         IReadOnlyList<string> normalizedNames, WibDbContext db, DateTime nowUtc, CancellationToken cancellationToken)
     {
         if (normalizedNames.Count == 0)

@@ -51,7 +51,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         item.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
 
         // Verify in DB
-        await _factory.ExecuteDbContextAsync(async db =>
+        await _factory.ExecuteDbContext(async db =>
         {
             var entity = await db.RewardItems.FirstOrDefaultAsync(r => r.Id == item.Id);
             entity.Should().NotBeNull();
@@ -69,7 +69,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
 
         var response = await client.PostAsJsonAsync("/api/store/items", request);
 
-        await response.ShouldBeProblemAsync(RewardItemErrors.QuantityTooLow);
+        await response.ShouldBeProblem(RewardItemErrors.QuantityTooLow);
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
 
         var response = await client.PutAsJsonAsync($"/api/store/items/{created!.Id}", new UpdateRewardItemRequest("   ", 20));
 
-        await response.ShouldBeProblemAsync(RewardItemErrors.TitleRequired);
+        await response.ShouldBeProblem(RewardItemErrors.TitleRequired);
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var delRes = await client.DeleteAsync($"/api/store/items/{created!.Id}");
         delRes.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        await _factory.ExecuteDbContextAsync(async db =>
+        await _factory.ExecuteDbContext(async db =>
         {
             var entity = await db.RewardItems.FirstOrDefaultAsync(r => r.Id == created.Id);
             entity.Should().NotBeNull();
@@ -161,7 +161,7 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         var client = _factory.CreateAuthenticatedClient();
         var putRes = await client.PutAsJsonAsync("/api/store/items/99999", new UpdateRewardItemRequest("Test", 10));
-        await putRes.ShouldBeProblemAsync(RewardItemErrors.NotFound);
+        await putRes.ShouldBeProblem(RewardItemErrors.NotFound);
     }
 
     [Fact]
@@ -175,8 +175,8 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var putRes = await client.PutAsJsonAsync($"/api/store/items/{created.Id}", new UpdateRewardItemRequest("Wycieczka", 30));
         var delRes = await client.DeleteAsync($"/api/store/items/{created.Id}");
 
-        await putRes.ShouldBeProblemAsync(RewardItemErrors.NotFound);
-        await delRes.ShouldBeProblemAsync(RewardItemErrors.NotFound);
+        await putRes.ShouldBeProblem(RewardItemErrors.NotFound);
+        await delRes.ShouldBeProblem(RewardItemErrors.NotFound);
     }
 
     [Fact]
@@ -184,6 +184,6 @@ public class StoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         var client = _factory.CreateAuthenticatedClient();
         var delRes = await client.DeleteAsync("/api/store/items/99999");
-        await delRes.ShouldBeProblemAsync(RewardItemErrors.NotFound);
+        await delRes.ShouldBeProblem(RewardItemErrors.NotFound);
     }
 }

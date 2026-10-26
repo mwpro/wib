@@ -1,6 +1,6 @@
 {% comment %}
   IDX_0 = GET /api/chores (backlog order: Neglected, Overdue, DueSoon, Fresh, Unscheduled)
-  IDX_1 = GET /api/scoreboard/{year}/{month}
+  IDX_1 = GET /api/analytics/{year}/{month}/scoreboard
   TRMNL may wrap a root-level JSON array in `data`, so accept both shapes.
 {% endcomment %}
 {% assign chores = IDX_0.data | default: IDX_0 %}

@@ -18,13 +18,13 @@ public class ScoreboardEndpointTests : IClassFixture<WibWebApplicationFactory>
     }
 
     [Fact]
-    public async Task ScoreboardEndpoints_WithoutAuthentication_ShouldReturnUnauthorized()
+    public async Task GetScoreboard_WithoutAuthentication_ShouldReturnUnauthorized()
     {
         // Arrange
         var unauthenticatedClient = _factory.CreateClient();
 
         // Act & Assert
-        var monthRes = await unauthenticatedClient.GetAsync("/api/scoreboard/2026/9");
+        var monthRes = await unauthenticatedClient.GetAsync("/api/analytics/2026/9/scoreboard");
         monthRes.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -45,7 +45,7 @@ public class ScoreboardEndpointTests : IClassFixture<WibWebApplicationFactory>
 
         var period = WarsawTimeZone.GetCurrentMonthlyPeriod(DateTimeOffset.UtcNow);
 
-        await _factory.ExecuteDbContextAsync(async db =>
+        await _factory.ExecuteDbContext(async db =>
         {
             var m1 = db.Members.First(m => m.ExternalSubjectId == "sb-member-1");
             var m2 = db.Members.First(m => m.ExternalSubjectId == "sb-member-2");
@@ -68,7 +68,7 @@ public class ScoreboardEndpointTests : IClassFixture<WibWebApplicationFactory>
         });
 
         // Act
-        var response = await client1.GetAsync($"/api/scoreboard/{period.Year}/{period.Month}");
+        var response = await client1.GetAsync($"/api/analytics/{period.Year}/{period.Month}/scoreboard");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -113,7 +113,7 @@ public class ScoreboardEndpointTests : IClassFixture<WibWebApplicationFactory>
         await client.GetAsync("/api/members/me");
 
         var memberId = 0;
-        await _factory.ExecuteDbContextAsync(async db =>
+        await _factory.ExecuteDbContext(async db =>
         {
             var m = db.Members.First(m => m.ExternalSubjectId == "sb-hist-user");
             memberId = m.Id;
@@ -129,8 +129,8 @@ public class ScoreboardEndpointTests : IClassFixture<WibWebApplicationFactory>
             await db.SaveChangesAsync();
         });
 
-        // Act - Request via route /api/scoreboard/2026/6
-        var responseRoute = await client.GetAsync("/api/scoreboard/2026/6");
+        // Act - Request via route /api/analytics/2026/6/scoreboard
+        var responseRoute = await client.GetAsync("/api/analytics/2026/6/scoreboard");
         responseRoute.StatusCode.Should().Be(HttpStatusCode.OK);
         var bodyRoute = await responseRoute.Content.ReadFromJsonAsync<ScoreboardResponse>(_jsonOptions);
         bodyRoute.Should().NotBeNull();
@@ -148,7 +148,7 @@ public class ScoreboardEndpointTests : IClassFixture<WibWebApplicationFactory>
         );
 
         // Act - Request July 2026 (when user had 0 chores)
-        var responseJuly = await client.GetAsync("/api/scoreboard/2026/7");
+        var responseJuly = await client.GetAsync("/api/analytics/2026/7/scoreboard");
         responseJuly.StatusCode.Should().Be(HttpStatusCode.OK);
         var bodyJuly = await responseJuly.Content.ReadFromJsonAsync<ScoreboardResponse>(_jsonOptions);
 
@@ -165,10 +165,10 @@ public class ScoreboardEndpointTests : IClassFixture<WibWebApplicationFactory>
     }
 
     [Theory]
-    [InlineData("/api/scoreboard/2026/0")]
-    [InlineData("/api/scoreboard/2026/13")]
-    [InlineData("/api/scoreboard/1999/5")]
-    [InlineData("/api/scoreboard/2101/5")]
+    [InlineData("/api/analytics/2026/0/scoreboard")]
+    [InlineData("/api/analytics/2026/13/scoreboard")]
+    [InlineData("/api/analytics/1999/5/scoreboard")]
+    [InlineData("/api/analytics/2101/5/scoreboard")]
     public async Task GetScoreboard_WithInvalidParameters_ShouldReturn400BadRequest(string uri)
     {
         // Arrange

@@ -26,7 +26,7 @@ public sealed class CurrentMember
         var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == sub, context.RequestAborted);
         if (member == null)
         {
-            member = await ProvisionAsync(db, sub, name, nowUtc, logger, context.RequestAborted);
+            member = await Provision(db, sub, name, nowUtc, logger, context.RequestAborted);
         }
         else
         {
@@ -53,7 +53,7 @@ public sealed class CurrentMember
         return (sub, name);
     }
 
-    private static async Task<Member> ProvisionAsync(
+    private static async Task<Member> Provision(
         WibDbContext db, string sub, string name, DateTime nowUtc, ILogger logger, CancellationToken cancellationToken)
     {
         logger.LogInformation("JIT provisioning new member for sub: {Sub}", sub);

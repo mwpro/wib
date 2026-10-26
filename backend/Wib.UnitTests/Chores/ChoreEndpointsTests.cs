@@ -64,7 +64,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         chore.UrgencyRatio.Should().Be(0.0);
 
         // Verify in DB
-        await _factory.ExecuteDbContextAsync(async db =>
+        await _factory.ExecuteDbContext(async db =>
         {
             var entity = await db.Chores
                 .Include(c => c.Tags)
@@ -87,7 +87,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var response = await client.PostAsJsonAsync("/api/chores", request);
 
         // Assert
-        await response.ShouldBeProblemAsync(ChoreErrors.PointsTooLow);
+        await response.ShouldBeProblem(ChoreErrors.PointsTooLow);
     }
 
     [Fact]
@@ -102,8 +102,8 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var response = await client.PostAsJsonAsync("/api/chores", request);
 
         // Assert
-        await response.ShouldBeProblemAsync(ChoreErrors.TagTooLong);
-        await _factory.ExecuteDbContextAsync(async db =>
+        await response.ShouldBeProblem(ChoreErrors.TagTooLong);
+        await _factory.ExecuteDbContext(async db =>
             (await db.Tags.AnyAsync(t => t.Name == tooLongTag)).Should().BeFalse());
     }
 
@@ -134,7 +134,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var client = _factory.CreateAuthenticatedClient();
         var now = DateTime.UtcNow;
 
-        var seedMember = await _factory.SeedAsync(A.Member().Build());
+        var seedMember = await _factory.Seed(A.Member().Build());
 
         var freshChore = A.Chore().WithCadenceDays(10).Build();
         var overdueChore = A.Chore().WithCadenceDays(5).Build();
@@ -145,7 +145,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         overdueChore.Complete(seedMember, now.AddDays(-6));    // 6 days ago -> 120%
         neglectedChore.Complete(seedMember, now.AddDays(-10)); // 10 days ago -> 200%
 
-        await _factory.SeedAsync(freshChore, overdueChore, neglectedChore, unscheduledChore);
+        await _factory.Seed(freshChore, overdueChore, neglectedChore, unscheduledChore);
         var (freshId, overdueId, neglectedId, unscheduledId) =
             (freshChore.Id, overdueChore.Id, neglectedChore.Id, unscheduledChore.Id);
 
@@ -192,7 +192,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var client = _factory.CreateAuthenticatedClient();
         var now = DateTime.UtcNow;
 
-        var seedMember = await _factory.SeedAsync(A.Member().Build());
+        var seedMember = await _factory.Seed(A.Member().Build());
 
         var dailyChore = A.Chore().WithCadenceDays(1).Build();
         var weeklyChore = A.Chore().WithCadenceDays(7).Build();
@@ -200,7 +200,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         dailyChore.Complete(seedMember, now.AddDays(-2));   // 2 days ago -> 200%, first day late -> Overdue
         weeklyChore.Complete(seedMember, now.AddDays(-10)); // 10 days ago -> 143% -> Neglected
 
-        await _factory.SeedAsync(dailyChore, weeklyChore);
+        await _factory.Seed(dailyChore, weeklyChore);
         var (dailyOverdueId, weeklyNeglectedId) = (dailyChore.Id, weeklyChore.Id);
 
         // Act
@@ -237,7 +237,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         tagged.SetTags([Tag.Create("ogród", DateTime.UtcNow)]); // the new tag is inserted with the chore
         var other = A.Chore().Build();
 
-        await _factory.SeedAsync(tagged, other);
+        await _factory.Seed(tagged, other);
         var (taggedChoreId, otherChoreId) = (tagged.Id, other.Id);
 
         // Act
@@ -256,7 +256,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = _factory.CreateAuthenticatedClient();
-        var choreId = (await _factory.SeedAsync(A.Chore().WithCadenceDays(3).Build())).Id;
+        var choreId = (await _factory.Seed(A.Chore().WithCadenceDays(3).Build())).Id;
 
         var updateRequest = new UpdateChoreRequest(
             Title: "Nowy tytuł",
@@ -286,15 +286,15 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = _factory.CreateAuthenticatedClient();
-        var choreId = (await _factory.SeedAsync(A.Chore().WithTitle("Stary tytuł").Build())).Id;
+        var choreId = (await _factory.Seed(A.Chore().WithTitle("Stary tytuł").Build())).Id;
         var request = new UpdateChoreRequest("Nowy tytuł", null, 1, CadenceDays: 0, null);
 
         // Act
         var response = await client.PutAsJsonAsync($"/api/chores/{choreId}", request);
 
         // Assert
-        await response.ShouldBeProblemAsync(ChoreErrors.CadenceTooShort);
-        await _factory.ExecuteDbContextAsync(async db =>
+        await response.ShouldBeProblem(ChoreErrors.CadenceTooShort);
+        await _factory.ExecuteDbContext(async db =>
             (await db.Chores.SingleAsync(c => c.Id == choreId)).Title.Should().Be("Stary tytuł"));
     }
 
@@ -303,16 +303,16 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = _factory.CreateAuthenticatedClient();
-        var archivedId = (await _factory.SeedAsync(A.Chore().Archived().Build())).Id;
+        var archivedId = (await _factory.Seed(A.Chore().Archived().Build())).Id;
 
         var request = new UpdateChoreRequest("Update", null, 1, 1, null);
 
         // Act & Assert
         var resArchived = await client.PutAsJsonAsync($"/api/chores/{archivedId}", request);
-        await resArchived.ShouldBeProblemAsync(ChoreErrors.NotFound);
+        await resArchived.ShouldBeProblem(ChoreErrors.NotFound);
 
         var resNonExistent = await client.PutAsJsonAsync("/api/chores/999999", request);
-        await resNonExistent.ShouldBeProblemAsync(ChoreErrors.NotFound);
+        await resNonExistent.ShouldBeProblem(ChoreErrors.NotFound);
     }
 
     [Fact]
@@ -320,7 +320,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = _factory.CreateAuthenticatedClient();
-        var choreId = (await _factory.SeedAsync(A.Chore().Build())).Id;
+        var choreId = (await _factory.Seed(A.Chore().Build())).Id;
 
         // Act
         var deleteResponse = await client.DeleteAsync($"/api/chores/{choreId}");
@@ -329,7 +329,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // Verify in DB that it is soft-deleted
-        await _factory.ExecuteDbContextAsync(async db =>
+        await _factory.ExecuteDbContext(async db =>
         {
             var entity = await db.Chores.FindAsync(choreId);
             entity.Should().NotBeNull();
@@ -345,7 +345,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
 
         // Second DELETE should return 404
         var reDeleteResponse = await client.DeleteAsync($"/api/chores/{choreId}");
-        await reDeleteResponse.ShouldBeProblemAsync(ChoreErrors.NotFound);
+        await reDeleteResponse.ShouldBeProblem(ChoreErrors.NotFound);
     }
 
     [Fact]
@@ -366,15 +366,15 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = _factory.CreateAuthenticatedClient();
-        var archivedId = (await _factory.SeedAsync(A.Chore().Archived().Build())).Id;
+        var archivedId = (await _factory.Seed(A.Chore().Archived().Build())).Id;
 
         // Act & Assert - non-existent
         var notFoundRes = await client.PostAsync("/api/chores/999999/completion", null);
-        await notFoundRes.ShouldBeProblemAsync(ChoreErrors.NotFound);
+        await notFoundRes.ShouldBeProblem(ChoreErrors.NotFound);
 
         // Act & Assert - archived
         var archivedRes = await client.PostAsync($"/api/chores/{archivedId}/completion", null);
-        await archivedRes.ShouldBeProblemAsync(ChoreErrors.NotFound);
+        await archivedRes.ShouldBeProblem(ChoreErrors.NotFound);
     }
 
     [Fact]
@@ -382,7 +382,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = _factory.CreateAuthenticatedClient();
-        var choreId = (await _factory.SeedAsync(A.Chore().WithPoints(4).Build())).Id;
+        var choreId = (await _factory.Seed(A.Chore().WithPoints(4).Build())).Id;
 
         // Act
         var response = await client.PostAsync($"/api/chores/{choreId}/completion", null);
@@ -399,7 +399,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         result.Chore.DaysSinceLastDone.Should().Be(0);
 
         // Verify in DB
-        await _factory.ExecuteDbContextAsync(async db =>
+        await _factory.ExecuteDbContext(async db =>
         {
             var choreEntity = await db.Chores
                 .Include(c => c.Completions)
@@ -423,7 +423,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange: own member so the shared test member's wallet balance isn't affected
         var client = _factory.CreateAuthenticatedClient("unscheduled-completer-" + Guid.NewGuid());
-        var choreId = (await _factory.SeedAsync(A.Chore().Unscheduled().Build())).Id;
+        var choreId = (await _factory.Seed(A.Chore().Unscheduled().Build())).Id;
 
         // Act
         var response = await client.PostAsync($"/api/chores/{choreId}/completion", null);
@@ -443,7 +443,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var memberSub = "repeat-completer-" + Guid.NewGuid();
         var client = _factory.CreateAuthenticatedClient(memberSub);
 
-        var choreId = (await _factory.SeedAsync(A.Chore().WithPoints(3).Build())).Id;
+        var choreId = (await _factory.Seed(A.Chore().WithPoints(3).Build())).Id;
 
         // Act: Complete twice
         var firstResponse = await client.PostAsync($"/api/chores/{choreId}/completion", null);
@@ -461,7 +461,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         secondResult.PointsAwarded.Should().Be(3);
 
         // Verify in DB that two completions exist
-        await _factory.ExecuteDbContextAsync(async db =>
+        await _factory.ExecuteDbContext(async db =>
         {
             var completions = await db.ChoreCompletions.Where(cc => cc.ChoreId == choreId).ToListAsync();
             completions.Should().HaveCount(2);

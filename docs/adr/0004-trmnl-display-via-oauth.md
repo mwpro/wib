@@ -17,7 +17,7 @@ TRMNL offers three relevant mechanisms:
 1. **Private polling plugin** with source in [`trmnl/`](../../trmnl/), managed with `trmnlp`. **Quadrant layout only.** Refreshes every 15 minutes.
 2. **Regular API endpoints only**. No TRMNL-specific endpoint and no backend changes:
    - `GET /api/chores`: Backlog order is already applied server-side, so the template only picks and trims rows. What it shows is defined under **TRMNL Display** in [CONTEXT.md](../../CONTEXT.md).
-   - `GET /api/scoreboard/{year}/{month}`: year and month come from Liquid's `now` in the polling URL. **Accepted defect**: around the start of a month the date may resolve in UTC and show the previous month's race for an hour or two.
+   - `GET /api/analytics/{year}/{month}/scoreboard` (formerly `/api/scoreboard/{year}/{month}`; moved by [ADR 0009](0009-chore-review-quality-score.md)): year and month come from Liquid's `now` in the polling URL. **Accepted defect**: around the start of a month the date may resolve in UTC and show the previous month's race for an hour or two.
 3. **Auth: TRMNL as an Auth0 client** of the existing tenant (shared with `tiny-money`):
    - Dedicated Auth0 **Regular Web Application** "TRMNL" with `authorization_code` + `refresh_token` grants and the `offline_access` scope.
    - **Refresh-token rotation off**, with a long absolute lifetime. A rotated token that TRMNL failed to persist would trigger reuse detection and revoke the family, which is a real risk with a beta client. When the lifetime runs out, reconnect manually.

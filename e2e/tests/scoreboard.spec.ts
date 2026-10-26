@@ -97,4 +97,29 @@ test.describe('Scoreboard & Activity Stream UI Tests', () => {
     await expect(app.tab('Kto jest lepszy?')).toHaveAttribute('data-state', 'active')
     await expect(scoreboard.workShare).toBeVisible()
   })
+
+  test('chore review splits chores into needing improvement and well done, and opens history', async ({ app, backlog, household, scoreboard, page }) => {
+    const missed = await household.chore({ title: 'Mycie okien', cadenceDays: 1, createdDaysAgo: 5 })
+    const kept = await household.chore({ title: 'Podlewanie', cadenceDays: 7, createdDaysAgo: 3 })
+
+    await app.goto()
+    await backlog.chore('Podlewanie').complete()
+    await app.openTab('Kto jest lepszy?')
+
+    await expect(scoreboard.choreReview).toContainText('w toku')
+    const missedItem = scoreboard.needsImprovement.getByTestId(`review-item-${missed.id}`)
+    await expect(missedItem).toContainText('Mycie okien')
+    await expect(missedItem).toContainText('0%')
+    await expect(missedItem).toContainText('zaległe teraz')
+
+    const keptItem = scoreboard.wellDone.getByTestId(`review-item-${kept.id}`)
+    await expect(keptItem).toContainText('100%')
+    await expect(keptItem).toContainText('1× na czas')
+
+    await keptItem.click()
+    const history = page.getByTestId('chore-history-modal')
+    await expect(history).toBeVisible()
+    await expect(history).toContainText('Podlewanie')
+    await expect(history.getByTestId('history-total')).toHaveText('1')
+  })
 })

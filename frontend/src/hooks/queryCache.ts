@@ -12,6 +12,8 @@ export const queryKeys = {
     isRedeemed === undefined ? (['vouchers'] as const) : (['vouchers', { isRedeemed }] as const),
   scoreboard: (year?: number, month?: number) =>
     year === undefined ? (['scoreboard'] as const) : (['scoreboard', year, month] as const),
+  choreReview: (year?: number, month?: number) =>
+    year === undefined ? (['chore-review'] as const) : (['chore-review', year, month] as const),
   choreActivity: (year?: number, month?: number, pageSize?: number) =>
     year === undefined
       ? (['chore-activity'] as const)
@@ -74,11 +76,16 @@ export function useQueryCache() {
         old ? old.map((c) => (c.id === chore.id ? chore : c)) : [chore]
       )
       updateWallet(() => memberWalletBalance)
-      invalidate(queryKeys.scoreboard(), queryKeys.choreActivity(), queryKeys.choreHistory(chore.id))
+      invalidate(
+        queryKeys.scoreboard(),
+        queryKeys.choreReview(),
+        queryKeys.choreActivity(),
+        queryKeys.choreHistory(chore.id)
+      )
     },
 
     choresChanged() {
-      invalidate(queryKeys.chores())
+      invalidate(queryKeys.chores(), queryKeys.choreReview())
     },
 
     async rewardPurchaseStarted(pointCost: number): Promise<Rollback> {
