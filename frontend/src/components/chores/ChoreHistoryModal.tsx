@@ -11,7 +11,7 @@ import type {
 } from '../../types/chore'
 
 interface ChoreHistoryModalProps {
-  chore: ChoreResponse | null
+  chore: Pick<ChoreResponse, 'id' | 'title'> | null
   onClose: () => void
 }
 

@@ -21,9 +21,9 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         _factory = factory;
     }
 
-    private async Task EnsureMemberHasBalanceAsync(string sub, string name, int balance)
+    private async Task EnsureMemberHasBalance(string sub, string name, int balance)
     {
-        await _factory.ExecuteDbContextAsync(async db =>
+        await _factory.ExecuteDbContext(async db =>
         {
             var member = await db.Members.FirstOrDefaultAsync(m => m.ExternalSubjectId == sub);
             if (member == null)
@@ -65,14 +65,14 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         var sub = "poor-buyer";
         var client = _factory.CreateAuthenticatedClient(sub, "Poor Buyer");
-        await EnsureMemberHasBalanceAsync(sub, "Poor Buyer", 5);
+        await EnsureMemberHasBalance(sub, "Poor Buyer", 5);
 
         var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Drogi Masaż", 20));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
 
         var buyRes = await client.PostAsync($"/api/store/items/{item!.Id}/purchase", null);
 
-        await buyRes.ShouldBeProblemAsync(WalletErrors.NotEnoughPoints);
+        await buyRes.ShouldBeProblem(WalletErrors.NotEnoughPoints);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         var client = _factory.CreateAuthenticatedClient();
         var buyRes = await client.PostAsync("/api/store/items/999999/purchase", null);
-        await buyRes.ShouldBeProblemAsync(RewardItemErrors.NotFound);
+        await buyRes.ShouldBeProblem(RewardItemErrors.NotFound);
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         var sub = "wealthy-buyer";
         var client = _factory.CreateAuthenticatedClient(sub, "Wealthy Buyer");
-        await EnsureMemberHasBalanceAsync(sub, "Wealthy Buyer", 100);
+        await EnsureMemberHasBalance(sub, "Wealthy Buyer", 100);
 
         var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Kolacja sushi", 40, "Zestaw premium"));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
@@ -109,7 +109,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         buyData.Voucher.PurchasedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
 
         // Verify in DB
-        await _factory.ExecuteDbContextAsync(async db =>
+        await _factory.ExecuteDbContext(async db =>
         {
             var member = await db.Members
                 .Include(m => m.Vouchers)
@@ -130,7 +130,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         var sub = "single-claim-buyer";
         var client = _factory.CreateAuthenticatedClient(sub, "Single Buyer");
-        await EnsureMemberHasBalanceAsync(sub, "Single Buyer", 100);
+        await EnsureMemberHasBalance(sub, "Single Buyer", 100);
 
         var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Jedyny Masaż", 15, null, 1));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
@@ -157,8 +157,8 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var client1 = _factory.CreateAuthenticatedClient(user1Sub, "User One");
         var client2 = _factory.CreateAuthenticatedClient(user2Sub, "User Two");
 
-        await EnsureMemberHasBalanceAsync(user1Sub, "User One", 100);
-        await EnsureMemberHasBalanceAsync(user2Sub, "User Two", 100);
+        await EnsureMemberHasBalance(user1Sub, "User One", 100);
+        await EnsureMemberHasBalance(user2Sub, "User Two", 100);
 
         var itemRes = await client1.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Książka", 10));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
@@ -191,7 +191,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         var sub = "filter-test-user";
         var client = _factory.CreateAuthenticatedClient(sub, "Filter Tester");
-        await EnsureMemberHasBalanceAsync(sub, "Filter Tester", 100);
+        await EnsureMemberHasBalance(sub, "Filter Tester", 100);
 
         var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Kawa latte", 5));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
@@ -228,7 +228,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         var sub = "redeemer-user";
         var client = _factory.CreateAuthenticatedClient(sub, "Redeemer");
-        await EnsureMemberHasBalanceAsync(sub, "Redeemer", 100);
+        await EnsureMemberHasBalance(sub, "Redeemer", 100);
 
         var itemRes = await client.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Masaż stóp", 15));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
@@ -248,7 +248,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         redeemed.RedeemedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
 
         // Verify in DB
-        await _factory.ExecuteDbContextAsync(async db =>
+        await _factory.ExecuteDbContext(async db =>
         {
             var entity = await db.Vouchers.FirstOrDefaultAsync(v => v.Id == voucher.Id);
             entity!.IsRedeemed.Should().BeTrue();
@@ -264,7 +264,7 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var ownerClient = _factory.CreateAuthenticatedClient(ownerSub, "Owner");
         var thiefClient = _factory.CreateAuthenticatedClient(hackerSub, "Thief");
 
-        await EnsureMemberHasBalanceAsync(ownerSub, "Owner", 100);
+        await EnsureMemberHasBalance(ownerSub, "Owner", 100);
 
         var itemRes = await ownerClient.PostAsJsonAsync("/api/store/items", new CreateRewardItemRequest("Czekolada", 10));
         var item = await itemRes.Content.ReadFromJsonAsync<RewardItemResponse>(_jsonOptions);
@@ -276,9 +276,9 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
         var redeemRes = await thiefClient.PostAsync($"/api/vouchers/{voucher.Id}/redemption", null);
 
         // Assert
-        await redeemRes.ShouldBeProblemAsync(VoucherErrors.NotFound);
+        await redeemRes.ShouldBeProblem(VoucherErrors.NotFound);
 
-        await _factory.ExecuteDbContextAsync(async db =>
+        await _factory.ExecuteDbContext(async db =>
         {
             var entity = await db.Vouchers.FirstAsync(v => v.Id == voucher.Id);
             entity.IsRedeemed.Should().BeFalse();
@@ -290,6 +290,6 @@ public class VoucherEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         var client = _factory.CreateAuthenticatedClient();
         var redeemRes = await client.PostAsync("/api/vouchers/999999/redemption", null);
-        await redeemRes.ShouldBeProblemAsync(VoucherErrors.NotFound);
+        await redeemRes.ShouldBeProblem(VoucherErrors.NotFound);
     }
 }

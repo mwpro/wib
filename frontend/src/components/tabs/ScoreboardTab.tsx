@@ -5,6 +5,7 @@ import { MonthNavigator } from '../scoreboard/MonthNavigator'
 import { WorkShareBar } from '../scoreboard/WorkShareBar'
 import { MonthlyPodium } from '../scoreboard/MonthlyPodium'
 import { ActivityStream } from '../scoreboard/ActivityStream'
+import { ChoreReview } from '../scoreboard/ChoreReview'
 import { LifetimeStats } from '../scoreboard/LifetimeStats'
 
 export function ScoreboardTab() {
@@ -70,6 +71,8 @@ export function ScoreboardTab() {
 
           {/* Chronological Activity Stream */}
           <ActivityStream year={selectedYear} month={selectedMonth} />
+
+          <ChoreReview year={selectedYear} month={selectedMonth} />
 
           {/* Lifetime Statistics */}
           <LifetimeStats members={scoreboard.members} />

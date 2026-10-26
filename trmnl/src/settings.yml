@@ -7,7 +7,7 @@ polling_verb: get
 framework_version: 3.4.0
 serverless_language: ''
 refresh_interval_floor: ''
-polling_url: "{{ wib_url }}api/chores\r\n{{ wib_url }}api/scoreboard/{{ 'now' | date: '%Y' }}/{{ 'now' | date: '%m' }}"
+polling_url: "{{ wib_url }}api/chores\r\n{{ wib_url }}api/analytics/{{ 'now' | date: '%Y' }}/{{ 'now' | date: '%m' }}/scoreboard"
 polling_headers: 'Authorization: Bearer {{ oauth_access_token }}'
 polling_body: ''
 id: 504090

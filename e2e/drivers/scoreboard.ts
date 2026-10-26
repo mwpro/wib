@@ -34,4 +34,16 @@ export class Scoreboard {
   get lifetimeStats() {
     return this.page.getByTestId('lifetime-stats')
   }
+
+  get choreReview() {
+    return this.page.getByTestId('chore-review')
+  }
+
+  get needsImprovement() {
+    return this.page.getByTestId('review-needs-improvement')
+  }
+
+  get wellDone() {
+    return this.page.getByTestId('review-well-done')
+  }
 }

@@ -1,5 +1,5 @@
 ---
-# trmnlp local preview config. Sample data mirrors real /api/chores and /api/scoreboard responses.
+# trmnlp local preview config. Sample data mirrors real /api/chores and /api/analytics/{year}/{month}/scoreboard responses.
 watch:
   - src
 

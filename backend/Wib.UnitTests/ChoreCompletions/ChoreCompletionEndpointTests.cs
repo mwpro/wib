@@ -35,7 +35,7 @@ public class ChoreCompletionEndpointTests : IClassFixture<WibWebApplicationFacto
         await client.GetAsync("/api/members/me");
 
         var choreId = 0;
-        await _factory.ExecuteDbContextAsync(async db =>
+        await _factory.ExecuteDbContext(async db =>
         {
             var m = db.Members.First(x => x.ExternalSubjectId == "cc-member-1");
 
@@ -97,7 +97,7 @@ public class ChoreCompletionEndpointTests : IClassFixture<WibWebApplicationFacto
         var client = _factory.CreateAuthenticatedClient("cc-pag-user", "Pagination Tester");
         await client.GetAsync("/api/members/me");
 
-        await _factory.ExecuteDbContextAsync(async db =>
+        await _factory.ExecuteDbContext(async db =>
         {
             var m = db.Members.First(x => x.ExternalSubjectId == "cc-pag-user");
 

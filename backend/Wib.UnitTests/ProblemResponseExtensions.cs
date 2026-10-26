@@ -7,7 +7,7 @@ namespace Wib.UnitTests;
 
 public static class ProblemResponseExtensions
 {
-    public static async Task ShouldBeProblemAsync(this HttpResponseMessage response, DomainError error)
+    public static async Task ShouldBeProblem(this HttpResponseMessage response, DomainError error)
     {
         var expectedStatus = error.Kind == ErrorKind.NotFound ? HttpStatusCode.NotFound : HttpStatusCode.BadRequest;
         response.StatusCode.Should().Be(expectedStatus);

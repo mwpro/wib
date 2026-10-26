@@ -48,7 +48,7 @@ public class WibWebApplicationFactory : WebApplicationFactory<Program>
         });
     }
 
-    public async Task ExecuteDbContextAsync(Func<WibDbContext, Task> action)
+    public async Task ExecuteDbContext(Func<WibDbContext, Task> action)
     {
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<WibDbContext>();
@@ -74,12 +74,12 @@ public class WibWebApplicationFactory : WebApplicationFactory<Program>
     /// <summary>
     /// Adds and saves the entities, returning them with database-generated ids filled in.
     /// </summary>
-    public async Task<T> SeedAsync<T>(T entity) where T : class => (await SeedAsync([entity]))[0];
+    public async Task<T> Seed<T>(T entity) where T : class => (await Seed([entity]))[0];
 
-    /// <inheritdoc cref="SeedAsync{T}(T)"/>
-    public async Task<T[]> SeedAsync<T>(params T[] entities) where T : class
+    /// <inheritdoc cref="Seed{T}(T)"/>
+    public async Task<T[]> Seed<T>(params T[] entities) where T : class
     {
-        await ExecuteDbContextAsync(async db =>
+        await ExecuteDbContext(async db =>
         {
             db.AddRange(entities);
             await db.SaveChangesAsync();
