@@ -33,6 +33,11 @@ public static class FreshnessUrgencyExtensions
         public bool IsOnTime => urgency is FreshnessUrgency.Fresh or FreshnessUrgency.DueSoon;
 
         /// <summary>
+        /// A completion outcome or live state counts as "z opóźnieniem" once it is past its due day.
+        /// </summary>
+        public bool IsLate => urgency is FreshnessUrgency.Overdue or FreshnessUrgency.Neglected;
+
+        /// <summary>
         /// Backlog band order: higher comes first.
         /// </summary>
         public int BacklogPriority => urgency switch

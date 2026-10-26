@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Wib.Api.Data;
+using Wib.Domain.Analytics;
 using Wib.Domain.Common;
 using Wib.Domain.Scoreboard;
 
@@ -39,8 +40,8 @@ public static class AnalyticsEndpoints
             if (ValidatePeriod(year, month) is { } invalid) return invalid;
 
             var period = WarsawTimeZone.GetMonthlyPeriod(year, month);
-            var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-            var cutoff = ChoreReviewCalculator.GetCutoff(period, nowUtc);
+            var window = ChoreReviewWindow.For(period, timeProvider.GetUtcNow().UtcDateTime);
+            var cutoff = window.Cutoff;
 
             var chores = await db.Chores
                 .AsNoTracking()
@@ -58,7 +59,7 @@ public static class AnalyticsEndpoints
                         .ToList()))
                 .ToListAsync(cancellationToken);
 
-            return Results.Ok(ChoreReviewCalculator.Calculate(period, nowUtc, chores));
+            return Results.Ok(ChoreReviewCalculator.Calculate(window, chores));
         })
         .WithName("GetChoreReview");
 

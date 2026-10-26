@@ -72,7 +72,6 @@ export function ScoreboardTab() {
           {/* Chronological Activity Stream */}
           <ActivityStream year={selectedYear} month={selectedMonth} />
 
-          {/* Chore Review: chores done well and chores to improve */}
           <ChoreReview year={selectedYear} month={selectedMonth} />
 
           {/* Lifetime Statistics */}

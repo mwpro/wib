@@ -27,6 +27,7 @@ We considered:
 
 ## Consequences
 - A past month's review can change after the fact if a chore's cadence is edited later, because `currentlyBad` uses the current cadence. Completion-based counts never change.
+- Archiving a chore removes its `currentlyBad` from every past month's review too, since archived chores are never `currentlyBad`.
 - The calculation is a pure domain function (`ChoreReviewCalculator`) over a single query, so it needs no new tables.
 - It is served at `GET /api/analytics/{year}/{month}/chore-review`. The scoreboard moved next to it, to `GET /api/analytics/{year}/{month}/scoreboard`, so that month-scoped reads share one prefix.
 - Archived chores can appear in the lists but cannot open Completion History, because the history endpoints exclude archived chores (ADR 0007).

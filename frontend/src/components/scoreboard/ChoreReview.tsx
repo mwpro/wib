@@ -3,6 +3,7 @@ import { AlertCircle, Award, ClipboardCheck, Loader2, TrendingDown } from 'lucid
 import type { LucideIcon } from 'lucide-react'
 import { useChoreReview } from '../../hooks/useChoreReview'
 import { ChoreHistoryModal } from '../chores/ChoreHistoryModal'
+import type { ChoreResponse } from '../../types/chore'
 import type { ChoreReviewItem } from '../../types/scoreboard'
 
 interface ChoreReviewProps {
@@ -12,7 +13,7 @@ interface ChoreReviewProps {
 
 const VISIBLE_ITEMS = 5
 
-type ChoreRef = { id: number; title: string }
+type ChoreRef = Pick<ChoreResponse, 'id' | 'title'>
 
 function describe(item: ChoreReviewItem, isInProgress: boolean): string {
   const parts: string[] = []
@@ -75,7 +76,7 @@ function ReviewList({
                   </span>
                 </div>
                 <span className={`font-bold tabular-nums shrink-0 ${scoreClass}`}>
-                  {Math.round(item.qualityScore * 100)}%
+                  {Math.floor(item.qualityScore * 100)}%
                 </span>
               </>
             )

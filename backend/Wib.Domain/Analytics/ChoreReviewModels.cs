@@ -1,6 +1,6 @@
 using Wib.Domain.Chores;
 
-namespace Wib.Domain.Scoreboard;
+namespace Wib.Domain.Analytics;
 
 public record ChoreReviewResponse(
     int Year,

@@ -1,9 +1,9 @@
 using FluentAssertions;
+using Wib.Domain.Analytics;
 using Wib.Domain.Chores;
 using Wib.Domain.Common;
-using Wib.Domain.Scoreboard;
 
-namespace Wib.UnitTests.Scoreboard;
+namespace Wib.UnitTests.Analytics;
 
 public class ChoreReviewCalculatorTests
 {
@@ -45,7 +45,7 @@ public class ChoreReviewCalculatorTests
     {
         var chore = Chore(1, lastCompleted: Utc(2026, 9, 29), fresh: 2, dueSoon: 1, overdue: 1);
 
-        var result = ChoreReviewCalculator.Calculate(September, AfterSeptember, [chore]);
+        var result = ChoreReviewCalculator.Calculate(ChoreReviewWindow.For(September, AfterSeptember), [chore]);
 
         result.NeedsImprovement.Should().BeEmpty();
         result.WellDone.Should().ContainSingle()
@@ -57,7 +57,7 @@ public class ChoreReviewCalculatorTests
     {
         var chore = Chore(1);
 
-        var result = ChoreReviewCalculator.Calculate(September, AfterSeptember, [chore]);
+        var result = ChoreReviewCalculator.Calculate(ChoreReviewWindow.For(September, AfterSeptember), [chore]);
 
         result.WellDone.Should().BeEmpty();
         result.NeedsImprovement.Should().ContainSingle()
@@ -69,7 +69,7 @@ public class ChoreReviewCalculatorTests
     {
         var chore = Chore(1, lastCompleted: Utc(2026, 9, 10), fresh: 2, overdue: 1);
 
-        var result = ChoreReviewCalculator.Calculate(September, AfterSeptember, [chore]);
+        var result = ChoreReviewCalculator.Calculate(ChoreReviewWindow.For(September, AfterSeptember), [chore]);
 
         result.NeedsImprovement.Should().ContainSingle()
             .Which.Should().BeEquivalentTo(new { QualityScore = 0.5, IsCurrentlyBad = true });
@@ -81,7 +81,7 @@ public class ChoreReviewCalculatorTests
         var notDueYet = Chore(1, cadenceDays: 30, lastCompleted: Utc(2026, 9, 5));
         var unscheduled = Chore(2, cadenceDays: null, lastCompleted: Utc(2026, 9, 5), unscheduled: 3);
 
-        var result = ChoreReviewCalculator.Calculate(September, AfterSeptember, [notDueYet, unscheduled]);
+        var result = ChoreReviewCalculator.Calculate(ChoreReviewWindow.For(September, AfterSeptember), [notDueYet, unscheduled]);
 
         result.NeedsImprovement.Should().BeEmpty();
         result.WellDone.Should().BeEmpty();
@@ -92,7 +92,7 @@ public class ChoreReviewCalculatorTests
     {
         var chore = Chore(1, lastCompleted: Utc(2026, 9, 29), fresh: 1, unscheduled: 5);
 
-        var result = ChoreReviewCalculator.Calculate(September, AfterSeptember, [chore]);
+        var result = ChoreReviewCalculator.Calculate(ChoreReviewWindow.For(September, AfterSeptember), [chore]);
 
         result.WellDone.Should().ContainSingle()
             .Which.Should().BeEquivalentTo(new { QualityScore = 1.0, OnTimeCount = 1, LateCount = 0 });
@@ -104,11 +104,11 @@ public class ChoreReviewCalculatorTests
         var neverDone = Chore(1, isArchived: true);
         var doneLate = Chore(2, isArchived: true, lastCompleted: Utc(2026, 9, 2), overdue: 1);
 
-        var result = ChoreReviewCalculator.Calculate(September, AfterSeptember, [neverDone, doneLate]);
+        var result = ChoreReviewCalculator.Calculate(ChoreReviewWindow.For(September, AfterSeptember), [neverDone, doneLate]);
 
         result.WellDone.Should().BeEmpty();
         result.NeedsImprovement.Should().ContainSingle()
-            .Which.Should().BeEquivalentTo(new { ChoreId = 2, QualityScore = 0.0, IsCurrentlyBad = false, IsArchived = true });
+            .Which.Should().BeEquivalentTo(new { ChoreId = 2, QualityScore = 0.0, OnTimeCount = 0, LateCount = 1, IsCurrentlyBad = false, IsArchived = true });
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public class ChoreReviewCalculatorTests
     {
         var chore = Chore(1, createdAt: Utc(2026, 10, 2));
 
-        var result = ChoreReviewCalculator.Calculate(September, AfterSeptember, [chore]);
+        var result = ChoreReviewCalculator.Calculate(ChoreReviewWindow.For(September, AfterSeptember), [chore]);
 
         result.NeedsImprovement.Should().BeEmpty();
         result.WellDone.Should().BeEmpty();
@@ -129,7 +129,7 @@ public class ChoreReviewCalculatorTests
         var zeroFewLate = Chore(2, lastCompleted: Utc(2026, 9, 29), overdue: 1);
         var zeroManyLate = Chore(3, lastCompleted: Utc(2026, 9, 29), overdue: 1, neglected: 2);
 
-        var result = ChoreReviewCalculator.Calculate(September, AfterSeptember, [half, zeroFewLate, zeroManyLate]);
+        var result = ChoreReviewCalculator.Calculate(ChoreReviewWindow.For(September, AfterSeptember), [half, zeroFewLate, zeroManyLate]);
 
         result.NeedsImprovement.Select(i => i.ChoreId).Should().Equal(3, 2, 1);
     }
@@ -141,7 +141,7 @@ public class ChoreReviewCalculatorTests
         var perfectFew = Chore(2, lastCompleted: Utc(2026, 9, 29), fresh: 1);
         var perfectMany = Chore(3, lastCompleted: Utc(2026, 9, 29), fresh: 3);
 
-        var result = ChoreReviewCalculator.Calculate(September, AfterSeptember, [mostlyOnTime, perfectFew, perfectMany]);
+        var result = ChoreReviewCalculator.Calculate(ChoreReviewWindow.For(September, AfterSeptember), [mostlyOnTime, perfectFew, perfectMany]);
 
         result.WellDone.Select(i => i.ChoreId).Should().Equal(3, 2, 1);
     }
@@ -153,7 +153,7 @@ public class ChoreReviewCalculatorTests
         var freshNow = Chore(1, lastCompleted: Utc(2026, 9, 12), fresh: 1);
         var overdueNow = Chore(2, lastCompleted: Utc(2026, 9, 5), fresh: 1);
 
-        var result = ChoreReviewCalculator.Calculate(September, now, [freshNow, overdueNow]);
+        var result = ChoreReviewCalculator.Calculate(ChoreReviewWindow.For(September, now), [freshNow, overdueNow]);
 
         result.IsInProgress.Should().BeTrue();
         result.WellDone.Select(i => i.ChoreId).Should().Equal(1);
@@ -164,7 +164,7 @@ public class ChoreReviewCalculatorTests
     [Fact]
     public void Calculate_ForFutureMonth_ShouldReturnEmptyLists()
     {
-        var result = ChoreReviewCalculator.Calculate(September, Utc(2026, 8, 15), [Chore(1)]);
+        var result = ChoreReviewCalculator.Calculate(ChoreReviewWindow.For(September, Utc(2026, 8, 15)), [Chore(1)]);
 
         result.IsInProgress.Should().BeFalse();
         result.NeedsImprovement.Should().BeEmpty();
