@@ -136,13 +136,11 @@ public class ChoreReviewEndpointTests : IClassFixture<WibWebApplicationFactory>
         {
             var member = db.Members.First(m => m.ExternalSubjectId == "review-archived-member");
 
-            var chore = A.Chore().WithTitle("Review archived").WithCadenceDays(7).CreatedAt(period.StartUtc.AddDays(-30)).Archived().Build();
+            var chore = A.Chore().WithTitle("Review archived").WithCadenceDays(7).CreatedAt(period.StartUtc.AddDays(-30))
+                .CompletedBy(member, period.StartUtc.AddDays(2)).Archived().Build();
             db.Chores.Add(chore);
             await db.SaveChangesAsync();
             choreId = chore.Id;
-
-            db.ChoreCompletions.Add(chore.Complete(member, period.StartUtc.AddDays(2)));
-            await db.SaveChangesAsync();
         });
 
         // Act

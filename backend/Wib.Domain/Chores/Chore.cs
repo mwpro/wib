@@ -86,23 +86,14 @@ public class Chore
         return Result.Success;
     }
 
-    /// <summary>
-    /// Takes the chore off the backlog. A chore with completions is archived, because its history, the Chore Review
-    /// and the members' points refer to it. One that was never completed leaves nothing behind, so the caller deletes it.
-    /// </summary>
-    public ChoreRemoval Remove(bool hasCompletions, DateTime nowUtc)
+    public ChoreRemovalResult Remove(DateTime nowUtc)
     {
-        if (!hasCompletions)
-            return ChoreRemoval.Delete;
+        if (LastCompletedAt is null)
+            return ChoreRemovalResult.Deleted;
 
-        Archive(nowUtc);
-        return ChoreRemoval.Archived;
-    }
-
-    public void Archive(DateTime nowUtc)
-    {
         IsArchived = true;
         UpdatedAt = nowUtc;
+        return ChoreRemovalResult.Archived;
     }
 
     public ChoreCompletion Complete(Member member, DateTime completedAtUtc)

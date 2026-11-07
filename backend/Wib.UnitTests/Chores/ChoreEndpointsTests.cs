@@ -18,6 +18,12 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         _factory = factory;
     }
 
+    private async Task<int> SeedArchivedChore()
+    {
+        var member = await _factory.Seed(A.Member().Build());
+        return (await _factory.Seed(A.Chore().CompletedBy(member).Archived().Build())).Id;
+    }
+
     [Fact]
     public async Task ChoresEndpoints_WithoutAuthentication_ShouldReturnUnauthorized()
     {
@@ -303,7 +309,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = _factory.CreateAuthenticatedClient();
-        var archivedId = (await _factory.Seed(A.Chore().Archived().Build())).Id;
+        var archivedId = await SeedArchivedChore();
 
         var request = new UpdateChoreRequest("Update", null, 1, 1, null);
 
@@ -413,7 +419,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = _factory.CreateAuthenticatedClient();
-        var archivedId = (await _factory.Seed(A.Chore().Archived().Build())).Id;
+        var archivedId = await SeedArchivedChore();
 
         // Act & Assert - non-existent
         var notFoundRes = await client.PostAsync("/api/chores/999999/completion", null);

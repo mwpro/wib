@@ -21,7 +21,7 @@ Traditional chore systems with rigid calendar schedules induce "late guilt" and 
 4. **Monthly Competition Cycle**: the leaderboard is the **Monthly Race**, which resets at the start of each `Europe/Warsaw` calendar month.
 5. **Reward Store & Voucher Wallet**: any member can add **Reward Items**. Buying one burns Wallet Balance and creates a **Voucher**, which is marked redeemed once the perk is claimed.
 6. **Chore Removal**: deleting a chore that has completions archives it, because its completions, the Chore Review and members' points refer to it. Deleting a chore that was never completed removes it from the database, along with any tags no other chore uses.
-   - *Amended 2026-11-07*: originally every deletion archived the chore. A never-completed chore leaves nothing behind for history or reviews, and there is no way to restore an archived chore, so archiving it only left dead rows and unused tags. A migration removed the archived chores that had no completions, and every tag no chore used. If a completion lands between the check and the delete, its foreign key refuses the delete and the chore is archived instead.
+   - *Amended 2026-11-07*: originally every deletion archived the chore. A never-completed chore leaves nothing behind for history or reviews, and there is no way to restore an archived chore, so archiving it only left dead rows and unused tags. A migration removed the archived chores that had no completions, and every tag no chore used. If a completion lands while the chore is being deleted, the completions foreign key refuses the delete and the request fails; this is too rare in a household to handle.
 
 The terms in bold are defined in [CONTEXT.md](../../CONTEXT.md).
 

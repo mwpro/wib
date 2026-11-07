@@ -48,8 +48,11 @@ public class ChoreHistoryEndpointTests : IClassFixture<WibWebApplicationFactory>
         return chore.Id;
     }
 
-    private async Task<int> SeedArchivedChore() =>
-        (await _factory.Seed(A.Chore().Archived().Build())).Id;
+    private async Task<int> SeedArchivedChore()
+    {
+        var member = await _factory.Seed(A.Member().Build());
+        return (await _factory.Seed(A.Chore().CompletedBy(member).Archived().Build())).Id;
+    }
 
     // ---- GET /api/chores/{id}/completions ----
 

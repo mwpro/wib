@@ -129,41 +129,18 @@ public static class ChoreEndpoints
                 return ChoreErrors.NotFound.ToProblem();
             }
 
-            var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-            var hasCompletions = await db.ChoreCompletions.AnyAsync(cc => cc.ChoreId == id, cancellationToken);
-
-            if (chore.Remove(hasCompletions, nowUtc) == ChoreRemoval.Archived)
+            if (chore.Remove(timeProvider.GetUtcNow().UtcDateTime) == ChoreRemovalResult.Deleted)
             {
-                await db.SaveChangesAsync(cancellationToken);
-                return Results.NoContent();
+                var tagIds = chore.Tags.Select(t => t.Id).ToList();
+                var unusedTags = await db.Tags
+                    .Where(t => tagIds.Contains(t.Id) && t.Chores.All(c => c.Id == id))
+                    .ToListAsync(cancellationToken);
+
+                db.Chores.Remove(chore);
+                db.Tags.RemoveRange(unusedTags);
             }
 
-            // Tags only this chore used would be left behind with no chore to filter by.
-            var tagIds = chore.Tags.Select(t => t.Id).ToList();
-            var unusedTags = await db.Tags
-                .Where(t => tagIds.Contains(t.Id) && t.Chores.All(c => c.Id == id))
-                .ToListAsync(cancellationToken);
-
-            db.Chores.Remove(chore);
-            db.Tags.RemoveRange(unusedTags);
-
-            try
-            {
-                await db.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateException)
-            {
-                // A completion landed after the check, and its foreign key refuses the delete: archive instead.
-                db.ChangeTracker.Clear();
-                var current = await db.Chores.FirstOrDefaultAsync(c => c.Id == id && !c.IsArchived, cancellationToken);
-                if (current == null)
-                {
-                    return ChoreErrors.NotFound.ToProblem();
-                }
-
-                current.Archive(nowUtc);
-                await db.SaveChangesAsync(cancellationToken);
-            }
+            await db.SaveChangesAsync(cancellationToken);
 
             return Results.NoContent();
         })

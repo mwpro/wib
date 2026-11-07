@@ -28,26 +28,27 @@ public class ChoreEntityTests
     }
 
     [Fact]
-    public void Remove_WhenNeverCompleted_ShouldAskForDeletionAndLeaveChoreUnchanged()
+    public void Remove_WhenNeverCompleted_ShouldReturnDeletedAndLeaveChoreUnchanged()
     {
         var chore = Chore.Create("Mycie okien", null, 2, 30, DateTime.UtcNow).Value;
 
-        var removal = chore.Remove(hasCompletions: false, DateTime.UtcNow);
+        var result = chore.Remove(DateTime.UtcNow);
 
-        removal.Should().Be(ChoreRemoval.Delete);
+        result.Should().Be(ChoreRemovalResult.Deleted);
         chore.IsArchived.Should().BeFalse();
         chore.UpdatedAt.Should().BeNull();
     }
 
     [Fact]
-    public void Remove_WithCompletions_ShouldArchive()
+    public void Remove_AfterCompletion_ShouldArchive()
     {
         var now = DateTime.UtcNow;
         var chore = Chore.Create("Mycie okien", null, 2, 30, now.AddDays(-5)).Value;
+        chore.Complete(Member.Create("test-member", "Test Member", now.AddDays(-10)), now.AddDays(-1));
 
-        var removal = chore.Remove(hasCompletions: true, now);
+        var result = chore.Remove(now);
 
-        removal.Should().Be(ChoreRemoval.Archived);
+        result.Should().Be(ChoreRemovalResult.Archived);
         chore.IsArchived.Should().BeTrue();
         chore.UpdatedAt.Should().Be(now);
     }
