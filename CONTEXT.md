@@ -37,6 +37,9 @@
   * Outcome labels: Fresh → "Przed czasem", Due Soon → "W terminie", Overdue → "Z opóźnieniem", Neglected → "Mocno spóźnione". A chore without a cadence gets `Unscheduled` and no label.
   * *On time* ("na czas"): Przed czasem + W terminie. The on-time share is taken over judged completions only; completions made while the chore had no cadence (`Unscheduled`) count neither for nor against it, though they still count toward the total.
 * **Completion History**: A read-only, per-chore view of its Chore Completions, opened from "Historia" in the chore card menu. It lists completions newest first, grouped by `Europe/Warsaw` month, showing date, member, points, gap since the previous completion, and outcome. Its summary covers all time: total, outcome counts, on-time share, and how completions split between members (counts only — no per-member performance).
+* **Chore Removal** ("Usuń" in the card menu): takes a chore off the backlog. What happens depends on its history (see [ADR 0002](docs/adr/0002-gamification-and-chore-lifecycle.md)):
+  * *Archived Chore*: a chore removed after at least one completion. It stays in the database, hidden from the backlog, Completion History and editing, so its completions, the Chore Review and members' points stay intact. It cannot be restored.
+  * A chore that was never completed is deleted outright, along with any of its tags that no other chore (active or archived) uses.
 * **Tag**: A multi-label category attached to chores for filtering (e.g. `kuchnia`, `sprzątanie`, `ogród`, `konserwacja`).
 
 ### 3. Gamification & Economy

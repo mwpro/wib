@@ -86,10 +86,14 @@ public class Chore
         return Result.Success;
     }
 
-    public void Archive(DateTime nowUtc)
+    public ChoreRemovalResult Remove(DateTime nowUtc)
     {
+        if (LastCompletedAt is null)
+            return ChoreRemovalResult.Deleted;
+
         IsArchived = true;
         UpdatedAt = nowUtc;
+        return ChoreRemovalResult.Archived;
     }
 
     public ChoreCompletion Complete(Member member, DateTime completedAtUtc)

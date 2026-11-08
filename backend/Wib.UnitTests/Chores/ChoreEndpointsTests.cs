@@ -18,6 +18,12 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
         _factory = factory;
     }
 
+    private async Task<int> SeedArchivedChore()
+    {
+        var member = await _factory.Seed(A.Member().Build());
+        return (await _factory.Seed(A.Chore().CompletedBy(member).Archived().Build())).Id;
+    }
+
     [Fact]
     public async Task ChoresEndpoints_WithoutAuthentication_ShouldReturnUnauthorized()
     {
@@ -303,7 +309,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = _factory.CreateAuthenticatedClient();
-        var archivedId = (await _factory.Seed(A.Chore().Archived().Build())).Id;
+        var archivedId = await SeedArchivedChore();
 
         var request = new UpdateChoreRequest("Update", null, 1, 1, null);
 
@@ -316,7 +322,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     }
 
     [Fact]
-    public async Task DeleteChore_ShouldSoftDeleteAndExcludeFromGet()
+    public async Task DeleteChore_WhenNeverCompleted_ShouldHardDeleteAndExcludeFromGet()
     {
         // Arrange
         var client = _factory.CreateAuthenticatedClient();
@@ -327,25 +333,72 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
 
         // Assert
         deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        await _factory.ExecuteDbContext(async db =>
+            (await db.Chores.FindAsync(choreId)).Should().BeNull());
 
-        // Verify in DB that it is soft-deleted
+        var list = await client.GetFromJsonAsync<List<ChoreResponse>>("/api/chores", _jsonOptions);
+        list.Should().NotContain(c => c.Id == choreId);
+
+        var reDeleteResponse = await client.DeleteAsync($"/api/chores/{choreId}");
+        await reDeleteResponse.ShouldBeProblem(ChoreErrors.NotFound);
+    }
+
+    [Fact]
+    public async Task DeleteChore_WithCompletions_ShouldArchiveAndKeepCompletions()
+    {
+        // Arrange
+        var client = _factory.CreateAuthenticatedClient("delete-archive-member");
+        var choreId = (await _factory.Seed(A.Chore().Build())).Id;
+        (await client.PostAsync($"/api/chores/{choreId}/completion", null)).EnsureSuccessStatusCode();
+
+        // Act
+        var deleteResponse = await client.DeleteAsync($"/api/chores/{choreId}");
+
+        // Assert
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
         await _factory.ExecuteDbContext(async db =>
         {
             var entity = await db.Chores.FindAsync(choreId);
             entity.Should().NotBeNull();
             entity.IsArchived.Should().BeTrue();
             entity.UpdatedAt.Should().NotBeNull();
+            (await db.ChoreCompletions.CountAsync(cc => cc.ChoreId == choreId)).Should().Be(1);
         });
 
-        // Verify excluded from GET
-        var getResponse = await client.GetAsync("/api/chores");
-        var list = await getResponse.Content.ReadFromJsonAsync<List<ChoreResponse>>(_jsonOptions);
-        list.Should().NotBeNull();
-        list.Any(c => c.Id == choreId).Should().BeFalse();
+        var list = await client.GetFromJsonAsync<List<ChoreResponse>>("/api/chores", _jsonOptions);
+        list.Should().NotContain(c => c.Id == choreId);
 
-        // Second DELETE should return 404
         var reDeleteResponse = await client.DeleteAsync($"/api/chores/{choreId}");
         await reDeleteResponse.ShouldBeProblem(ChoreErrors.NotFound);
+    }
+
+    [Fact]
+    public async Task DeleteChore_WhenNeverCompleted_ShouldDeleteTagsNoOtherChoreUses()
+    {
+        // Arrange
+        var client = _factory.CreateAuthenticatedClient("delete-tags-member");
+        async Task<int> CreateChore(params string[] tags)
+        {
+            var response = await client.PostAsJsonAsync("/api/chores", new CreateChoreRequest("Tagged", null, Tags: tags));
+            return (await response.Content.ReadFromJsonAsync<ChoreResponse>(_jsonOptions))!.Id;
+        }
+
+        var choreId = await CreateChore("hd-only", "hd-active", "hd-archived");
+        await CreateChore("hd-active");
+        var archivedId = await CreateChore("hd-archived");
+        (await client.PostAsync($"/api/chores/{archivedId}/completion", null)).EnsureSuccessStatusCode();
+        (await client.DeleteAsync($"/api/chores/{archivedId}")).EnsureSuccessStatusCode();
+
+        // Act
+        var deleteResponse = await client.DeleteAsync($"/api/chores/{choreId}");
+
+        // Assert
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        await _factory.ExecuteDbContext(async db =>
+        {
+            var tagNames = await db.Tags.Where(t => t.Name.StartsWith("hd-")).Select(t => t.Name).ToListAsync();
+            tagNames.Should().BeEquivalentTo(["hd-active", "hd-archived"]);
+        });
     }
 
     [Fact]
@@ -366,7 +419,7 @@ public class ChoreEndpointsTests : IClassFixture<WibWebApplicationFactory>
     {
         // Arrange
         var client = _factory.CreateAuthenticatedClient();
-        var archivedId = (await _factory.Seed(A.Chore().Archived().Build())).Id;
+        var archivedId = await SeedArchivedChore();
 
         // Act & Assert - non-existent
         var notFoundRes = await client.PostAsync("/api/chores/999999/completion", null);

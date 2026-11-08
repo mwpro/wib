@@ -121,13 +121,25 @@ public static class ChoreEndpoints
             [FromServices] TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
-            var chore = await db.Chores.FirstOrDefaultAsync(c => c.Id == id && !c.IsArchived, cancellationToken);
+            var chore = await db.Chores
+                .Include(c => c.Tags)
+                .FirstOrDefaultAsync(c => c.Id == id && !c.IsArchived, cancellationToken);
             if (chore == null)
             {
                 return ChoreErrors.NotFound.ToProblem();
             }
 
-            chore.Archive(timeProvider.GetUtcNow().UtcDateTime);
+            if (chore.Remove(timeProvider.GetUtcNow().UtcDateTime) == ChoreRemovalResult.Deleted)
+            {
+                var tagIds = chore.Tags.Select(t => t.Id).ToList();
+                var unusedTags = await db.Tags
+                    .Where(t => tagIds.Contains(t.Id) && t.Chores.All(c => c.Id == id))
+                    .ToListAsync(cancellationToken);
+
+                db.Chores.Remove(chore);
+                db.Tags.RemoveRange(unusedTags);
+            }
+
             await db.SaveChangesAsync(cancellationToken);
 
             return Results.NoContent();

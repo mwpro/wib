@@ -27,6 +27,32 @@ public class ChoreEntityTests
         completion.CompletedAt.Should().Be(now);
     }
 
+    [Fact]
+    public void Remove_WhenNeverCompleted_ShouldReturnDeletedAndLeaveChoreUnchanged()
+    {
+        var chore = Chore.Create("Mycie okien", null, 2, 30, DateTime.UtcNow).Value;
+
+        var result = chore.Remove(DateTime.UtcNow);
+
+        result.Should().Be(ChoreRemovalResult.Deleted);
+        chore.IsArchived.Should().BeFalse();
+        chore.UpdatedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void Remove_AfterCompletion_ShouldArchive()
+    {
+        var now = DateTime.UtcNow;
+        var chore = Chore.Create("Mycie okien", null, 2, 30, now.AddDays(-5)).Value;
+        chore.Complete(Member.Create("test-member", "Test Member", now.AddDays(-10)), now.AddDays(-1));
+
+        var result = chore.Remove(now);
+
+        result.Should().Be(ChoreRemovalResult.Archived);
+        chore.IsArchived.Should().BeTrue();
+        chore.UpdatedAt.Should().Be(now);
+    }
+
     public static TheoryData<string, string?, int, int?, string> InvalidInput => new()
     {
         { "", null, 1, 7, "Chore.TitleRequired" },
